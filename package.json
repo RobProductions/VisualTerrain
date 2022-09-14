@@ -1,0 +1,21 @@
+{
+  "name": "com.robproductions.visualterrain",
+  "version": "0.1.0",
+  "displayName": "Visual Terrain",
+  "description": "An open source node-based Terrain generator for Unity.",
+  "unity": "2020.3",
+  "changelogUrl": "https://github.com/RobProductions/VisualTerrain",
+  "licensesUrl": "https://github.com/RobProductions/VisualTerrain/blob/main/LICENSE",
+  "license": "MIT License",
+  "keywords": [
+    "visual",
+    "terrain",
+	"generator",
+    "node",
+	"graph"
+  ],
+  "author": {
+    "name": "RobProductions",
+    "url": "https://github.com/RobProductions"
+  }
+}
