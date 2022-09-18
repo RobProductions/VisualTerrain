@@ -11,8 +11,8 @@ namespace RobProductions.VisualTerrain
 	{
 		public class GeneratorWindowData
 		{
-			public Vector2 offset = Vector2.zero;
-			public Vector2 drag = Vector2.zero;
+			public Vector2 viewOffsetPos = Vector2.zero;
+			public Vector2 userInputDrag = Vector2.zero;
 		}
 
 		private GeneratorWindowData data = new GeneratorWindowData();
@@ -83,6 +83,8 @@ namespace RobProductions.VisualTerrain
 			DrawNodes();
 			DrawConnections();
 
+			DrawConnectionLine(Event.current);
+
 			ProcessNodeEvents(Event.current);
 			ProcessEvents(Event.current);
 
@@ -117,12 +119,24 @@ namespace RobProductions.VisualTerrain
 
 		private void ProcessEvents(Event e)
 		{
+			data.userInputDrag = Vector2.zero;
+
 			switch (e.type)
 			{
 				case EventType.MouseDown:
+					if (e.button == 0)
+					{
+						ClearConnectionSelection();
+					}
 					if (e.button == 1)
 					{
 						ProcessContextMenu(e.mousePosition);
+					}
+					break;
+				case EventType.MouseDrag:
+					if (e.button == 0)
+					{
+						OnDrag(e.delta);
 					}
 					break;
 			}
@@ -243,6 +257,54 @@ namespace RobProductions.VisualTerrain
 			selectedOutPoint = null;
 		}
 
+		private void OnDrag(Vector2 delta)
+		{
+			data.userInputDrag = delta;
+
+			if (nodeList != null)
+			{
+				for (int i = 0; i < nodeList.Count; i++)
+				{
+					nodeList[i].Drag(delta);
+				}
+			}
+
+			GUI.changed = true;
+		}
+
+		private void DrawConnectionLine(Event e)
+		{
+			if (selectedInPoint != null && selectedOutPoint == null)
+			{
+				Handles.DrawBezier(
+					selectedInPoint.rect.center,
+					e.mousePosition,
+					selectedInPoint.rect.center + Vector2.left * 50f,
+					e.mousePosition - Vector2.left * 50f,
+					Color.white,
+					null,
+					2f
+				);
+
+				GUI.changed = true;
+			}
+
+			if (selectedOutPoint != null && selectedInPoint == null)
+			{
+				Handles.DrawBezier(
+					selectedOutPoint.rect.center,
+					e.mousePosition,
+					selectedOutPoint.rect.center - Vector2.left * 50f,
+					e.mousePosition + Vector2.left * 50f,
+					Color.white,
+					null,
+					2f
+				);
+
+				GUI.changed = true;
+			}
+		}
+
 		//BG
 
 		private void DrawBackgroundColor()
@@ -259,8 +321,8 @@ namespace RobProductions.VisualTerrain
 			Handles.BeginGUI();
 			Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
 
-			data.offset += data.drag * 0.5f;
-			Vector3 newOffset = new Vector3(data.offset.x % gridSpacing, data.offset.y % gridSpacing, 0);
+			data.viewOffsetPos += data.userInputDrag * 0.5f;
+			Vector3 newOffset = new Vector3(data.viewOffsetPos.x % gridSpacing, data.viewOffsetPos.y % gridSpacing, 0);
 
 			for (int i = 0; i < widthDivs; i++)
 			{
