@@ -48,11 +48,13 @@ namespace RobProductions.VisualTerrain
 		private void OnEnable()
 		{
 			styles.defaultNodeStyle = new GUIStyle();
-			styles.defaultNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+			//styles.defaultNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+			styles.defaultNodeStyle.normal.background = EditorGUIUtility.Load("btn on@2x") as Texture2D;
 			styles.defaultNodeStyle.border = new RectOffset(12, 12, 12, 12);
 
 			styles.selectedNodeStyle = new GUIStyle();
-			styles.selectedNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1 on.png") as Texture2D;
+			//styles.selectedNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1 on.png") as Texture2D;
+			styles.selectedNodeStyle.normal.background = EditorGUIUtility.Load("btn on focus@2x") as Texture2D;
 			styles.selectedNodeStyle.border = new RectOffset(12, 12, 12, 12);
 
 			styles.inPointStyle = new GUIStyle();

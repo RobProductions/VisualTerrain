@@ -19,19 +19,25 @@ namespace RobProductions.VisualTerrain
 
 		public System.Action<VTGeneratorWindowNode> OnRemoveNode;
 
-		public GUIStyle style;
-		public GUIStyle defaultNodeStyle;
-		public GUIStyle selectedNodeStyle;
+		[System.Serializable]
+		public class WindowNodeStyles
+		{
+			public GUIStyle style;
+			public GUIStyle defaultNodeStyle;
+			public GUIStyle selectedNodeStyle;
+		}
+
+		public WindowNodeStyles styles = new WindowNodeStyles();
 
 		//INIT
 
-		public VTGeneratorWindowNode(Vector2 position, float width, float height, GUIStyle nodeStyle, GUIStyle selectedStyle,
+		public VTGeneratorWindowNode(Vector2 position, float width, float height, GUIStyle defaultStyle, GUIStyle selectedStyle,
 			System.Action<VTGeneratorWindowNode> OnClickRemoveNode)
 		{
 			rect = new Rect(position.x, position.y, width, height);
-			style = nodeStyle;
-			defaultNodeStyle = nodeStyle;
-			selectedNodeStyle = selectedStyle;
+			styles.style = defaultStyle;
+			styles.defaultNodeStyle = defaultStyle;
+			styles.selectedNodeStyle = selectedStyle;
 			OnRemoveNode = OnClickRemoveNode;
 		}
 
@@ -72,7 +78,7 @@ namespace RobProductions.VisualTerrain
 
 		public void Draw()
 		{
-			GUI.Box(rect, title, style);
+			GUI.Box(rect, title, styles.style);
 			foreach(VTGeneratorNodeAttachPoint point in inputPoints)
 			{
 				point.Draw();
@@ -95,13 +101,13 @@ namespace RobProductions.VisualTerrain
 							isDragged = true;
 							GUI.changed = true;
 							isSelected = true;
-							style = selectedNodeStyle;
+							styles.style = styles.selectedNodeStyle;
 						}
 						else
 						{
 							GUI.changed = true;
 							isSelected = false;
-							style = defaultNodeStyle;
+							styles.style = styles.defaultNodeStyle;
 						}
 					}
 					if (e.button == 1 && isSelected && rect.Contains(e.mousePosition))
