@@ -27,23 +27,27 @@ namespace RobProductions.VisualTerrain
 			public GUIStyle selectedNodeStyle;
 		}
 
-		public WindowNodeStyles styles = new WindowNodeStyles();
+		public WindowNodeStyles styles;
+
+		public VTGeneratorWindow parentWindow;
 
 		//INIT
 
 		public VTGeneratorWindowNode(Vector2 position, float width, float height, GUIStyle defaultStyle, GUIStyle selectedStyle,
-			System.Action<VTGeneratorWindowNode> OnClickRemoveNode)
+			System.Action<VTGeneratorWindowNode> OnClickRemoveNode, VTGeneratorWindow window)
 		{
+			styles = new WindowNodeStyles();
+
 			rect = new Rect(position.x, position.y, width, height);
 			styles.style = defaultStyle;
 			styles.defaultNodeStyle = defaultStyle;
 			styles.selectedNodeStyle = selectedStyle;
 			OnRemoveNode = OnClickRemoveNode;
+			parentWindow = window;
 		}
 
 		public void SetupAttachPoints(
 			int inPointCount, int outPointCount,
-			GUIStyle inPointStyle, GUIStyle outPointStyle,
 			System.Action<VTGeneratorNodeAttachPoint> OnClickInPoint, System.Action<VTGeneratorNodeAttachPoint> OnClickOutPoint)
 		{
 			inputPoints = new List<VTGeneratorNodeAttachPoint>();
@@ -52,7 +56,7 @@ namespace RobProductions.VisualTerrain
 			for(int i = 0; i < inPointCount; i++)
 			{
 				var newPoint = new VTGeneratorNodeAttachPoint(
-					this, VTGeneratorNodeAttachPoint.AttachPointType.Input, inPointStyle,
+					this, VTGeneratorNodeAttachPoint.AttachPointType.Input,
 					OnClickInPoint);
 
 				inputPoints.Add(newPoint);
@@ -60,7 +64,7 @@ namespace RobProductions.VisualTerrain
 			for (int i = 0; i < outPointCount; i++)
 			{
 				var newPoint = new VTGeneratorNodeAttachPoint(
-					this, VTGeneratorNodeAttachPoint.AttachPointType.Output, outPointStyle,
+					this, VTGeneratorNodeAttachPoint.AttachPointType.Output,
 					OnClickOutPoint);
 
 				outputPoints.Add(newPoint);
@@ -91,6 +95,14 @@ namespace RobProductions.VisualTerrain
 
 		public bool ProcessEvents(Event e)
 		{
+			foreach (VTGeneratorNodeAttachPoint point in inputPoints)
+			{
+				point.ProcessAttachEvents(e);
+			}
+			foreach (VTGeneratorNodeAttachPoint point in outputPoints)
+			{
+				point.ProcessAttachEvents(e);
+			}
 			switch (e.type)
 			{
 				case EventType.MouseDown:
