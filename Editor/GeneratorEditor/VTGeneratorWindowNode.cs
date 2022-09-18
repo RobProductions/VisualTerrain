@@ -12,23 +12,75 @@ namespace RobProductions.VisualTerrain
 		public Rect rect;
 		public string title;
 		public bool isDragged;
+		public bool isSelected;
+
+		public List<VTGeneratorNodeAttachPoint> inputPoints;
+		public List<VTGeneratorNodeAttachPoint> outputPoints;
+
+		public System.Action<VTGeneratorWindowNode> OnRemoveNode;
 
 		public GUIStyle style;
+		public GUIStyle defaultNodeStyle;
+		public GUIStyle selectedNodeStyle;
 
-		public VTGeneratorWindowNode(Vector2 position, float width, float height, GUIStyle nodeStyle)
+		//INIT
+
+		public VTGeneratorWindowNode(Vector2 position, float width, float height, GUIStyle nodeStyle, GUIStyle selectedStyle,
+			System.Action<VTGeneratorWindowNode> OnClickRemoveNode)
 		{
 			rect = new Rect(position.x, position.y, width, height);
 			style = nodeStyle;
+			defaultNodeStyle = nodeStyle;
+			selectedNodeStyle = selectedStyle;
+			OnRemoveNode = OnClickRemoveNode;
 		}
+
+		public void SetupAttachPoints(
+			int inPointCount, int outPointCount,
+			GUIStyle inPointStyle, GUIStyle outPointStyle,
+			System.Action<VTGeneratorNodeAttachPoint> OnClickInPoint, System.Action<VTGeneratorNodeAttachPoint> OnClickOutPoint)
+		{
+			inputPoints = new List<VTGeneratorNodeAttachPoint>();
+			outputPoints = new List<VTGeneratorNodeAttachPoint>();
+
+			for(int i = 0; i < inPointCount; i++)
+			{
+				var newPoint = new VTGeneratorNodeAttachPoint(
+					this, VTGeneratorNodeAttachPoint.AttachPointType.Input, inPointStyle,
+					OnClickInPoint);
+
+				inputPoints.Add(newPoint);
+			}
+			for (int i = 0; i < outPointCount; i++)
+			{
+				var newPoint = new VTGeneratorNodeAttachPoint(
+					this, VTGeneratorNodeAttachPoint.AttachPointType.Output, outPointStyle,
+					OnClickOutPoint);
+
+				outputPoints.Add(newPoint);
+			}
+		}
+
+		//MOVEMENT
 
 		public void Drag(Vector2 delta)
 		{
 			rect.position += delta;
 		}
 
+		//RENDERING
+
 		public void Draw()
 		{
 			GUI.Box(rect, title, style);
+			foreach(VTGeneratorNodeAttachPoint point in inputPoints)
+			{
+				point.Draw();
+			}
+			foreach(VTGeneratorNodeAttachPoint point in outputPoints)
+			{
+				point.Draw();
+			}
 		}
 
 		public bool ProcessEvents(Event e)
@@ -42,11 +94,20 @@ namespace RobProductions.VisualTerrain
 						{
 							isDragged = true;
 							GUI.changed = true;
+							isSelected = true;
+							style = selectedNodeStyle;
 						}
 						else
 						{
 							GUI.changed = true;
+							isSelected = false;
+							style = defaultNodeStyle;
 						}
+					}
+					if (e.button == 1 && isSelected && rect.Contains(e.mousePosition))
+					{
+						ProcessContextMenu();
+						e.Use();
 					}
 					break;
 				case EventType.MouseUp:
@@ -63,6 +124,21 @@ namespace RobProductions.VisualTerrain
 			}
 
 			return false;
+		}
+
+		private void ProcessContextMenu()
+		{
+			GenericMenu genericMenu = new GenericMenu();
+			genericMenu.AddItem(new GUIContent("Remove node"), false, OnClickRemoveNode);
+			genericMenu.ShowAsContext();
+		}
+
+		private void OnClickRemoveNode()
+		{
+			if (OnRemoveNode != null)
+			{
+				OnRemoveNode(this);
+			}
 		}
 	}
 }

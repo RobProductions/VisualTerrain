@@ -20,13 +20,23 @@ namespace RobProductions.VisualTerrain
 		public class GeneratorWindowStyles
 		{
 			public GUIStyle windowBgStyle;
+
+			public GUIStyle defaultNodeStyle;
+			public GUIStyle selectedNodeStyle;
+
+			public GUIStyle inPointStyle;
+			public GUIStyle outPointStyle;
 		}
 
-		private GeneratorWindowStyles styles = new GeneratorWindowStyles(); 
+		private GeneratorWindowStyles styles = new GeneratorWindowStyles();
+
+
+		private VTGeneratorNodeAttachPoint selectedInPoint;
+		private VTGeneratorNodeAttachPoint selectedOutPoint;
 
 		private List<VTGeneratorWindowNode> nodeList = new List<VTGeneratorWindowNode>();
+		private List<VTGeneratorNodeConnection> connections;
 
-		private GUIStyle nodeStyle;
 
 		[MenuItem("Window/Visual Terrain/Terrain Generator Editor")]
 		private static void OpenWindow()
@@ -37,9 +47,23 @@ namespace RobProductions.VisualTerrain
 
 		private void OnEnable()
 		{
-			nodeStyle = new GUIStyle();
-			nodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
-			nodeStyle.border = new RectOffset(12, 12, 12, 12);
+			styles.defaultNodeStyle = new GUIStyle();
+			styles.defaultNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+			styles.defaultNodeStyle.border = new RectOffset(12, 12, 12, 12);
+
+			styles.selectedNodeStyle = new GUIStyle();
+			styles.selectedNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1 on.png") as Texture2D;
+			styles.selectedNodeStyle.border = new RectOffset(12, 12, 12, 12);
+
+			styles.inPointStyle = new GUIStyle();
+			styles.inPointStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/btn left.png") as Texture2D;
+			styles.inPointStyle.active.background = EditorGUIUtility.Load("builtin skins/darkskin/images/btn left on.png") as Texture2D;
+			styles.inPointStyle.border = new RectOffset(4, 4, 12, 12);
+
+			styles.outPointStyle = new GUIStyle();
+			styles.outPointStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/btn right.png") as Texture2D;
+			styles.outPointStyle.active.background = EditorGUIUtility.Load("builtin skins/darkskin/images/btn right on.png") as Texture2D;
+			styles.outPointStyle.border = new RectOffset(4, 4, 12, 12);
 
 			styles.windowBgStyle = new GUIStyle();
 			var bgTex = new Texture2D(1, 1);
@@ -57,11 +81,15 @@ namespace RobProductions.VisualTerrain
 			DrawGrid(80, 0.25f, Color.black);
 
 			DrawNodes();
+			DrawConnections();
 
 			ProcessNodeEvents(Event.current);
 			ProcessEvents(Event.current);
 
-			if (GUI.changed) Repaint();
+			if (GUI.changed)
+			{
+				Repaint();
+			}
 		}
 
 		private void DrawNodes()
@@ -72,6 +100,17 @@ namespace RobProductions.VisualTerrain
 				{
 					var thisNode = nodeList[i];
 					thisNode.Draw();
+				}
+			}
+		}
+
+		private void DrawConnections()
+		{
+			if (connections != null)
+			{
+				for (int i = 0; i < connections.Count; i++)
+				{
+					connections[i].Draw();
 				}
 			}
 		}
@@ -119,7 +158,89 @@ namespace RobProductions.VisualTerrain
 				nodeList = new List<VTGeneratorWindowNode>();
 			}
 
-			nodeList.Add(new VTGeneratorWindowNode(mousePosition, 200, 50, nodeStyle));
+			var newNode = new VTGeneratorWindowNode(mousePosition, 200, 50, styles.defaultNodeStyle, styles.selectedNodeStyle, OnClickRemoveNode);
+			newNode.SetupAttachPoints(1, 1, styles.inPointStyle, styles.outPointStyle, OnClickInPoint, OnClickOutPoint);
+			nodeList.Add(newNode);
+		}
+
+		private void OnClickInPoint(VTGeneratorNodeAttachPoint inPoint)
+		{
+			selectedInPoint = inPoint;
+
+			if (selectedOutPoint != null)
+			{
+				if (selectedOutPoint.parentNode != selectedInPoint.parentNode)
+				{
+					CreateConnection();
+					ClearConnectionSelection();
+				}
+				else
+				{
+					ClearConnectionSelection();
+				}
+			}
+		}
+
+		private void OnClickOutPoint(VTGeneratorNodeAttachPoint outPoint)
+		{
+			selectedOutPoint = outPoint;
+
+			if (selectedInPoint != null)
+			{
+				if (selectedOutPoint.parentNode != selectedInPoint.parentNode)
+				{
+					CreateConnection();
+					ClearConnectionSelection();
+				}
+				else
+				{
+					ClearConnectionSelection();
+				}
+			}
+		}
+
+		private void OnClickRemoveNode(VTGeneratorWindowNode node)
+		{
+			if (connections != null)
+			{
+				List<VTGeneratorNodeConnection> connectionsToRemove = new List<VTGeneratorNodeConnection>();
+
+				for (int i = 0; i < connections.Count; i++)
+				{
+					if (node.inputPoints.Contains(connections[i].inPoint) || node.outputPoints.Contains(connections[i].outPoint))
+					{
+						connectionsToRemove.Add(connections[i]);
+					}
+				}
+
+				for (int i = 0; i < connectionsToRemove.Count; i++)
+				{
+					connections.Remove(connectionsToRemove[i]);
+				}
+			}
+
+			nodeList.Remove(node);
+		}
+
+		private void OnClickRemoveConnection(VTGeneratorNodeConnection connection)
+		{
+			connections.Remove(connection);
+		}
+
+		private void CreateConnection()
+		{
+			if (connections == null)
+			{
+				connections = new List<VTGeneratorNodeConnection>();
+			}
+
+			connections.Add(new VTGeneratorNodeConnection(selectedInPoint, selectedOutPoint, OnClickRemoveConnection));
+		}
+
+		private void ClearConnectionSelection()
+		{
+			selectedInPoint = null;
+			selectedOutPoint = null;
 		}
 
 		//BG
