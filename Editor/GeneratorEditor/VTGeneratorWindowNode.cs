@@ -29,6 +29,12 @@ namespace RobProductions.VisualTerrain
 
 		public WindowNodeStyles styles;
 
+		public class WindowNodeReference
+		{
+			public Rect rect;
+			public string title;
+		}
+
 		public VTGeneratorWindow parentWindow;
 
 		//INIT
@@ -157,6 +163,23 @@ namespace RobProductions.VisualTerrain
 			{
 				OnRemoveNode(this);
 			}
+		}
+
+		//REFERENCE
+
+		public WindowNodeReference GetNodeReference()
+		{
+			var newRef = new WindowNodeReference();
+			newRef.rect = rect;
+			newRef.title = title;
+
+			return newRef;
+		}
+
+		public void SetNodeReference(WindowNodeReference v)
+		{
+			rect = v.rect;
+			title = v.title;
 		}
 	}
 }

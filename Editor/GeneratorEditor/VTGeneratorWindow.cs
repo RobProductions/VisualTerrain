@@ -4,6 +4,7 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.Modules;
 
 namespace RobProductions.VisualTerrain
 {
@@ -62,7 +63,9 @@ namespace RobProductions.VisualTerrain
 		private VTGeneratorNodeAttachPoint selectedOutPoint;
 
 		private List<VTGeneratorWindowNode> nodeList = new List<VTGeneratorWindowNode>();
-		private List<VTGeneratorNodeConnection> connections;
+		private List<VTGeneratorNodeConnection> connections = new List<VTGeneratorNodeConnection>();
+
+		private VTGeneratorAsset asset;
 
 
 		[MenuItem("Window/Visual Terrain/Terrain Generator Editor")]
@@ -77,6 +80,52 @@ namespace RobProductions.VisualTerrain
 			styles = new GeneratorWindowStyles();
 		}
 
+		[UnityEditor.Callbacks.OnOpenAsset(1)]
+		public static bool OnOpenAsset(int instanceID, int line)
+		{
+			string assetPath = AssetDatabase.GetAssetPath(instanceID);
+			
+			VTGeneratorAsset scriptableObject = AssetDatabase.LoadAssetAtPath<VTGeneratorAsset>(assetPath);
+			if (scriptableObject != null)
+			{
+				VTGeneratorWindow window = (VTGeneratorWindow)GetWindow(typeof(VTGeneratorWindow));
+				window.SetGeneratorAsset(scriptableObject);
+				window.Show();
+				return true;
+			}
+			//Let Unity open instead
+			return false;
+		}
+
+		public void SetGeneratorAsset(VTGeneratorAsset v)
+		{
+			asset = v;
+			ClearWindowReference();
+			LoadAssetReference(v);
+		}
+
+		void ClearWindowReference()
+		{
+			nodeList.Clear();
+			connections.Clear();
+			selectedInPoint = null;
+			selectedOutPoint = null;
+			data.draggingConnection = false;
+		}
+
+		void LoadAssetReference(VTGeneratorAsset v)
+		{
+			if(v != null)
+			{
+				for (int i = 0; i < v.nodeData.nodeReferences.Count; i++)
+				{
+					var thisNode = v.nodeData.nodeReferences[i];
+					var newNode = AddNode(Vector2.zero);
+					newNode.SetNodeReference(thisNode);
+				}
+			}
+		}
+
 		//RENDERING
 
 		private void OnGUI()
@@ -89,6 +138,10 @@ namespace RobProductions.VisualTerrain
 			DrawConnections();
 
 			DrawConnectionLine(Event.current);
+
+			DrawToolbar();
+			GUILayout.FlexibleSpace();
+			DrawBottomContents();
 
 			ProcessNodeEvents(Event.current);
 			ProcessEvents(Event.current);
@@ -153,6 +206,36 @@ namespace RobProductions.VisualTerrain
 
 				GUI.changed = true;
 			}
+		}
+
+		private void DrawToolbar()
+		{
+			GUILayout.BeginHorizontal(EditorStyles.toolbar);
+			{
+				
+				GUILayout.FlexibleSpace();
+				if (GUILayout.Button("Focus view", EditorStyles.miniButton))
+				{
+
+				}
+
+			}
+			GUILayout.EndHorizontal();
+		}
+
+		private void DrawBottomContents()
+		{
+			GUILayout.BeginHorizontal(EditorStyles.label);
+			{
+				GUILayout.FlexibleSpace();
+				string assetName = "No Asset";
+				if(asset)
+				{
+					assetName = asset.name;
+				}
+				GUILayout.Label(assetName, EditorStyles.miniButton);
+			}
+			GUILayout.EndHorizontal();
 		}
 
 		//EVENTS
@@ -238,10 +321,17 @@ namespace RobProductions.VisualTerrain
 				nodeList = new List<VTGeneratorWindowNode>();
 			}
 
-			var newNode = new VTGeneratorWindowNode(mousePosition, 200, 50, styles.defaultNodeStyle, styles.selectedNodeStyle, OnClickRemoveNode,
+			AddNode(mousePosition);
+		}
+
+		private VTGeneratorWindowNode AddNode(Vector2 pos)
+		{
+			var newNode = new VTGeneratorWindowNode(pos, 200, 50, styles.defaultNodeStyle, styles.selectedNodeStyle, OnClickRemoveNode,
 				this);
 			newNode.SetupAttachPoints(1, 1, OnClickInPoint, OnClickOutPoint);
 			nodeList.Add(newNode);
+
+			return newNode;
 		}
 
 		private void OnClickInPoint(VTGeneratorNodeAttachPoint inPoint)
