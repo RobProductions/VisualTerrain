@@ -2,11 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
+#endif
 
-namespace RobProductions.VisualTerrain
+namespace RobProductions.VisualTerrain.Editor
 {
 
 	public class VTGeneratorNodeConnection
@@ -46,5 +46,3 @@ namespace RobProductions.VisualTerrain
 
 	}
 }
-
-#endif

@@ -4,8 +4,9 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
+#endif
 
-namespace RobProductions.VisualTerrain
+namespace RobProductions.VisualTerrain.Editor
 {
 	public class VTGeneratorNodeAttachPoint
 	{
@@ -51,6 +52,7 @@ namespace RobProductions.VisualTerrain
 		{
 			public bool hasConnection = false;
 			public bool dragged = false;
+			public int pointIndex = 0;
 
 			public System.Action<VTGeneratorNodeAttachPoint> OnClickConnectionPoint;
 		}
@@ -59,7 +61,7 @@ namespace RobProductions.VisualTerrain
 
 
 		public VTGeneratorNodeAttachPoint(VTGeneratorWindowNode node, AttachPointType type,
-			System.Action<VTGeneratorNodeAttachPoint> OnClickConnectionPoint)
+			System.Action<VTGeneratorNodeAttachPoint> OnClickConnectionPoint, int pointIndex)
 		{
 			styles = new AttachPointStyles();
 			data = new AttachPointData();
@@ -67,6 +69,7 @@ namespace RobProductions.VisualTerrain
 			this.parentNode = node;
 			this.attachType = type;
 			data.OnClickConnectionPoint = OnClickConnectionPoint;
+			data.pointIndex = pointIndex;
 			rect = new Rect(0, 0, 18f, 18f);
 		}
 
@@ -156,5 +159,3 @@ namespace RobProductions.VisualTerrain
 		}
 	}
 }
-
-#endif

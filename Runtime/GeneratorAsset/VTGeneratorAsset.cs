@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace RobProductions.VisualTerrain
+namespace RobProductions.VisualTerrain.Runtime
 {
 	/// <summary>
 	/// This asset represents one entire project for managing terrain.
@@ -14,10 +14,18 @@ namespace RobProductions.VisualTerrain
 	[CreateAssetMenu(fileName = "Visual Terrain Asset", menuName = "VisualTerrain/VT Generator Asset", order = 0)]
 	public class VTGeneratorAsset : ScriptableObject
 	{
+		[System.Serializable]
+		public class AssetViewportData
+		{
+			public Vector2 offsetPos;
+		}
+
+		public AssetViewportData viewportData = new AssetViewportData();
+
+		[System.Serializable]
 		public class AssetNodeData
 		{
-			public List<VTGeneratorWindowNode.WindowNodeReference> nodeReferences
-				= new List<VTGeneratorWindowNode.WindowNodeReference>();
+			public List<WindowNodeReference> nodeReferences = new List<WindowNodeReference>();
 		}
 
 		public AssetNodeData nodeData = new AssetNodeData();

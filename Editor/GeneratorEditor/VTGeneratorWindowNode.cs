@@ -1,25 +1,38 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using RobProductions.VisualTerrain.Runtime;
 
 #if UNITY_EDITOR
 using UnityEditor;
+#endif
 
-namespace RobProductions.VisualTerrain
+namespace RobProductions.VisualTerrain.Editor
 {
 	public class VTGeneratorWindowNode
 	{
 		public Rect rect;
-		public string title;
-		public bool isDragged;
-		public bool isSelected;
 
-		public List<VTGeneratorNodeAttachPoint> inputPoints;
-		public List<VTGeneratorNodeAttachPoint> outputPoints;
+		public class WindowNodeData
+		{
 
-		public System.Action<VTGeneratorWindowNode> OnRemoveNode;
+			public string title;
+			public bool isDragged;
+			public bool isSelected;
 
-		[System.Serializable]
+			public List<VTGeneratorNodeAttachPoint> inputPoints;
+			public List<VTGeneratorNodeAttachPoint> outputPoints;
+
+			public System.Action<VTGeneratorWindowNode> OnRemoveNode;
+
+			public float defaultWidth;
+			public float defaultHeight;
+
+			public string nodeGuid;
+		}
+
+		public WindowNodeData data;
+
 		public class WindowNodeStyles
 		{
 			public GUIStyle style;
@@ -29,12 +42,6 @@ namespace RobProductions.VisualTerrain
 
 		public WindowNodeStyles styles;
 
-		public class WindowNodeReference
-		{
-			public Rect rect;
-			public string title;
-		}
-
 		public VTGeneratorWindow parentWindow;
 
 		//INIT
@@ -43,37 +50,43 @@ namespace RobProductions.VisualTerrain
 			System.Action<VTGeneratorWindowNode> OnClickRemoveNode, VTGeneratorWindow window)
 		{
 			styles = new WindowNodeStyles();
+			data = new WindowNodeData();
+
+			data.defaultWidth = width;
+			data.defaultHeight = height;
 
 			rect = new Rect(position.x, position.y, width, height);
 			styles.style = defaultStyle;
 			styles.defaultNodeStyle = defaultStyle;
 			styles.selectedNodeStyle = selectedStyle;
-			OnRemoveNode = OnClickRemoveNode;
+			data.OnRemoveNode = OnClickRemoveNode;
 			parentWindow = window;
+
+			data.nodeGuid = System.Guid.NewGuid().ToString();
 		}
 
 		public void SetupAttachPoints(
 			int inPointCount, int outPointCount,
 			System.Action<VTGeneratorNodeAttachPoint> OnClickInPoint, System.Action<VTGeneratorNodeAttachPoint> OnClickOutPoint)
 		{
-			inputPoints = new List<VTGeneratorNodeAttachPoint>();
-			outputPoints = new List<VTGeneratorNodeAttachPoint>();
+			data.inputPoints = new List<VTGeneratorNodeAttachPoint>();
+			data.outputPoints = new List<VTGeneratorNodeAttachPoint>();
 
 			for(int i = 0; i < inPointCount; i++)
 			{
 				var newPoint = new VTGeneratorNodeAttachPoint(
 					this, VTGeneratorNodeAttachPoint.AttachPointType.Input,
-					OnClickInPoint);
+					OnClickInPoint, i);
 
-				inputPoints.Add(newPoint);
+				data.inputPoints.Add(newPoint);
 			}
 			for (int i = 0; i < outPointCount; i++)
 			{
 				var newPoint = new VTGeneratorNodeAttachPoint(
 					this, VTGeneratorNodeAttachPoint.AttachPointType.Output,
-					OnClickOutPoint);
+					OnClickOutPoint, i);
 
-				outputPoints.Add(newPoint);
+				data.outputPoints.Add(newPoint);
 			}
 		}
 
@@ -84,16 +97,26 @@ namespace RobProductions.VisualTerrain
 			rect.position += delta;
 		}
 
+		/*
+		public void Zoom(float zoomLevel, float zoomChange, Vector2 centerPoint)
+		{
+			rect.height = zoomLevel * data.defaultHeight;
+			rect.width = zoomLevel * data.defaultWidth;
+
+			rect.position += centerPoint * zoomChange;
+		}
+		*/
+
 		//RENDERING
 
 		public void Draw()
 		{
-			GUI.Box(rect, title, styles.style);
-			foreach(VTGeneratorNodeAttachPoint point in inputPoints)
+			GUI.Box(rect, data.title, styles.style);
+			foreach(VTGeneratorNodeAttachPoint point in data.inputPoints)
 			{
 				point.Draw();
 			}
-			foreach(VTGeneratorNodeAttachPoint point in outputPoints)
+			foreach(VTGeneratorNodeAttachPoint point in data.outputPoints)
 			{
 				point.Draw();
 			}
@@ -101,11 +124,11 @@ namespace RobProductions.VisualTerrain
 
 		public bool ProcessEvents(Event e)
 		{
-			foreach (VTGeneratorNodeAttachPoint point in inputPoints)
+			foreach (VTGeneratorNodeAttachPoint point in data.inputPoints)
 			{
 				point.ProcessAttachEvents(e);
 			}
-			foreach (VTGeneratorNodeAttachPoint point in outputPoints)
+			foreach (VTGeneratorNodeAttachPoint point in data.outputPoints)
 			{
 				point.ProcessAttachEvents(e);
 			}
@@ -116,29 +139,29 @@ namespace RobProductions.VisualTerrain
 					{
 						if (rect.Contains(e.mousePosition))
 						{
-							isDragged = true;
+							data.isDragged = true;
 							GUI.changed = true;
-							isSelected = true;
+							data.isSelected = true;
 							styles.style = styles.selectedNodeStyle;
 						}
 						else
 						{
 							GUI.changed = true;
-							isSelected = false;
+							data.isSelected = false;
 							styles.style = styles.defaultNodeStyle;
 						}
 					}
-					if (e.button == 1 && isSelected && rect.Contains(e.mousePosition))
+					if (e.button == 1 && data.isSelected && rect.Contains(e.mousePosition))
 					{
 						ProcessContextMenu();
 						e.Use();
 					}
 					break;
 				case EventType.MouseUp:
-					isDragged = false;
+					data.isDragged = false;
 					break;
 				case EventType.MouseDrag:
-					if (e.button == 0 && isDragged)
+					if (e.button == 0 && data.isDragged)
 					{
 						Drag(e.delta);
 						e.Use();
@@ -159,9 +182,9 @@ namespace RobProductions.VisualTerrain
 
 		private void OnClickRemoveNode()
 		{
-			if (OnRemoveNode != null)
+			if (data.OnRemoveNode != null)
 			{
-				OnRemoveNode(this);
+				data.OnRemoveNode(this);
 			}
 		}
 
@@ -171,7 +194,8 @@ namespace RobProductions.VisualTerrain
 		{
 			var newRef = new WindowNodeReference();
 			newRef.rect = rect;
-			newRef.title = title;
+			newRef.title = data.title;
+			newRef.guid = data.nodeGuid;
 
 			return newRef;
 		}
@@ -179,9 +203,8 @@ namespace RobProductions.VisualTerrain
 		public void SetNodeReference(WindowNodeReference v)
 		{
 			rect = v.rect;
-			title = v.title;
+			data.title = v.title;
+			data.nodeGuid = v.guid;
 		}
 	}
 }
-
-#endif

@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using RobProductions.VisualTerrain.Runtime;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Modules;
+#endif
 
-namespace RobProductions.VisualTerrain
+namespace RobProductions.VisualTerrain.Editor
 {
 	public class VTGeneratorWindow : EditorWindow
 	{
@@ -58,6 +60,8 @@ namespace RobProductions.VisualTerrain
 
 		private GeneratorWindowStyles styles;
 
+		private const string windowName = "Visual Terrain Editor";
+
 
 		private VTGeneratorNodeAttachPoint selectedInPoint;
 		private VTGeneratorNodeAttachPoint selectedOutPoint;
@@ -66,18 +70,29 @@ namespace RobProductions.VisualTerrain
 		private List<VTGeneratorNodeConnection> connections = new List<VTGeneratorNodeConnection>();
 
 		private VTGeneratorAsset asset;
+		private bool windowActive = false;
 
 
 		[MenuItem("Window/Visual Terrain/Terrain Generator Editor")]
 		private static void OpenWindow()
 		{
 			VTGeneratorWindow window = GetWindow<VTGeneratorWindow>();
-			window.titleContent = new GUIContent("Visual Terrain Editor");
+			window.titleContent = new GUIContent(windowName);
 		}
 
 		private void OnEnable()
 		{
 			styles = new GeneratorWindowStyles();
+			if(asset != null)
+			{
+				LoadAssetReference(asset);
+			}
+			windowActive = true;
+		}
+
+		private void OnDisable()
+		{
+			windowActive = false;
 		}
 
 		[UnityEditor.Callbacks.OnOpenAsset(1)]
@@ -89,6 +104,7 @@ namespace RobProductions.VisualTerrain
 			if (scriptableObject != null)
 			{
 				VTGeneratorWindow window = (VTGeneratorWindow)GetWindow(typeof(VTGeneratorWindow));
+				window.titleContent = new GUIContent(windowName);
 				window.SetGeneratorAsset(scriptableObject);
 				window.Show();
 				return true;
@@ -104,6 +120,8 @@ namespace RobProductions.VisualTerrain
 			LoadAssetReference(v);
 		}
 
+		//EDITOR REFERENCE
+
 		void ClearWindowReference()
 		{
 			nodeList.Clear();
@@ -111,18 +129,37 @@ namespace RobProductions.VisualTerrain
 			selectedInPoint = null;
 			selectedOutPoint = null;
 			data.draggingConnection = false;
+
+			data.viewOffsetPos = Vector2.zero;
+			data.userInputDrag = Vector2.zero;
 		}
 
 		void LoadAssetReference(VTGeneratorAsset v)
 		{
 			if(v != null)
 			{
+				data.viewOffsetPos = v.viewportData.offsetPos;
+
 				for (int i = 0; i < v.nodeData.nodeReferences.Count; i++)
 				{
 					var thisNode = v.nodeData.nodeReferences[i];
 					var newNode = AddNode(Vector2.zero);
 					newNode.SetNodeReference(thisNode);
 				}
+			}
+		}
+
+		void SetAssetReference()
+		{
+			if(asset != null)
+			{
+				asset.nodeData.nodeReferences.Clear();
+				for(int i = 0; i < nodeList.Count; i++)
+				{
+					asset.nodeData.nodeReferences.Add(nodeList[i].GetNodeReference());
+				}
+
+				asset.viewportData.offsetPos = data.viewOffsetPos;
 			}
 		}
 
@@ -134,10 +171,20 @@ namespace RobProductions.VisualTerrain
 			DrawGrid(20, 0.1f, Color.black);
 			DrawGrid(80, 0.25f, Color.black);
 
+			//Scale the contents inside the BG
+			/*
+			var oldMatrix = GUI.matrix;
+			var pivotPoint = new Vector2(Screen.width / 2, Screen.height / 2);
+			EditorGUIUtility.ScaleAroundPivot(new Vector2(data.zoomLevel, data.zoomLevel), pivotPoint);
+			*/
+
 			DrawNodes();
 			DrawConnections();
 
 			DrawConnectionLine(Event.current);
+
+			//Reset scale to draw non-scaled elements
+			//GUI.matrix = oldMatrix;
 
 			DrawToolbar();
 			GUILayout.FlexibleSpace();
@@ -148,6 +195,10 @@ namespace RobProductions.VisualTerrain
 
 			if (GUI.changed)
 			{
+				if(windowActive)
+				{
+					SetAssetReference();
+				}
 				Repaint();
 			}
 		}
@@ -273,7 +324,7 @@ namespace RobProductions.VisualTerrain
 					}
 					break;
 				case EventType.MouseDrag:
-					if (e.button == 0)
+					if (e.button == 0 && e.alt)
 					{
 						OnDrag(e.delta);
 					}
@@ -287,14 +338,23 @@ namespace RobProductions.VisualTerrain
 						}
 					}
 					break;
+				case EventType.ScrollWheel:
+					//OnScroll(e.delta, e.mousePosition);
+					break;
 			}
 		}
 
 		private void ProcessContextMenu(Vector2 mousePosition)
 		{
 			GenericMenu genericMenu = new GenericMenu();
-			genericMenu.AddItem(new GUIContent("Add node"), false, () => OnClickAddNode(mousePosition));
-			genericMenu.ShowAsContext();
+			if(asset != null)
+			{
+				genericMenu.AddItem(new GUIContent("Add node"), false, () => OnClickAddNode(mousePosition));
+			}
+			if(genericMenu.GetItemCount() > 0)
+			{
+				genericMenu.ShowAsContext();
+			}
 		}
 
 		//USER INPUT
@@ -303,16 +363,29 @@ namespace RobProductions.VisualTerrain
 		{
 			data.userInputDrag = delta;
 
-			if (nodeList != null)
+			for (int i = 0; i < nodeList.Count; i++)
 			{
-				for (int i = 0; i < nodeList.Count; i++)
-				{
-					nodeList[i].Drag(delta);
-				}
+				nodeList[i].Drag(delta);
 			}
 
 			GUI.changed = true;
 		}
+
+		/*
+		private void OnScroll(Vector2 scrollVector, Vector2 zoomCenterPoint)
+		{
+			float zoomAmt = -.05f * scrollVector.y;
+			data.zoomLevel += zoomAmt;
+			data.zoomLevel = Mathf.Clamp(data.zoomLevel, 0.5f, 1.8f);
+
+			for (int i = 0; i < nodeList.Count; i++)
+			{
+				nodeList[i].Zoom(data.zoomLevel, zoomAmt, zoomCenterPoint);
+			}
+
+			GUI.changed = true;
+		}
+		*/
 
 		private void OnClickAddNode(Vector2 mousePosition)
 		{
@@ -329,6 +402,7 @@ namespace RobProductions.VisualTerrain
 			var newNode = new VTGeneratorWindowNode(pos, 200, 50, styles.defaultNodeStyle, styles.selectedNodeStyle, OnClickRemoveNode,
 				this);
 			newNode.SetupAttachPoints(1, 1, OnClickInPoint, OnClickOutPoint);
+			//newNode.Zoom(data.zoomLevel, 0.0f, Vector2.zero);
 			nodeList.Add(newNode);
 
 			return newNode;
@@ -416,7 +490,7 @@ namespace RobProductions.VisualTerrain
 
 				for (int i = 0; i < connections.Count; i++)
 				{
-					if (node.inputPoints.Contains(connections[i].inPoint) || node.outputPoints.Contains(connections[i].outPoint))
+					if (node.data.inputPoints.Contains(connections[i].inPoint) || node.data.outputPoints.Contains(connections[i].outPoint))
 					{
 						connectionsToRemove.Add(connections[i]);
 					}
@@ -424,7 +498,10 @@ namespace RobProductions.VisualTerrain
 
 				for (int i = 0; i < connectionsToRemove.Count; i++)
 				{
-					connections.Remove(connectionsToRemove[i]);
+					if(connections.Contains(connectionsToRemove[i]))
+					{
+						connections.Remove(connectionsToRemove[i]);
+					}
 				}
 			}
 
@@ -506,5 +583,3 @@ namespace RobProductions.VisualTerrain
 		}
 	}
 }
-
-#endif
