@@ -4,6 +4,7 @@ using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.VersionControl;
 using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Editor
@@ -46,6 +47,12 @@ namespace RobProductions.VisualTerrain.Editor
 			public VTGraph currentGraph;
 
 			public VTGraphNode selectedGraphNode;
+
+			/// <summary>
+			/// When we don't have a currentGraph loaded, we still let the
+			/// user move the graph view around and use this to track the offset
+			/// </summary>
+			public Vector2 noGraphViewOffset = Vector2.zero;
 		}
 
 		private GraphViewData data = new GraphViewData();
@@ -93,27 +100,49 @@ namespace RobProductions.VisualTerrain.Editor
 
 			data.currentGraph = newGraph;
 
+		}
+
+		//NODE INTERACTIONS
+
+		void CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+			var positionMinusOffset = position - GetCurrentViewOffset();
+
+			data.currentGraph.CreateNode<T>(positionMinusOffset);
+		}
+
+		void DragNodePosition(VTGraphNode v)
+		{
 
 		}
 
 		//EVENTS
 
-		public void ProcessEvents(Event e)
+		/// <summary>
+		/// Process events for the graph view.
+		/// If we definitely handled an event, return true.
+		/// </summary>
+		/// <param name="e"></param>
+		/// <returns></returns>
+		public bool ProcessEvents(Event e)
 		{
 			//data.userInputDrag = Vector2.zero;
 
 			switch (e.type)
 			{
 				case EventType.MouseDown:
-					
+					if (e.button == 1)
+					{
+						ProcessContextMenu(e.mousePosition);
+					}
 					/*
 					if (e.button == 0)
 					{
 						ClearConnectionSelection();
-					}
-					if (e.button == 1)
-					{
-						ProcessContextMenu(e.mousePosition);
 					}
 					*/
 					break;
@@ -121,6 +150,11 @@ namespace RobProductions.VisualTerrain.Editor
 					if (e.button == 0 && e.alt)
 					{
 						OnDrag(e.delta);
+						return true;
+					}
+					else if (e.button == 0)
+					{
+
 					}
 					break;
 				case EventType.MouseUp:
@@ -129,15 +163,12 @@ namespace RobProductions.VisualTerrain.Editor
 						if (data.currentGraph != null)
 						{
 							bool selectedANode = false;
-							foreach (var node in data.currentGraph.nodeList)
+							var nodeAtMousePosition = GetTopNodeAtPosition(e.mousePosition);
+							if(nodeAtMousePosition != null)
 							{
-								var nodeRect = GetNodeRenderRect(node);
-								if(nodeRect.Contains(e.mousePosition))
-								{
-									SetSelectedGraphNode(node);
-									selectedANode = true;
-									GUI.changed = true;
-								}
+								SetSelectedGraphNode(nodeAtMousePosition);
+								selectedANode = true;
+								GUI.changed = true;
 							}
 
 							if(!selectedANode)
@@ -159,6 +190,21 @@ namespace RobProductions.VisualTerrain.Editor
 					//OnScroll(e.delta, e.mousePosition);
 					break;
 			}
+
+			return false;
+		}
+
+		void ProcessContextMenu(Vector2 mousePosition)
+		{
+			GenericMenu genericMenu = new GenericMenu();
+			if (data.currentGraph != null)
+			{
+				genericMenu.AddItem(new GUIContent("Add test node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+			}
+			if (genericMenu.GetItemCount() > 0)
+			{
+				genericMenu.ShowAsContext();
+			}
 		}
 
 		void SetSelectedGraphNode(VTGraphNode v)
@@ -168,12 +214,14 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void OnDrag(Vector2 delta)
 		{
-			if(data.currentGraph == null)
+			if(data.currentGraph != null)
 			{
-				return;
+				data.currentGraph.displayData.ViewOffset += delta;
 			}
-
-			data.currentGraph.displayData.ViewOffset += delta;
+			else
+			{
+				data.noGraphViewOffset += delta;
+			}
 
 			GUI.changed = true;
 
@@ -254,12 +302,37 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//NODE UTIL
 
+		VTGraphNode GetTopNodeAtPosition(Vector2 graphPosition)
+		{
+			VTGraphNode ret = null;
+			foreach (var node in data.currentGraph.nodeList)
+			{
+				var nodeRect = GetNodeRenderRect(node);
+				if (nodeRect.Contains(graphPosition))
+				{
+					ret = node;
+				}
+			}
+
+			return ret;
+		}
+
 		Rect GetNodeRenderRect(VTGraphNode node)
 		{
-			var finalNodePosition = node.NodePosition + new Vector2(data.currentGraph.displayData.ViewOffset.x, data.currentGraph.displayData.ViewOffset.y);
+			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
 			var nodeRect = new Rect(finalNodePosition, new Vector2(200, 50));
 
 			return nodeRect;
+		}
+
+		Vector2 GetCurrentViewOffset()
+		{
+			if(data.currentGraph != null)
+			{
+				return data.currentGraph.displayData.ViewOffset;
+			}
+
+			return data.noGraphViewOffset;
 		}
 
 		//BG
@@ -289,11 +362,7 @@ namespace RobProductions.VisualTerrain.Editor
 			Handles.BeginGUI();
 			Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
 
-			var viewOffsetPos = Vector2.zero;
-			if(data.currentGraph != null)
-			{
-				viewOffsetPos = data.currentGraph.displayData.ViewOffset;
-			}
+			var viewOffsetPos = GetCurrentViewOffset();
 			Vector3 newOffset = new Vector3(viewOffsetPos.x % gridSpacing, viewOffsetPos.y % gridSpacing, 0);
 
 			for (int i = 0; i < widthDivs; i++)

@@ -4,13 +4,18 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNode
 	{
+		[SerializeField]
 		public virtual string NodeTitle { get; }
 
+		[SerializeField]
 		public VTGraphConnectionSlot[] inputConnections;
+		[SerializeField]
 		public VTGraphConnectionSlot[] outputConnections;
 
+		[SerializeField]
 		public Vector2 NodePosition { get; set; }
 
 		//SETUP

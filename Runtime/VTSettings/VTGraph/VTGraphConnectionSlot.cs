@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphConnectionSlot
 	{
 		public enum NodeConnectionSlotType
@@ -12,9 +13,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			Output = 1,
 		}
 
+		[SerializeField]
 		public readonly NodeConnectionSlotType connectionSlotType = NodeConnectionSlotType.Input;
+		[SerializeField]
 		public readonly VTGraphNode parentNode = null;
 
+		[SerializeField]
 		private List<VTGraphConnectionSlot> connectedSlots = new List<VTGraphConnectionSlot>();
 
 		public VTGraphConnectionSlot(NodeConnectionSlotType slotType, VTGraphNode createdOnNode)

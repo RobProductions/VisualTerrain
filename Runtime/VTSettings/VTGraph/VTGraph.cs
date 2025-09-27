@@ -4,15 +4,19 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraph
 	{
+		[System.Serializable]
 		public class VTGraphDisplayData
 		{
 			public Vector2 ViewOffset { get; set; } = Vector2.zero;
 		}
 
+		[SerializeField]
 		public VTGraphDisplayData displayData = new VTGraphDisplayData();
 
+		[System.Serializable]
 		public class VTGraphConnectionReference
 		{
 			public readonly VTGraphConnectionSlot slot1;
@@ -25,10 +29,25 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
+		[SerializeField, SerializeReference]
 		public List<VTGraphNode> nodeList = new List<VTGraphNode>();
+		[SerializeField, SerializeReference]
 		public List<VTGraphConnectionReference> connectionsList = new List<VTGraphConnectionReference>();
 
 		//NODES
+
+		public void CreateNode<T>() where T : VTGraphNode, new()
+		{
+			CreateNode<T>(Vector2.zero);
+		}
+
+		public void CreateNode<T>(Vector2 startingPosition) where T : VTGraphNode, new()
+		{
+			T newNode = new T();
+			AddNode(newNode);
+
+			SetNodePosition(newNode, startingPosition);
+		}
 
 		public void AddNode(VTGraphNode node)
 		{
@@ -50,6 +69,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			nodeList.Remove(node);
+		}
+
+		public void SetNodePosition(VTGraphNode node, Vector2 pos)
+		{
+			node.NodePosition = pos;
 		}
 
 		//CONNECTIONS

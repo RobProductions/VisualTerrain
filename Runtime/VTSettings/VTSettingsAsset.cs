@@ -19,6 +19,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		}
 
+		[SerializeField]
 		public SetupData setupData = new SetupData();
 
 		[System.Serializable]
@@ -27,15 +28,18 @@ namespace RobProductions.VisualTerrain.Runtime
 			public VTGraph heightmapGraph = new VTGraph();
 		}
 
+		[SerializeField]
 		public GenerationData generationData = new GenerationData();
 
 		public VTSettingsAsset()
 		{
+			/*
 			//test data
 			var testNode = new VTGraphNodeTest();
 			testNode.NodePosition = new Vector2(90, 120);
 			generationData.heightmapGraph.AddNode(testNode);
 			generationData.heightmapGraph.AddNode(new VTGraphNodeTest());
+			*/
 		}
 	}
 }
