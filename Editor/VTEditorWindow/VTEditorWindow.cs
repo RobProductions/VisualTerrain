@@ -13,6 +13,14 @@ namespace RobProductions.VisualTerrain.Editor
 	{
 		private const string windowName = "Visual Terrain Editor";
 
+		public enum VTGraphScreen
+		{
+			Heightmap = 0,
+			Texture = 2,
+		}
+
+		public VTGraphScreen currentGraphScreen = VTGraphScreen.Heightmap;
+
 		VTEditorGraphView graphView;
 
 		private VTSettingsAsset asset;
@@ -23,6 +31,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			VTEditorWindow window = GetWindow<VTEditorWindow>();
 			window.titleContent = new GUIContent(windowName);
+			window.OnEnable();
 		}
 
 		private void OnEnable()
@@ -30,10 +39,10 @@ namespace RobProductions.VisualTerrain.Editor
 			graphView = new VTEditorGraphView(this);
 			graphView.OnEnable();
 
-			if (asset != null)
-			{
-				//LoadAssetReference(asset);
-			}
+			//We reloaded or enabled for the first time
+			//so set the asset and refresh all
+			SetVTSettingsAsset(asset);
+
 			windowActive = true;
 		}
 
@@ -54,7 +63,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				VTEditorWindow window = (VTEditorWindow)GetWindow(typeof(VTEditorWindow));
 				window.titleContent = new GUIContent(windowName);
-				window.SetGeneratorAsset(settingsAssetObject);
+				window.SetVTSettingsAsset(settingsAssetObject);
 				window.Show();
 				return true;
 			}
@@ -62,17 +71,35 @@ namespace RobProductions.VisualTerrain.Editor
 			return false;
 		}
 
-		public void SetGeneratorAsset(VTSettingsAsset newAsset)
+		public void SetVTSettingsAsset(VTSettingsAsset newAsset)
 		{
 			asset = newAsset;
 			//ClearWindowReference();
 			//LoadAssetReference(v);
+			RefreshGraphScreen();
 		}
 
 		// Update is called once per frame
 		void Update()
 		{
 
+		}
+
+		//SCREENS
+
+		void RefreshGraphScreen()
+		{
+			VTGraph finalDisplayGraph = null;
+
+			if(asset != null)
+			{
+				if (currentGraphScreen == VTGraphScreen.Heightmap)
+				{
+					finalDisplayGraph = asset.generationData.heightmapGraph;
+				}
+			}
+
+			graphView.SetTargetGraph(finalDisplayGraph);
 		}
 
 		//RENDERING
@@ -87,12 +114,19 @@ namespace RobProductions.VisualTerrain.Editor
 			GUILayout.FlexibleSpace();
 			DrawBottomContents();
 
+			//Process input
+			graphView.ProcessEvents(Event.current);
+
 			//Check for GUI change
 			if (GUI.changed)
 			{
 				if (windowActive)
 				{
 					//SetAssetReference();
+					if(asset != null)
+					{
+						SetVTSettingsAsset(asset);
+					}
 				}
 				Repaint();
 			}
@@ -133,9 +167,16 @@ namespace RobProductions.VisualTerrain.Editor
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
 				GUILayout.FlexibleSpace();
-				if (GUILayout.Button("Focus view", EditorStyles.miniButton))
+				if(asset != null)
 				{
+					if (GUILayout.Toggle(false, "Auto", EditorStyles.toggle))
+					{
 
+					}
+					if (GUILayout.Button("Generate", EditorStyles.miniButton))
+					{
+
+					}
 				}
 
 			}

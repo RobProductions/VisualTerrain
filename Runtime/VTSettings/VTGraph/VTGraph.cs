@@ -6,6 +6,13 @@ namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTGraph
 	{
+		public class VTGraphDisplayData
+		{
+			public Vector2 ViewOffset { get; set; } = Vector2.zero;
+		}
+
+		public VTGraphDisplayData displayData = new VTGraphDisplayData();
+
 		public class VTGraphConnectionReference
 		{
 			public readonly VTGraphConnectionSlot slot1;
