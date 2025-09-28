@@ -18,7 +18,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public readonly VTGraphNode parentNode = null;
 
-		[SerializeField]
+		[SerializeField, HideInInspector, SerializeReference]
 		private List<VTGraphConnectionSlot> connectedSlots = new List<VTGraphConnectionSlot>();
 
 		public VTGraphConnectionSlot(NodeConnectionSlotType slotType, VTGraphNode createdOnNode)

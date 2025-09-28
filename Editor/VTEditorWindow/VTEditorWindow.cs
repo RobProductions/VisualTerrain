@@ -17,7 +17,7 @@ namespace RobProductions.VisualTerrain.Editor
 		public enum VTGraphScreen
 		{
 			Heightmap = 0,
-			Texture = 2,
+			Texture = 1,
 		}
 
 		private class VTEditorWindowData
@@ -26,12 +26,15 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public VTEditorGraphView graphView;
 
-			public VTSettingsAsset currentAsset;
+			public VTSettingsAsset currentAsset = null;
 			public bool windowActive = false;
 		}
 
 		private VTEditorWindowData data = new VTEditorWindowData();
 
+		private const string storeAssetKey = "RobProductions.VisualTerrain.VTSettingsAsset";
+
+		//LIFECYCLE
 
 		[MenuItem("Window/Visual Terrain/Visual Terrain Editor")]
 		private static void OpenWindow()
@@ -39,25 +42,6 @@ namespace RobProductions.VisualTerrain.Editor
 			VTEditorWindow window = GetWindow<VTEditorWindow>();
 			window.titleContent = new GUIContent(windowName);
 			window.OnEnable();
-		}
-
-		private void OnEnable()
-		{
-			data.graphView = new VTEditorGraphView(this);
-			data.graphView.OnEnable();
-
-			//We reloaded or enabled for the first time
-			//so set the asset and refresh all
-			SetVTSettingsAsset(data.currentAsset);
-
-			data.windowActive = true;
-		}
-
-		private void OnDisable()
-		{
-			data.graphView.OnDisable();
-
-			data.windowActive = false;
 		}
 
 		[UnityEditor.Callbacks.OnOpenAsset(1)]
@@ -78,16 +62,69 @@ namespace RobProductions.VisualTerrain.Editor
 			return false;
 		}
 
-		public void SetVTSettingsAsset(VTSettingsAsset newAsset)
+		private void OnEnable()
 		{
-			data.currentAsset = newAsset;
-			RefreshGraphScreen();
+			data.graphView = new VTEditorGraphView(this);
+			data.graphView.OnEnable();
+
+			//We reloaded or enabled for the first time
+			//so check if we stored an asset path and load it into currentAsset
+			CheckLoadStoredAsset();
+			//Then set it to refresh all associated data
+			SetVTSettingsAsset(data.currentAsset);
+
+			data.windowActive = true;
+			data.windowActive = true;
+		}
+
+		private void OnDisable()
+		{
+			data.graphView.OnDisable();
+
+			data.windowActive = false;
 		}
 
 		// Update is called once per frame
 		void Update()
 		{
 
+		}
+
+		//ASSET MANAGEMENT
+
+		public void ClearVTSettingsAsset()
+		{
+			SetVTSettingsAsset(null);
+		}
+
+		public void SetVTSettingsAsset(VTSettingsAsset newAsset)
+		{
+			Debug.Log("SET ASSET" + (newAsset == null));
+			SetStoredAsset(newAsset);
+			data.currentAsset = newAsset;
+			RefreshGraphScreen();
+		}
+
+		void CheckLoadStoredAsset()
+		{
+			if(EditorPrefs.HasKey(storeAssetKey))
+			{
+				var retrievedPath = EditorPrefs.GetString(storeAssetKey);
+				if(retrievedPath != null && retrievedPath != "")
+				{
+					data.currentAsset = AssetDatabase.LoadAssetAtPath<VTSettingsAsset>(retrievedPath);
+				}
+			}
+		}
+
+		void SetStoredAsset(VTSettingsAsset storedAsset)
+		{
+			var finalPath = "";
+			if(storedAsset != null)
+			{
+				finalPath = AssetDatabase.GetAssetPath(storedAsset);
+			}
+			EditorPrefs.SetString(storeAssetKey, finalPath);
 		}
 
 		//SCREENS
@@ -129,10 +166,12 @@ namespace RobProductions.VisualTerrain.Editor
 				if (data.windowActive)
 				{
 					//SetAssetReference();
+					/*
 					if(data.currentAsset != null)
 					{
 						SetVTSettingsAsset(data.currentAsset);
 					}
+					*/
 				}
 				Repaint();
 			}
@@ -153,6 +192,13 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
+				if(data.currentAsset != null)
+				{
+					if(GUILayout.Button("Clear Asset", EditorStyles.miniButton))
+					{
+						ClearVTSettingsAsset();
+					}
+				}
 				GUILayout.FlexibleSpace();
 				if(data.currentAsset != null)
 				{

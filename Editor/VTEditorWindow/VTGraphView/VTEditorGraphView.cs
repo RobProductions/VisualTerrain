@@ -13,6 +13,16 @@ namespace RobProductions.VisualTerrain.Editor
 	{
 		public class GraphViewStyles
 		{
+			//UI Values
+			public readonly float connectionPointSize = 11f;
+			public readonly float connectionPointVerticalSpacing = 24f;
+			public readonly Vector2 nodeBaseSize = new Vector2(200f, 45f);
+
+			public readonly float grid1Spacing = 20f;
+			public readonly float grid2Spacing = 80f;
+
+			//UI Styles
+
 			public GUIStyle windowBgStyle;
 			public Color windowBGColor = new Color(0.4f, 0.4f, 0.4f);
 
@@ -47,6 +57,8 @@ namespace RobProductions.VisualTerrain.Editor
 			public VTGraph currentGraph;
 
 			public VTGraphNode selectedGraphNode;
+			public VTGraphNode draggingNode;
+			public VTGraphNode startClickOnNode;
 
 			/// <summary>
 			/// When we don't have a currentGraph loaded, we still let the
@@ -93,6 +105,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public void SetTargetGraph(VTGraph newGraph)
 		{
+			if(data.currentGraph == newGraph)
+			{
+				return;
+			}
+
 			if(data.currentGraph != null)
 			{
 
@@ -100,6 +117,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 			data.currentGraph = newGraph;
 
+			data.draggingNode = null;
+			data.startClickOnNode = null;
+			ClearSelectedGraphNode();
 		}
 
 		//NODE INTERACTIONS
@@ -113,11 +133,6 @@ namespace RobProductions.VisualTerrain.Editor
 			var positionMinusOffset = position - GetCurrentViewOffset();
 
 			data.currentGraph.CreateNode<T>(positionMinusOffset);
-		}
-
-		void DragNodePosition(VTGraphNode v)
-		{
-
 		}
 
 		//EVENTS
@@ -139,6 +154,15 @@ namespace RobProductions.VisualTerrain.Editor
 					{
 						ProcessContextMenu(e.mousePosition);
 					}
+					else if (e.button == 0)
+					{
+						var overNode = GetTopNodeAtPosition(e.mousePosition);
+						if(overNode != null)
+						{
+							data.draggingNode = overNode;
+							data.startClickOnNode = overNode;
+						}
+					}
 					/*
 					if (e.button == 0)
 					{
@@ -150,21 +174,33 @@ namespace RobProductions.VisualTerrain.Editor
 					if (e.button == 0 && e.alt)
 					{
 						OnDrag(e.delta);
+						GUI.changed = true;
 						return true;
 					}
 					else if (e.button == 0)
 					{
-
+						
+						if(data.draggingNode != null && data.currentGraph != null)
+						{
+							SetSelectedGraphNode(data.draggingNode);
+							OnDragNode(data.draggingNode, e.delta);
+							GUI.changed = true;
+							return true;
+						}
 					}
 					break;
 				case EventType.MouseUp:
+					if(e.button == 0)
+					{
+						data.draggingNode = null;
+					}
 					if (e.button == 0 && !e.alt)
 					{
 						if (data.currentGraph != null)
 						{
 							bool selectedANode = false;
 							var nodeAtMousePosition = GetTopNodeAtPosition(e.mousePosition);
-							if(nodeAtMousePosition != null)
+							if(nodeAtMousePosition != null && data.startClickOnNode == nodeAtMousePosition)
 							{
 								SetSelectedGraphNode(nodeAtMousePosition);
 								selectedANode = true;
@@ -173,10 +209,12 @@ namespace RobProductions.VisualTerrain.Editor
 
 							if(!selectedANode)
 							{
-								SetSelectedGraphNode(null);
+								ClearSelectedGraphNode();
 								GUI.changed = true;
 							}
 						}
+
+						data.startClickOnNode = null;
 
 						/*
 						if (data.draggingConnection)
@@ -207,9 +245,29 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
+		void ClearSelectedGraphNode()
+		{
+			SetSelectedGraphNode(null);
+		}
+
 		void SetSelectedGraphNode(VTGraphNode v)
 		{
+			if(data.selectedGraphNode == v)
+			{
+				return;
+			}
+
 			data.selectedGraphNode = v;
+		}
+
+		void OnDragNode(VTGraphNode node, Vector2 delta)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
 		}
 
 		void OnDrag(Vector2 delta)
@@ -222,9 +280,6 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				data.noGraphViewOffset += delta;
 			}
-
-			GUI.changed = true;
-
 		}
 
 		//RENDERING
@@ -236,8 +291,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Then draw background grid
 			DrawBackgroundColor();
-			DrawGrid(20, 0.1f, Color.black);
-			DrawGrid(80, 0.25f, Color.black);
+			DrawGrid(styles.grid1Spacing, 0.1f, Color.black);
+			DrawGrid(styles.grid2Spacing, 0.25f, Color.black);
 
 			//Draw nodes
 			DrawGraphNodes();
@@ -274,18 +329,19 @@ namespace RobProductions.VisualTerrain.Editor
 
 			GUI.Box(nodeRect, node.NodeTitle, finalNodeStyle);
 
-			Vector2 relativeInputSlotPosition = new Vector2(-8, 20f);
-			Vector2 relativeOutputSlotPosition = new Vector2(nodeRect.width - 8f, 20f);
+			float halfConnectionSize = styles.connectionPointSize * 0.5f;
+			Vector2 relativeInputSlotPosition = new Vector2(-halfConnectionSize, 20f);
+			Vector2 relativeOutputSlotPosition = new Vector2(nodeRect.width - (halfConnectionSize * 1.8f), 20f);
 
 			foreach (VTGraphConnectionSlot slot in node.inputConnections)
 			{
 				DrawGraphConnectionSlot(slot, relativeInputSlotPosition, nodeRect.position);
-				relativeInputSlotPosition.y -= 25f;
+				relativeInputSlotPosition.y -= styles.connectionPointVerticalSpacing;
 			}
 			foreach (VTGraphConnectionSlot slot in node.outputConnections)
 			{
 				DrawGraphConnectionSlot(slot, relativeOutputSlotPosition, nodeRect.position);
-				relativeOutputSlotPosition.y -= 25f;
+				relativeOutputSlotPosition.y -= styles.connectionPointVerticalSpacing;
 			}
 		}
 
@@ -294,7 +350,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var defaultColor = GUI.color;
 
 			GUI.color = Color.gray;
-			var slotDot = new Rect(finalNodePosition + slotPosition, Vector2.one * 11f);
+			var slotDot = new Rect(finalNodePosition + slotPosition, Vector2.one * styles.connectionPointSize);
 			GUI.Box(slotDot, "", EditorStyles.radioButton);
 
 			GUI.color = defaultColor;
@@ -304,6 +360,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 		VTGraphNode GetTopNodeAtPosition(Vector2 graphPosition)
 		{
+			if(data.currentGraph == null)
+			{
+				return null;
+			}
+
 			VTGraphNode ret = null;
 			foreach (var node in data.currentGraph.nodeList)
 			{
@@ -320,7 +381,9 @@ namespace RobProductions.VisualTerrain.Editor
 		Rect GetNodeRenderRect(VTGraphNode node)
 		{
 			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
-			var nodeRect = new Rect(finalNodePosition, new Vector2(200, 50));
+			var nodeSize = styles.nodeBaseSize;
+
+			var nodeRect = new Rect(finalNodePosition, nodeSize);
 
 			return nodeRect;
 		}

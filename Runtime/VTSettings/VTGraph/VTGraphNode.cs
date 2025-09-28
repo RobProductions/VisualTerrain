@@ -7,7 +7,7 @@ namespace RobProductions.VisualTerrain.Runtime
 	[System.Serializable]
 	public class VTGraphNode
 	{
-		[SerializeField]
+		[field: SerializeField]
 		public virtual string NodeTitle { get; }
 
 		[SerializeField]
@@ -15,7 +15,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public VTGraphConnectionSlot[] outputConnections;
 
-		[SerializeField]
+		[field: SerializeField]
 		public Vector2 NodePosition { get; set; }
 
 		//SETUP
