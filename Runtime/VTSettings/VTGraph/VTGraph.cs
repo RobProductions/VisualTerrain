@@ -76,6 +76,25 @@ namespace RobProductions.VisualTerrain.Runtime
 			node.NodePosition = pos;
 		}
 
+		public void SetNodeIndex(VTGraphNode node, int newIndex)
+		{
+			if(newIndex >= 0 && newIndex < nodeList.Count)
+			{
+				if (nodeList.Contains(node))
+				{
+					var thisIndex = nodeList.IndexOf(node);
+					if(thisIndex == newIndex)
+					{
+						return;
+					}
+
+					var oldNode = nodeList[newIndex];
+					nodeList[newIndex] = node;
+					nodeList[thisIndex] = oldNode;
+				}
+			}
+		}
+
 		//CONNECTIONS
 
 		/// <summary>

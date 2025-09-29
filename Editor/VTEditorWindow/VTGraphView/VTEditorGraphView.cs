@@ -122,7 +122,7 @@ namespace RobProductions.VisualTerrain.Editor
 			ClearSelectedGraphNode();
 		}
 
-		//NODE INTERACTIONS
+		//NODE/GRAPH INTERACTIONS
 
 		void CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
 		{
@@ -132,10 +132,59 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			var positionMinusOffset = position - GetCurrentViewOffset();
 
+			parentWindow.RegisterAssetUndo("Created New Node");
 			data.currentGraph.CreateNode<T>(positionMinusOffset);
+			parentWindow.EditedAsset();
 		}
 
-		//EVENTS
+		void BringNodeToFront(VTGraphNode node)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+			if(!data.currentGraph.nodeList.Contains(node))
+			{
+				return;
+			}
+			var indexOfNode = data.currentGraph.nodeList.IndexOf(node);
+			var lastIndex = data.currentGraph.nodeList.Count - 1;
+
+			if (data.currentGraph.nodeList.Count > 1 && indexOfNode != lastIndex)
+			{
+				parentWindow.RegisterAssetUndo("Changed Node Order");
+				data.currentGraph.SetNodeIndex(node, lastIndex);
+				parentWindow.EditedAsset();
+			}
+		}
+
+		void DragNode(VTGraphNode node, Vector2 delta)
+		{
+			if (data.currentGraph == null)
+			{
+				return;
+			}
+
+			parentWindow.RegisterAssetUndo("Dragged Node");
+			data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
+			parentWindow.EditedAsset();
+		}
+
+		void DragView(Vector2 delta)
+		{
+			if (data.currentGraph != null)
+			{
+				//No need to register undo for view change
+				data.currentGraph.displayData.ViewOffset += delta;
+				parentWindow.EditedAsset();
+			}
+			else
+			{
+				data.noGraphViewOffset += delta;
+			}
+		}
+
+		//EVENTS AND SELECTION
 
 		/// <summary>
 		/// Process events for the graph view.
@@ -145,6 +194,8 @@ namespace RobProductions.VisualTerrain.Editor
 		/// <returns></returns>
 		public bool ProcessEvents(Event e)
 		{
+			//TODO: Check within graph view rect
+
 			//data.userInputDrag = Vector2.zero;
 
 			switch (e.type)
@@ -171,19 +222,21 @@ namespace RobProductions.VisualTerrain.Editor
 					*/
 					break;
 				case EventType.MouseDrag:
-					if (e.button == 0 && e.alt)
+					if ((e.button == 0 && e.alt) || e.button == 2)
 					{
-						OnDrag(e.delta);
+						//Left alt + left click or middle click will drag the view
+						DragView(e.delta);
 						GUI.changed = true;
 						return true;
 					}
 					else if (e.button == 0)
 					{
-						
+						//Regular left click can drag a node
 						if(data.draggingNode != null && data.currentGraph != null)
 						{
 							SetSelectedGraphNode(data.draggingNode);
-							OnDragNode(data.draggingNode, e.delta);
+
+							DragNode(data.draggingNode, e.delta);
 							GUI.changed = true;
 							return true;
 						}
@@ -227,6 +280,9 @@ namespace RobProductions.VisualTerrain.Editor
 				case EventType.ScrollWheel:
 					//OnScroll(e.delta, e.mousePosition);
 					break;
+				case EventType.KeyDown:
+
+					break;
 			}
 
 			return false;
@@ -258,41 +314,24 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			data.selectedGraphNode = v;
-		}
 
-		void OnDragNode(VTGraphNode node, Vector2 delta)
-		{
-			if(data.currentGraph == null)
+			if(data.selectedGraphNode != null)
 			{
-				return;
-			}
-
-			data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
-		}
-
-		void OnDrag(Vector2 delta)
-		{
-			if(data.currentGraph != null)
-			{
-				data.currentGraph.displayData.ViewOffset += delta;
-			}
-			else
-			{
-				data.noGraphViewOffset += delta;
+				BringNodeToFront(data.selectedGraphNode);
 			}
 		}
 
 		//RENDERING
 
-		public void DrawGraphView()
+		public void DrawGraphView(Rect graphViewRect)
 		{
 			//First created needed GUIStyles
 			CreateGUIStyles();
 
 			//Then draw background grid
-			DrawBackgroundColor();
-			DrawGrid(styles.grid1Spacing, 0.1f, Color.black);
-			DrawGrid(styles.grid2Spacing, 0.25f, Color.black);
+			DrawBackgroundColor(graphViewRect);
+			DrawGrid(styles.grid1Spacing, 0.1f, Color.black, graphViewRect);
+			DrawGrid(styles.grid2Spacing, 0.25f, Color.black, graphViewRect);
 
 			//Draw nodes
 			DrawGraphNodes();
@@ -400,7 +439,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//BG
 
-		private void DrawBackgroundColor()
+		private void DrawBackgroundColor(Rect graphViewRect)
 		{
 			if(styles == null)
 			{
@@ -410,32 +449,32 @@ namespace RobProductions.VisualTerrain.Editor
 
 			var defaultColor = GUI.color;
 
-			var windowRect = new Rect(0.0f, 0.0f, parentWindow.maxSize.x, parentWindow.maxSize.y);
 			GUI.color = styles.windowBGColor;
-			GUI.Box(windowRect, "", styles.windowBgStyle);
+			GUI.Box(graphViewRect, "", styles.windowBgStyle);
 
 			GUI.color = defaultColor;
 		}
 
-		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor)
+		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor, Rect graphViewRect)
 		{
-			int widthDivs = Mathf.CeilToInt(parentWindow.position.width / gridSpacing);
-			int heightDivs = Mathf.CeilToInt(parentWindow.position.height / gridSpacing);
+			int widthDivs = Mathf.CeilToInt(graphViewRect.width / gridSpacing) + 6;
+			int heightDivs = Mathf.CeilToInt(graphViewRect.height / gridSpacing) + 6;
 
 			Handles.BeginGUI();
 			Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
 
 			var viewOffsetPos = GetCurrentViewOffset();
 			Vector3 newOffset = new Vector3(viewOffsetPos.x % gridSpacing, viewOffsetPos.y % gridSpacing, 0);
+			Vector3 graphStartOffset = new Vector3(graphViewRect.x, graphViewRect.y, 0);
 
 			for (int i = 0; i < widthDivs; i++)
 			{
-				Handles.DrawLine(new Vector3(gridSpacing * i, -gridSpacing, 0) + newOffset, new Vector3(gridSpacing * i, parentWindow.position.height, 0f) + newOffset);
+				Handles.DrawLine(new Vector3(gridSpacing * i, -gridSpacing, 0) + newOffset, new Vector3(gridSpacing * i, graphViewRect.height * 1.5f, 0f) + newOffset);
 			}
 
 			for (int j = 0; j < heightDivs; j++)
 			{
-				Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * j, 0) + newOffset, new Vector3(parentWindow.position.width, gridSpacing * j, 0f) + newOffset);
+				Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * j, 0) + newOffset, new Vector3(graphViewRect.width * 1.5f, gridSpacing * j, 0f) + newOffset);
 			}
 
 			Handles.color = Color.white;

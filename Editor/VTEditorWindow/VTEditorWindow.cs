@@ -24,6 +24,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			public VTGraphScreen currentGraphScreen = VTGraphScreen.Heightmap;
 
+			public VTEditorSetupView setupView;
 			public VTEditorGraphView graphView;
 
 			public VTSettingsAsset currentAsset = null;
@@ -64,6 +65,10 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnEnable()
 		{
+			Undo.undoRedoPerformed += UndoPerformed;
+
+			data.setupView = new VTEditorSetupView();
+			data.setupView.OnDisable();
 			data.graphView = new VTEditorGraphView(this);
 			data.graphView.OnEnable();
 
@@ -79,6 +84,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnDisable()
 		{
+			Undo.undoRedoPerformed -= UndoPerformed;
+
+			data.setupView.OnDisable();
 			data.graphView.OnDisable();
 
 			data.windowActive = false;
@@ -99,7 +107,6 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public void SetVTSettingsAsset(VTSettingsAsset newAsset)
 		{
-			Debug.Log("SET ASSET" + (newAsset == null));
 			SetStoredAsset(newAsset);
 			data.currentAsset = newAsset;
 			RefreshGraphScreen();
@@ -127,6 +134,41 @@ namespace RobProductions.VisualTerrain.Editor
 			EditorPrefs.SetString(storeAssetKey, finalPath);
 		}
 
+		/// <summary>
+		/// Called before editing the scriptableobject so that
+		/// the Undo handler can be used if undoing the next change
+		/// </summary>
+		/// <param name="description"></param>
+		public void RegisterAssetUndo(string description)
+		{
+			if(data.currentAsset == null)
+			{
+				return;
+			}
+
+			Undo.RecordObject(data.currentAsset, description);
+		}
+
+		/// <summary>
+		/// Called whenever any changes are made to the scriptableobject
+		/// including sub data like graphs so that Unity knows to
+		/// serialize it when we close the editor and reopen it.
+		/// </summary>
+		public void EditedAsset()
+		{
+			if(data.currentAsset == null)
+			{
+				return;
+			}
+
+			EditorUtility.SetDirty(data.currentAsset);
+		}
+
+		void UndoPerformed()
+		{
+			Repaint();
+		}
+
 		//SCREENS
 
 		void RefreshGraphScreen()
@@ -149,16 +191,32 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnGUI()
 		{
-			//First, draw the graph view underneath everything
-			data.graphView.DrawGraphView();
+			var toolbarHeight = EditorStyles.toolbar.CalcHeight(GUIContent.none, position.width);
 
-			//Draw the top and bottom toolbars
+			var mainScreenRect = new Rect(0.0f, toolbarHeight, position.width, position.height - toolbarHeight);
+
+			//Draw the graph view underneath the main panel
+			var settingsWidth = 80.0f;
+			var graphViewRect = new Rect(
+				mainScreenRect.x + settingsWidth, mainScreenRect.y, mainScreenRect.width - settingsWidth, mainScreenRect.height);
+			data.graphView.DrawGraphView(graphViewRect);
+
+			//Draw the top toolbar
 			DrawToolbar();
+
+			//Then draw the setup view if needed
+			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, settingsWidth, mainScreenRect.height);
+			data.setupView.DrawSetupView(setupViewRect);
+
+			//Expand window space to bottom
 			GUILayout.FlexibleSpace();
+
+			//Draw bottom toolbar/buttons
 			DrawBottomContents();
 
 			//Process input
-			data.graphView.ProcessEvents(Event.current);
+			var currentEvent = Event.current;
+			bool graphViewHandledEvent = data.graphView.ProcessEvents(currentEvent);
 
 			//Check for GUI change
 			if (GUI.changed)
@@ -173,6 +231,7 @@ namespace RobProductions.VisualTerrain.Editor
 					}
 					*/
 				}
+
 				Repaint();
 			}
 
@@ -203,7 +262,7 @@ namespace RobProductions.VisualTerrain.Editor
 				if(data.currentAsset != null)
 				{
 					GUILayout.BeginVertical();
-					GUILayout.Space(3.5f);
+					GUILayout.Space(3.2f);
 					if (GUILayout.Toggle(false, "Auto", EditorStyles.toggle))
 					{
 
