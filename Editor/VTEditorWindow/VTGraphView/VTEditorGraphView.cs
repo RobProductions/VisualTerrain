@@ -194,10 +194,6 @@ namespace RobProductions.VisualTerrain.Editor
 		/// <returns></returns>
 		public bool ProcessEvents(Event e)
 		{
-			//TODO: Check within graph view rect
-
-			//data.userInputDrag = Vector2.zero;
-
 			switch (e.type)
 			{
 				case EventType.MouseDown:
