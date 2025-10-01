@@ -16,23 +16,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public VTGraphDisplayData displayData = new VTGraphDisplayData();
 
-		[System.Serializable]
-		public class VTGraphConnectionReference
-		{
-			public readonly VTGraphConnectionSlot slot1;
-			public readonly VTGraphConnectionSlot slot2;
-
-			public VTGraphConnectionReference(VTGraphConnectionSlot slot1, VTGraphConnectionSlot slot2)
-			{
-				this.slot1 = slot1;
-				this.slot2 = slot2;
-			}
-		}
-
 		[SerializeField, SerializeReference]
 		public List<VTGraphNode> nodeList = new List<VTGraphNode>();
 		[SerializeField, SerializeReference]
-		public List<VTGraphConnectionReference> connectionsList = new List<VTGraphConnectionReference>();
+		public List<VTGraphConnection> connectionsList = new List<VTGraphConnection>();
 
 		//NODES
 
@@ -127,10 +114,17 @@ namespace RobProductions.VisualTerrain.Runtime
 				return false;
 			}
 
-			slot1.AddConnectedSlot(slot2);
-			slot2.AddConnectedSlot(slot1);
+			slot1.AddConnectedSlot();
+			slot2.AddConnectedSlot();
+			var inputSlot = slot1;
+			var outputSlot = slot2;
+			if(slot1.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Output)
+			{
+				inputSlot = slot2;
+				outputSlot = slot1;
+			}
 
-			var newConnectionRef = new VTGraphConnectionReference(slot1, slot2);
+			var newConnectionRef = new VTGraphConnection(inputSlot, outputSlot);
 			connectionsList.Add(newConnectionRef);
 
 			return true;
@@ -141,17 +135,17 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// and then remove the ConnectionRef in our connections list.
 		/// </summary>
 		/// <param name="connectionRef"></param>
-		public void RemoveNodeConnection(VTGraphConnectionReference connectionRef)
+		public void RemoveNodeConnection(VTGraphConnection connection)
 		{
-			if(!connectionsList.Contains(connectionRef))
+			if(!connectionsList.Contains(connection))
 			{
 				return;
 			}
 
-			connectionRef.slot1.RemoveConnectedSlot(connectionRef.slot2);
-			connectionRef.slot2.RemoveConnectedSlot(connectionRef.slot1);
+			connection.inputSlot.RemoveConnectedSlot();
+			connection.outputSlot.RemoveConnectedSlot();
 
-			connectionsList.Remove(connectionRef);
+			connectionsList.Remove(connection);
 		}
 
 		/// <summary>
@@ -163,13 +157,13 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <returns></returns>
 		public bool SlotsAreConnected(VTGraphConnectionSlot slot1, VTGraphConnectionSlot slot2)
 		{
-			foreach(VTGraphConnectionReference connectionRef in connectionsList)
+			foreach(VTGraphConnection connection in connectionsList)
 			{
-				if(slot1 == connectionRef.slot1 && slot2 == connectionRef.slot2)
+				if(slot1 == connection.inputSlot && slot2 == connection.outputSlot)
 				{
 					return true;
 				}
-				if (slot1 == connectionRef.slot2 && slot2 == connectionRef.slot1)
+				if (slot1 == connection.outputSlot && slot2 == connection.inputSlot)
 				{
 					return true;
 				}
@@ -178,15 +172,15 @@ namespace RobProductions.VisualTerrain.Runtime
 			return false;
 		}
 
-		public List<VTGraphConnectionReference> GetConnectionsWithNode(VTGraphNode node)
+		public List<VTGraphConnection> GetConnectionsWithNode(VTGraphNode node)
 		{
-			var ret = new List<VTGraphConnectionReference>();
+			var ret = new List<VTGraphConnection>();
 
-			foreach(var connectionRef in connectionsList)
+			foreach(var connection in connectionsList)
 			{
-				if(connectionRef.slot1.parentNode == node || connectionRef.slot2.parentNode == node)
+				if(connection.inputSlot.parentNode == node || connection.outputSlot.parentNode == node)
 				{
-					ret.Add(connectionRef);
+					ret.Add(connection);
 				}
 			}
 

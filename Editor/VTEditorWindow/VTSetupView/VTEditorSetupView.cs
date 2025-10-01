@@ -59,8 +59,7 @@ namespace RobProductions.VisualTerrain.Editor
 			//Begin a subarea so GUILayout works within just the setup box
 			GUILayout.BeginArea(setupRect);
 
-
-			//EditorGUILayout.HelpBox("Hi", MessageType.Info);
+			EditorGUILayout.HelpBox("Hi", MessageType.Info);
 
 			GUILayout.EndArea();
 		}

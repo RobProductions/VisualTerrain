@@ -196,16 +196,16 @@ namespace RobProductions.VisualTerrain.Editor
 			var mainScreenRect = new Rect(0.0f, toolbarHeight, position.width, position.height - toolbarHeight);
 
 			//Draw the graph view underneath the main panel
-			var settingsWidth = 80.0f;
+			var currentSetupWidth = 120.0f;
 			var graphViewRect = new Rect(
-				mainScreenRect.x + settingsWidth, mainScreenRect.y, mainScreenRect.width - settingsWidth, mainScreenRect.height);
+				mainScreenRect.x + currentSetupWidth, mainScreenRect.y, mainScreenRect.width - currentSetupWidth, mainScreenRect.height);
 			data.graphView.DrawGraphView(graphViewRect);
 
 			//Draw the top toolbar
 			DrawToolbar();
 
 			//Then draw the setup view if needed
-			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, settingsWidth, mainScreenRect.height);
+			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
 			data.setupView.DrawSetupView(setupViewRect);
 
 			//Expand window space to bottom
@@ -259,7 +259,6 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Reset scale to draw non-scaled elements
 			//GUI.matrix = oldMatrix;
-
 			*/
 		}
 

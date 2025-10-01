@@ -15,82 +15,25 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		[SerializeField]
 		public readonly NodeConnectionSlotType connectionSlotType = NodeConnectionSlotType.Input;
-		[SerializeField]
+		[SerializeField, SerializeReference]
 		public readonly VTGraphNode parentNode = null;
+		[SerializeField]
+		public readonly int indexOnParentNode = 0;
+		[SerializeField]
+		private int connectionCount = 0;
 
-		[SerializeField, HideInInspector, SerializeReference]
-		private List<VTGraphConnectionSlot> connectedSlots = new List<VTGraphConnectionSlot>();
-
-		public VTGraphConnectionSlot(NodeConnectionSlotType slotType, VTGraphNode createdOnNode)
+		public VTGraphConnectionSlot(NodeConnectionSlotType slotType, VTGraphNode createdOnNode, int indexOnCreatedNode)
 		{
 			connectionSlotType = slotType;
 			parentNode = createdOnNode;
+			indexOnParentNode = indexOnCreatedNode;
 			if(createdOnNode == null)
 			{
 				VTLog.LogWarning("VTGraphConnectionSlot created with null parentNode!");
 			}
 		}
 
-		//CONNECTIONS
-
-		public void ClearConnectedSlots()
-		{
-			connectedSlots.Clear();
-		}
-
-		/// <summary>
-		/// Add a reference to another ConnectionSlot, either input or output.
-		/// Only the VTGraph should use this because it manages both node connections
-		/// and keeps a reference to the connection link.
-		/// </summary>
-		/// <param name="otherSlot"></param>
-		public void AddConnectedSlot(VTGraphConnectionSlot otherSlot)
-		{
-			if(otherSlot == null)
-			{
-				return;
-			}
-			if(otherSlot.connectionSlotType == connectionSlotType)
-			{
-				VTLog.LogError("In AddConnectedSlot, otherSlot had same connection type as this one!");
-				return;
-			}
-			if(otherSlot == this)
-			{
-				VTLog.LogError("In AddConnectedSlot, otherSlot was the same as this one!");
-				return;
-			}
-			if(connectionSlotType == NodeConnectionSlotType.Input && !IsConnectedSlotsEmpty())
-			{
-				VTLog.LogError("In AddConnectedSlot, tried to add more than 1 input to this slot!");
-				return;
-			}
-
-			connectedSlots.Add(otherSlot);
-		}
-
-		/// <summary>
-		/// Remove a ConnectionSlot from the connection list.
-		/// Only VTGraph should use this to manage connection relations.
-		/// </summary>
-		/// <param name="otherSlot"></param>
-		public void RemoveConnectedSlot(VTGraphConnectionSlot otherSlot)
-		{
-			if(connectedSlots.Contains(otherSlot))
-			{
-				RemoveConnectedSlotAtIndex(connectedSlots.IndexOf(otherSlot));
-			}
-		}
-
-		/// <summary>
-		/// Remove a ConnectionSlot at a specific index from the connection list.
-		/// Only VTGraph should use this to manage connection relations.
-		/// </summary>
-		/// <param name="index"></param>
-		public void RemoveConnectedSlotAtIndex(int index)
-		{
-			connectedSlots.RemoveAt(index);
-		}
+		//GETTERS
 
 		/// <summary>
 		/// True when we are able to add a connection to this slot.
@@ -98,21 +41,51 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <returns></returns>
 		public bool CanAddConnectedSlot()
 		{
-			if(connectionSlotType == NodeConnectionSlotType.Input)
+			if (connectionSlotType == NodeConnectionSlotType.Input)
 			{
-				return IsConnectedSlotsEmpty();
+				return !IsConnected();
 			}
 
 			return true;
 		}
 
 		/// <summary>
-		/// True when there are no other connections to this slot.
+		/// True when we have at least connection
 		/// </summary>
 		/// <returns></returns>
-		public bool IsConnectedSlotsEmpty()
+		public bool IsConnected()
 		{
-			return (connectedSlots.Count <= 0);
+			return connectionCount > 0;
 		}
+
+		//SETTERS
+
+		/// <summary>
+		/// Called when connecting another input or output slot
+		/// to this one
+		/// </summary>
+		public void AddConnectedSlot()
+		{
+			connectionCount++;
+		}
+
+		/// <summary>
+		/// Called when removing a connected input or output slot
+		/// </summary>
+		public void RemoveConnectedSlot()
+		{
+			connectionCount--;
+			if(connectionCount < 0)
+			{
+				VTLog.LogWarning("Connection count went < 0 in RemoveConnectedSlot!");
+				connectionCount = 0;
+			}
+		}
+
+		public void ClearConnectedSlots()
+		{
+			connectionCount = 0;
+		}
+
 	}
 }

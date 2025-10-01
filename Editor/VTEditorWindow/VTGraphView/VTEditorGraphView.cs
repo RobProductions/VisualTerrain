@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 
+using Codice.Client.Commands;
 using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,17 +15,23 @@ namespace RobProductions.VisualTerrain.Editor
 		public class GraphViewStyles
 		{
 			//UI Values
-			public readonly float connectionPointSize = 11f;
-			public readonly float connectionPointVerticalSpacing = 24f;
 			public readonly Vector2 nodeBaseSize = new Vector2(200f, 45f);
+			public readonly float connectionPointInitialVertical = 20f;
+			public readonly float connectionPointVerticalSpacing = 24f;
+			public readonly float connectionPointSize = 11f;
+			public readonly float halfConnectionPointSize = 7f;
+			public readonly float connectionLineWidth = 3f;
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
 
+			//UI Colors
+			public readonly Color connectionLineColor = new Color(0.8f, 0.85f, 0.92f);
+			public readonly Color windowBGColor = new Color(0.4f, 0.4f, 0.4f);
+
 			//UI Styles
 
 			public GUIStyle windowBgStyle;
-			public Color windowBGColor = new Color(0.4f, 0.4f, 0.4f);
 
 			public GUIStyle defaultNodeStyle;
 			public GUIStyle selectedNodeStyle;
@@ -59,12 +66,15 @@ namespace RobProductions.VisualTerrain.Editor
 			public VTGraphNode selectedGraphNode;
 			public VTGraphNode draggingNode;
 			public VTGraphNode startClickOnNode;
+			public VTGraphConnectionSlot draggingConnectionSlot;
 
 			/// <summary>
 			/// When we don't have a currentGraph loaded, we still let the
 			/// user move the graph view around and use this to track the offset
 			/// </summary>
 			public Vector2 noGraphViewOffset = Vector2.zero;
+
+			public Vector2 draggingConnectionMousePosition = Vector2.zero;
 		}
 
 		private GraphViewData data = new GraphViewData();
@@ -120,6 +130,7 @@ namespace RobProductions.VisualTerrain.Editor
 			data.draggingNode = null;
 			data.startClickOnNode = null;
 			ClearSelectedGraphNode();
+			data.draggingConnectionSlot = null;
 		}
 
 		//NODE/GRAPH INTERACTIONS
@@ -134,6 +145,18 @@ namespace RobProductions.VisualTerrain.Editor
 
 			parentWindow.RegisterAssetUndo("Created New Node");
 			data.currentGraph.CreateNode<T>(positionMinusOffset);
+			parentWindow.EditedAsset();
+		}
+
+		void DeleteNode(VTGraphNode node)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			parentWindow.RegisterAssetUndo("Deleted Node");
+			data.currentGraph.RemoveNode(node);
 			parentWindow.EditedAsset();
 		}
 
@@ -197,13 +220,24 @@ namespace RobProductions.VisualTerrain.Editor
 			switch (e.type)
 			{
 				case EventType.MouseDown:
+					var overNode = GetTopNodeAtPosition(e.mousePosition);
 					if (e.button == 1)
 					{
-						ProcessContextMenu(e.mousePosition);
+						if(overNode != null)
+						{
+							SetSelectedGraphNode(overNode);
+						}
+						ProcessContextMenu(e.mousePosition, overNode);
+						GUI.changed = true;
 					}
 					else if (e.button == 0)
 					{
-						var overNode = GetTopNodeAtPosition(e.mousePosition);
+						var overSlot = GetTopConnectionSlotAtPosition(e.mousePosition);
+						if(overSlot != null)
+						{
+							data.draggingConnectionSlot = overSlot;
+							data.draggingConnectionMousePosition = e.mousePosition;
+						}
 						if(overNode != null)
 						{
 							data.draggingNode = overNode;
@@ -227,8 +261,15 @@ namespace RobProductions.VisualTerrain.Editor
 					}
 					else if (e.button == 0)
 					{
-						//Regular left click can drag a node
-						if(data.draggingNode != null && data.currentGraph != null)
+						//Regular left click can drag a node or connection point
+						if(data.currentGraph != null && data.draggingConnectionSlot != null)
+						{
+							data.draggingConnectionMousePosition = e.mousePosition;
+							GUI.changed = true;
+							return true;
+						}
+
+						if(data.currentGraph != null && data.draggingNode != null)
 						{
 							SetSelectedGraphNode(data.draggingNode);
 
@@ -241,7 +282,14 @@ namespace RobProductions.VisualTerrain.Editor
 				case EventType.MouseUp:
 					if(e.button == 0)
 					{
+						if(data.draggingConnectionSlot != null)
+						{
+							//Handle ending connection creation
+
+						}
+
 						data.draggingNode = null;
+						data.draggingConnectionSlot = null;
 					}
 					if (e.button == 0 && !e.alt)
 					{
@@ -277,19 +325,32 @@ namespace RobProductions.VisualTerrain.Editor
 					//OnScroll(e.delta, e.mousePosition);
 					break;
 				case EventType.KeyDown:
-
+					if(e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
+					{
+						if(data.selectedGraphNode != null)
+						{
+							DeleteNode(data.selectedGraphNode);
+							GUI.changed = true;
+						}
+					}
 					break;
 			}
 
 			return false;
 		}
 
-		void ProcessContextMenu(Vector2 mousePosition)
+		void ProcessContextMenu(Vector2 mousePosition, VTGraphNode overNode)
 		{
 			GenericMenu genericMenu = new GenericMenu();
 			if (data.currentGraph != null)
 			{
-				genericMenu.AddItem(new GUIContent("Add test node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+				if(overNode != null)
+				{
+					genericMenu.AddSeparator("");
+					var closureNode = overNode;
+					genericMenu.AddItem(new GUIContent("Delete Node"), false, () => DeleteNode(closureNode));
+				}
 			}
 			if (genericMenu.GetItemCount() > 0)
 			{
@@ -331,6 +392,20 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Draw nodes
 			DrawGraphNodes();
+			DrawGraphConnections();
+			if(data.draggingConnectionSlot != null)
+			{
+				var halfConnectionSize = Vector2.one * styles.halfConnectionPointSize;
+				var slotPosition = GetConnectionSlotPosition(data.draggingConnectionSlot) + halfConnectionSize;
+				if(data.draggingConnectionSlot.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+				{
+					DrawGraphConnectionLine(slotPosition, data.draggingConnectionMousePosition, true);
+				}
+				else
+				{
+					DrawGraphConnectionLine(data.draggingConnectionMousePosition, slotPosition, true);
+				}
+			}
 		}
 
 		void DrawGraphNodes()
@@ -344,6 +419,20 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				var thisNode = data.currentGraph.nodeList[i];
 				DrawGraphNode(thisNode);
+			}
+		}
+
+		void DrawGraphConnections()
+		{
+			if (data.currentGraph == null)
+			{
+				return;
+			}
+
+			for(int i = 0; i < data.currentGraph.connectionsList.Count; i++)
+			{
+				var thisConnection = data.currentGraph.connectionsList[i];
+				DrawGraphConnection(thisConnection);
 			}
 		}
 
@@ -364,31 +453,69 @@ namespace RobProductions.VisualTerrain.Editor
 
 			GUI.Box(nodeRect, node.NodeTitle, finalNodeStyle);
 
-			float halfConnectionSize = styles.connectionPointSize * 0.5f;
-			Vector2 relativeInputSlotPosition = new Vector2(-halfConnectionSize, 20f);
-			Vector2 relativeOutputSlotPosition = new Vector2(nodeRect.width - (halfConnectionSize * 1.8f), 20f);
-
 			foreach (VTGraphConnectionSlot slot in node.inputConnections)
 			{
-				DrawGraphConnectionSlot(slot, relativeInputSlotPosition, nodeRect.position);
-				relativeInputSlotPosition.y -= styles.connectionPointVerticalSpacing;
+				DrawGraphConnectionSlot(slot);
 			}
-			foreach (VTGraphConnectionSlot slot in node.outputConnections)
+			foreach(VTGraphConnectionSlot slot in node.outputConnections)
 			{
-				DrawGraphConnectionSlot(slot, relativeOutputSlotPosition, nodeRect.position);
-				relativeOutputSlotPosition.y -= styles.connectionPointVerticalSpacing;
+				DrawGraphConnectionSlot(slot);
 			}
 		}
 
-		void DrawGraphConnectionSlot(VTGraphConnectionSlot slot, Vector2 slotPosition, Vector2 finalNodePosition)
+		void DrawGraphConnectionSlot(VTGraphConnectionSlot slot)
 		{
 			var defaultColor = GUI.color;
 
 			GUI.color = Color.gray;
-			var slotDot = new Rect(finalNodePosition + slotPosition, Vector2.one * styles.connectionPointSize);
-			GUI.Box(slotDot, "", EditorStyles.radioButton);
+
+			var slotRect = GetConnectionSlotRenderRect(slot);
+			GUI.Box(slotRect, "", EditorStyles.radioButton);
 
 			GUI.color = defaultColor;
+		}
+
+		void DrawGraphConnectionLine(Vector3 startPosition, Vector3 endPosition, bool inProgressLine)
+		{
+			Vector3 startTangent = startPosition + (Vector3.left * 40f);
+			Vector3 endTangent = endPosition - (Vector3.left * 40f);
+
+			Handles.DrawBezier(
+				startPosition,
+				endPosition,
+				startTangent,
+				endTangent,
+				styles.connectionLineColor,
+				null,
+				styles.connectionLineWidth
+			);
+
+			if(!inProgressLine)
+			{
+				if (Handles.Button((startPosition + endPosition) * 0.5f, Quaternion.identity, 4, 8, Handles.RectangleHandleCap))
+				{
+
+				}
+			}
+		}
+
+		void DrawGraphConnection(VTGraphConnection connection)
+		{
+			if(connection.inputSlot == null)
+			{
+				VTLog.LogError("InputSlot was null in DrawGraphConnection!");
+				return;
+			}
+			if(connection.outputSlot == null)
+			{
+				VTLog.LogError("OutputSlot was null in DrawGraphConnection!");
+				return;
+			}
+
+			var halfConnectionSize = Vector2.one * styles.halfConnectionPointSize;
+			var startPosition = GetConnectionSlotPosition(connection.inputSlot) + halfConnectionSize;
+			var endPosition = GetConnectionSlotPosition(connection.outputSlot) + halfConnectionSize;
+			DrawGraphConnectionLine(startPosition, endPosition, false);
 		}
 
 		//NODE UTIL
@@ -413,14 +540,34 @@ namespace RobProductions.VisualTerrain.Editor
 			return ret;
 		}
 
-		Rect GetNodeRenderRect(VTGraphNode node)
+		VTGraphConnectionSlot GetTopConnectionSlotAtPosition(Vector2 graphPosition)
 		{
-			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
-			var nodeSize = styles.nodeBaseSize;
+			if(data.currentGraph == null)
+			{
+				return null;
+			}
 
-			var nodeRect = new Rect(finalNodePosition, nodeSize);
-
-			return nodeRect;
+			VTGraphConnectionSlot ret = null;
+			foreach(var node in data.currentGraph.nodeList)
+			{
+				foreach(VTGraphConnectionSlot inputSlot in node.inputConnections)
+				{
+					var slotBounds = GetConnectionSlotRenderRect(inputSlot);
+					if(slotBounds.Contains(graphPosition))
+					{
+						ret = inputSlot;
+					}
+				}
+				foreach(VTGraphConnectionSlot outputSlot in node.outputConnections)
+				{
+					var slotBounds = GetConnectionSlotRenderRect(outputSlot);
+					if(slotBounds.Contains(graphPosition))
+					{
+						ret = outputSlot;
+					}
+				}
+			}
+			return ret;
 		}
 
 		Vector2 GetCurrentViewOffset()
@@ -431,6 +578,40 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			return data.noGraphViewOffset;
+		}
+
+		Rect GetNodeRenderRect(VTGraphNode node)
+		{
+			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
+			var nodeSize = styles.nodeBaseSize;
+
+			var nodeRect = new Rect(finalNodePosition, nodeSize);
+
+			return nodeRect;
+		}
+
+		Vector2 GetRelativeConnectionSlotPosition(VTGraphConnectionSlot.NodeConnectionSlotType slotType, Rect parentNodeRect, int slotIndex)
+		{
+			float halfConnectionSize = styles.connectionPointSize * 0.5f;
+			if(slotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+			{
+				return new Vector2(-halfConnectionSize, styles.connectionPointInitialVertical + (styles.connectionPointVerticalSpacing * slotIndex));
+			}
+
+			return new Vector2(parentNodeRect.width - (halfConnectionSize * 1.8f), styles.connectionPointInitialVertical + (styles.connectionPointVerticalSpacing * slotIndex));
+		}
+
+		Vector2 GetConnectionSlotPosition(VTGraphConnectionSlot slot)
+		{
+			var parentNode = slot.parentNode;
+			var relativePos = GetRelativeConnectionSlotPosition(slot.connectionSlotType, GetNodeRenderRect(parentNode), slot.indexOnParentNode);
+			return GetNodeRenderRect(parentNode).position + relativePos;
+		}
+
+		Rect GetConnectionSlotRenderRect(VTGraphConnectionSlot slot)
+		{
+			var slotPosition = GetConnectionSlotPosition(slot);
+			return new Rect(slotPosition, Vector2.one * styles.connectionPointSize);
 		}
 
 		//BG

@@ -25,7 +25,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			inputConnections = new VTGraphConnectionSlot[inputCount];
 			for(int i = 0; i < inputConnections.Length; i++)
 			{
-				inputConnections[i] = new VTGraphConnectionSlot(VTGraphConnectionSlot.NodeConnectionSlotType.Input, this);
+				inputConnections[i] = new VTGraphConnectionSlot(VTGraphConnectionSlot.NodeConnectionSlotType.Input, this, i);
 			}
 		}
 
@@ -34,7 +34,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			outputConnections = new VTGraphConnectionSlot[outputCount];
 			for (int i = 0; i < outputConnections.Length; i++)
 			{
-				outputConnections[i] = new VTGraphConnectionSlot(VTGraphConnectionSlot.NodeConnectionSlotType.Output, this);
+				outputConnections[i] = new VTGraphConnectionSlot(VTGraphConnectionSlot.NodeConnectionSlotType.Output, this, i);
 			}
 		}
 
