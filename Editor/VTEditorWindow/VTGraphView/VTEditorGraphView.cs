@@ -27,6 +27,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//UI Colors
 			public readonly Color connectionLineColor = new Color(0.8f, 0.85f, 0.92f);
+			public readonly Color connectionLineDragColor = new Color(0.7f, 0.72f, 1.0f);
 			public readonly Color windowBGColor = new Color(0.4f, 0.4f, 0.4f);
 
 			//UI Styles
@@ -160,6 +161,30 @@ namespace RobProductions.VisualTerrain.Editor
 			parentWindow.EditedAsset();
 		}
 
+		void CreateNodeConnection(VTGraphConnectionSlot slot1, VTGraphConnectionSlot slot2)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			parentWindow.RegisterAssetUndo("Connected Nodes");
+			data.currentGraph.AddNodeConnection(slot1, slot2);
+			parentWindow.EditedAsset();
+		}
+
+		void DeleteNodeConnection(VTGraphConnection connection)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			parentWindow.RegisterAssetUndo("Disconnected Nodes");
+			data.currentGraph.RemoveNodeConnection(connection);
+			parentWindow.EditedAsset();
+		}
+
 		void BringNodeToFront(VTGraphNode node)
 		{
 			if(data.currentGraph == null)
@@ -204,6 +229,35 @@ namespace RobProductions.VisualTerrain.Editor
 			else
 			{
 				data.noGraphViewOffset += delta;
+			}
+		}
+
+		void FocusView(VTGraphNode optionalFocusMode)
+		{
+			if(data.currentGraph != null)
+			{
+				//No need to register undo for view change
+				var accumulatedViewOffset = Vector2.zero;
+				var parentWindowCenter = new Vector2(parentWindow.position.width * 0.5f, parentWindow.position.height * 0.5f) - (styles.nodeBaseSize * 0.5f);
+				if(optionalFocusMode != null)
+				{
+					accumulatedViewOffset = -optionalFocusMode.NodePosition + parentWindowCenter;
+				}
+				else if (data.currentGraph.nodeList.Count > 0)
+				{
+					foreach(VTGraphNode node in data.currentGraph.nodeList)
+					{
+						accumulatedViewOffset += -node.NodePosition + parentWindowCenter;
+					}
+					accumulatedViewOffset /= data.currentGraph.nodeList.Count;
+				}
+
+				data.currentGraph.displayData.ViewOffset = accumulatedViewOffset;
+				parentWindow.EditedAsset();
+			}
+			else
+			{
+				data.noGraphViewOffset = Vector2.zero;
 			}
 		}
 
@@ -285,7 +339,11 @@ namespace RobProductions.VisualTerrain.Editor
 						if(data.draggingConnectionSlot != null)
 						{
 							//Handle ending connection creation
-
+							var overSlot = GetTopConnectionSlotAtPosition(e.mousePosition);
+							if (overSlot != null)
+							{
+								CreateNodeConnection(data.draggingConnectionSlot, overSlot);
+							}
 						}
 
 						data.draggingNode = null;
@@ -327,11 +385,18 @@ namespace RobProductions.VisualTerrain.Editor
 				case EventType.KeyDown:
 					if(e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
 					{
+						//Delete the selected node
 						if(data.selectedGraphNode != null)
 						{
 							DeleteNode(data.selectedGraphNode);
 							GUI.changed = true;
 						}
+					}
+					else if (e.keyCode == KeyCode.F)
+					{
+						//Focus the view on all nodes or selected node
+						FocusView(data.selectedGraphNode);
+						GUI.changed = true;
 					}
 					break;
 			}
@@ -475,7 +540,7 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.color = defaultColor;
 		}
 
-		void DrawGraphConnectionLine(Vector3 startPosition, Vector3 endPosition, bool inProgressLine)
+		void DrawGraphConnectionLine(Vector3 startPosition, Vector3 endPosition, bool inProgressLine, VTGraphConnection optionalConnection = null)
 		{
 			Vector3 startTangent = startPosition + (Vector3.left * 40f);
 			Vector3 endTangent = endPosition - (Vector3.left * 40f);
@@ -485,16 +550,17 @@ namespace RobProductions.VisualTerrain.Editor
 				endPosition,
 				startTangent,
 				endTangent,
-				styles.connectionLineColor,
+				inProgressLine ? styles.connectionLineDragColor : styles.connectionLineColor,
 				null,
 				styles.connectionLineWidth
 			);
 
-			if(!inProgressLine)
+			if(!inProgressLine && optionalConnection != null)
 			{
 				if (Handles.Button((startPosition + endPosition) * 0.5f, Quaternion.identity, 4, 8, Handles.RectangleHandleCap))
 				{
-
+					var closureConnection = optionalConnection;
+					DeleteNodeConnection(optionalConnection);
 				}
 			}
 		}
@@ -515,7 +581,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var halfConnectionSize = Vector2.one * styles.halfConnectionPointSize;
 			var startPosition = GetConnectionSlotPosition(connection.inputSlot) + halfConnectionSize;
 			var endPosition = GetConnectionSlotPosition(connection.outputSlot) + halfConnectionSize;
-			DrawGraphConnectionLine(startPosition, endPosition, false);
+			DrawGraphConnectionLine(startPosition, endPosition, false, connection);
 		}
 
 		//NODE UTIL
@@ -582,6 +648,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 		Rect GetNodeRenderRect(VTGraphNode node)
 		{
+			if(node == null)
+			{
+				VTLog.LogError("Node was null in GetNodeRenderRect!");
+				return new Rect();
+			}
 			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
 			var nodeSize = styles.nodeBaseSize;
 

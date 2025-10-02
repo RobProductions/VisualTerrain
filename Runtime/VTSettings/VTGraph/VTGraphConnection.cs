@@ -7,10 +7,10 @@ namespace RobProductions.VisualTerrain.Runtime
 	[System.Serializable]
 	public class VTGraphConnection
 	{
-		[SerializeReference]
-		public readonly VTGraphConnectionSlot inputSlot;
-		[SerializeReference]
-		public readonly VTGraphConnectionSlot outputSlot;
+		[SerializeField, SerializeReference]
+		public VTGraphConnectionSlot inputSlot;
+		[SerializeField, SerializeReference]
+		public VTGraphConnectionSlot outputSlot;
 
 		public VTGraphConnection(VTGraphConnectionSlot inputSlot, VTGraphConnectionSlot outputSlot)
 		{

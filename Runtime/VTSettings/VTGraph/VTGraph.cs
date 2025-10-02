@@ -10,6 +10,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class VTGraphDisplayData
 		{
+			[field: SerializeField]
 			public Vector2 ViewOffset { get; set; } = Vector2.zero;
 		}
 
@@ -132,7 +133,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		/// <summary>
 		/// Disconnect ConnectionSlot references to each other
-		/// and then remove the ConnectionRef in our connections list.
+		/// and then remove the VTGraphConnection in our connections list.
 		/// </summary>
 		/// <param name="connectionRef"></param>
 		public void RemoveNodeConnection(VTGraphConnection connection)
@@ -178,7 +179,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			foreach(var connection in connectionsList)
 			{
-				if(connection.inputSlot.parentNode == node || connection.outputSlot.parentNode == node)
+				if((connection.inputSlot != null && connection.inputSlot.parentNode == node) || (connection.outputSlot != null && connection.outputSlot.parentNode == node))
 				{
 					ret.Add(connection);
 				}
