@@ -146,7 +146,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			var positionMinusOffset = position - GetCurrentViewOffset();
 
-			parentWindow.RegisterAssetUndo("Created New Node");
+			parentWindow.RegisterAssetDataUndo("Created New Node");
 			data.currentGraph.CreateNode<T>(positionMinusOffset);
 			parentWindow.EditedAsset();
 		}
@@ -158,7 +158,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetUndo("Deleted Nodes");
+			parentWindow.RegisterAssetStructureUndo("Deleted Nodes");
 			foreach(VTGraphNode node in nodeList)
 			{
 				data.currentGraph.RemoveNode(node);
@@ -173,7 +173,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetUndo("Connected Nodes");
+			parentWindow.RegisterAssetStructureUndo("Connected Nodes");
 			data.currentGraph.AddNodeConnection(slot1, slot2);
 			parentWindow.EditedAsset();
 		}
@@ -185,12 +185,12 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetUndo("Disconnected Nodes");
+			parentWindow.RegisterAssetStructureUndo("Disconnected Nodes");
 			data.currentGraph.RemoveNodeConnection(connection);
 			parentWindow.EditedAsset();
 		}
 
-		void BringNodeToFront(VTGraphNode node, bool registerUndo)
+		void BringNodeToFront(VTGraphNode node)
 		{
 			if(data.currentGraph == null)
 			{
@@ -205,21 +205,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if (data.currentGraph.nodeList.Count > 1 && indexOfNode != lastIndex)
 			{
-				/*
-				if(registerUndo)
-				{
-					parentWindow.RegisterAssetUndo("Changed Node Order");
-				}
-				*/
-
-				//data.currentGraph.SetNodeIndex(node, lastIndex);
-
-				/*
-				if (registerUndo)
-				{
-					parentWindow.EditedAsset();
-				}
-				*/
+				parentWindow.RegisterAssetStructureUndo("Changed Node Order");
+				data.currentGraph.SetNodeIndex(node, lastIndex);
+				parentWindow.EditedAsset();
 			}
 		}
 
@@ -230,7 +218,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetUndo("Dragged Node");
+			parentWindow.RegisterAssetDataUndo("Dragged Node");
 			data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
 			parentWindow.EditedAsset();
 		}
@@ -242,7 +230,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetUndo("Dragged Nodes");
+			parentWindow.RegisterAssetDataUndo("Dragged Nodes");
 			foreach(VTGraphNode node in draggingNodes)
 			{
 				data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
@@ -513,7 +501,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			ClearSelectedGraphNodes();
 			AddSelectedGraphNode(v);
-			BringNodeToFront(v, true);
+			BringNodeToFront(v);
 		}
 
 		//RENDERING
@@ -529,8 +517,8 @@ namespace RobProductions.VisualTerrain.Editor
 			DrawGrid(styles.grid2Spacing, 0.25f, Color.black, graphViewRect);
 
 			//Draw nodes
-			DrawGraphNodes();
 			DrawGraphConnections();
+			DrawGraphNodes();
 			if(data.draggingConnectionSlot != null)
 			{
 				var halfConnectionSize = Vector2.one * styles.halfConnectionPointSize;
@@ -590,12 +578,37 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			GUI.Box(nodeRect, node.NodeTitle, finalNodeStyle);
+			DrawConnectionSlotsForNode(node);
+		}
+
+		/*
+		void DrawGraphNodeConnectionSlots()
+		{
+			if (data.currentGraph == null)
+			{
+				return;
+			}
+
+			for (int i = 0; i < data.currentGraph.nodeList.Count; i++)
+			{
+				var thisNode = data.currentGraph.nodeList[i];
+				DrawConnectionSlotsForNode(thisNode);
+			}
+		}
+		*/
+
+		void DrawConnectionSlotsForNode(VTGraphNode node)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
 
 			foreach (VTGraphConnectionSlot slot in node.inputConnections)
 			{
 				DrawGraphConnectionSlot(slot);
 			}
-			foreach(VTGraphConnectionSlot slot in node.outputConnections)
+			foreach (VTGraphConnectionSlot slot in node.outputConnections)
 			{
 				DrawGraphConnectionSlot(slot);
 			}

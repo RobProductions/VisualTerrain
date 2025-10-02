@@ -135,11 +135,13 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		/// <summary>
-		/// Called before editing the scriptableobject so that
-		/// the Undo handler can be used if undoing the next change
+		/// Called before editing the scriptableobject data so that
+		/// the Undo handler can be used if undoing the next change.
+		/// Note that this will not work when adding/deleting references
+		/// within the object, for that use RegisterAssetStructureUndo.
 		/// </summary>
 		/// <param name="description"></param>
-		public void RegisterAssetUndo(string description)
+		public void RegisterAssetDataUndo(string description)
 		{
 			if(data.currentAsset == null)
 			{
@@ -147,6 +149,23 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			Undo.RecordObject(data.currentAsset, description);
+		}
+
+		/// <summary>
+		/// Called before editing the scriptableobject references
+		/// so that Undo handler can register the change.
+		/// This will store a complete reference in undo buffer
+		/// including adding/deleting references.
+		/// </summary>
+		/// <param name="description"></param>
+		public void RegisterAssetStructureUndo(string description)
+		{
+			if(data.currentAsset == null)
+			{
+				return;
+			}
+
+			Undo.RegisterCompleteObjectUndo(data.currentAsset, description);
 		}
 
 		/// <summary>

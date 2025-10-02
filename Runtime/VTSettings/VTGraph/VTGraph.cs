@@ -144,7 +144,6 @@ namespace RobProductions.VisualTerrain.Runtime
 				inputSlot = slot2;
 				outputSlot = slot1;
 			}
-
 			var newConnectionRef = new VTGraphConnection(inputSlot, outputSlot);
 			connectionsList.Add(newConnectionRef);
 
