@@ -114,20 +114,14 @@ namespace RobProductions.VisualTerrain.Runtime
 			if(slot1.IsConnected() && slot1.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
 			{
 				//Disconnect existing connections if we're a full input
-				var existingConnections = GetConnectionsToSlot(slot1);
-				foreach(VTGraphConnection connection in existingConnections)
-				{
-					RemoveNodeConnection(connection);
-				}
+				var existingConnection = GetConnectionToInputSlot(slot1);
+				RemoveNodeConnection(existingConnection);
 			}
 			if (slot2.IsConnected() && slot2.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
 			{
 				//Disconnect existing connections if we're a full input
-				var existingConnections = GetConnectionsToSlot(slot2);
-				foreach (VTGraphConnection connection in existingConnections)
-				{
-					RemoveNodeConnection(connection);
-				}
+				var existingConnection = GetConnectionToInputSlot(slot2);
+				RemoveNodeConnection(existingConnection);
 			}
 			if (!slot1.CanAddConnectedSlot() || !slot2.CanAddConnectedSlot())
 			{
@@ -192,6 +186,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			return false;
 		}
 
+		/// <summary>
+		/// Get all connections associated with this node.
+		/// </summary>
+		/// <param name="node"></param>
+		/// <returns></returns>
 		public List<VTGraphConnection> GetConnectionsWithNode(VTGraphNode node)
 		{
 			var ret = new List<VTGraphConnection>();
@@ -207,6 +206,36 @@ namespace RobProductions.VisualTerrain.Runtime
 			return ret;
 		}
 
+		/// <summary>
+		/// Get an InputSlot's connection if present, null if not connected.
+		/// </summary>
+		/// <param name="slot"></param>
+		/// <returns></returns>
+		public VTGraphConnection GetConnectionToInputSlot(VTGraphConnectionSlot slot)
+		{
+			if (slot.connectionSlotType != VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+			{
+				VTLog.LogWarning("Tried to get InputSlot connection when slot was not type Input in GetConnectionToInputSlot!");
+				return null;
+			}
+			var connections = GetConnectionsToSlot(slot);
+			if (connections.Count < 1)
+			{
+				return null;
+			}
+			if (connections.Count > 1)
+			{
+				VTLog.LogWarning("Slot with type input had more than one connection in GetConnectionToInputSlot!");
+			}
+
+			return connections[0];
+		}
+
+		/// <summary>
+		/// Get all connections that are associated with this slot.
+		/// </summary>
+		/// <param name="slot"></param>
+		/// <returns></returns>
 		public List<VTGraphConnection> GetConnectionsToSlot(VTGraphConnectionSlot slot)
 		{
 			var ret = new List<VTGraphConnection>();
@@ -221,5 +250,6 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			return ret;
 		}
+
 	}
 }

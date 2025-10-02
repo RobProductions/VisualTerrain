@@ -303,7 +303,11 @@ namespace RobProductions.VisualTerrain.Editor
 					{
 						if(overNode != null)
 						{
-							SetSelectedGraphNode(overNode);
+							if(!data.selectedGraphNodes.Contains(overNode))
+							{
+								//We haven't already selected this node, so just selection to it
+								SetSelectedGraphNode(overNode);
+							}
 						}
 						ProcessContextMenu(e.mousePosition, overNode);
 						GUI.changed = true;
@@ -452,8 +456,17 @@ namespace RobProductions.VisualTerrain.Editor
 				if(overNode != null)
 				{
 					genericMenu.AddSeparator("");
-					var closureNode = data.selectedGraphNodes;
-					genericMenu.AddItem(new GUIContent("Delete Node"), false, () => DeleteNodes(closureNode));
+					if (data.selectedGraphNodes.Count > 1 && data.selectedGraphNodes.Contains(overNode))
+					{
+						//Option to delete whole selected group
+						var closureNodes = data.selectedGraphNodes;
+						genericMenu.AddItem(new GUIContent("Delete Nodes"), false, () => DeleteNodes(closureNodes));
+					}
+					else
+					{
+						var closureNodes = data.selectedGraphNodes;
+						genericMenu.AddItem(new GUIContent("Delete Node"), false, () => DeleteNodes(closureNodes));
+					}
 				}
 			}
 			if (genericMenu.GetItemCount() > 0)
@@ -580,22 +593,6 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.Box(nodeRect, node.NodeTitle, finalNodeStyle);
 			DrawConnectionSlotsForNode(node);
 		}
-
-		/*
-		void DrawGraphNodeConnectionSlots()
-		{
-			if (data.currentGraph == null)
-			{
-				return;
-			}
-
-			for (int i = 0; i < data.currentGraph.nodeList.Count; i++)
-			{
-				var thisNode = data.currentGraph.nodeList[i];
-				DrawConnectionSlotsForNode(thisNode);
-			}
-		}
-		*/
 
 		void DrawConnectionSlotsForNode(VTGraphNode node)
 		{

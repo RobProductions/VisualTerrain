@@ -13,12 +13,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			Output = 1,
 		}
 
-		[SerializeField]
-		public NodeConnectionSlotType connectionSlotType = NodeConnectionSlotType.Input;
+		[field: SerializeField]
+		public NodeConnectionSlotType connectionSlotType { get; private set; } = NodeConnectionSlotType.Input;
 		[SerializeField, SerializeReference, HideInInspector]
-		public VTGraphNode parentNode  = null;
-		[SerializeField]
-		public int indexOnParentNode = 0;
+		public VTGraphNode parentNode = null;
+		[field: SerializeField]
+		public int indexOnParentNode { get; private set; } = 0;
 		[SerializeField]
 		private int connectionCount = 0;
 
@@ -36,7 +36,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		//GETTERS
 
 		/// <summary>
-		/// True when we are able to add a connection to this slot.
+		/// True when we are able to add a connection to this slot
 		/// </summary>
 		/// <returns></returns>
 		public bool CanAddConnectedSlot()
@@ -82,6 +82,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
+		/// <summary>
+		/// Reset connection count to 0
+		/// </summary>
 		public void ClearConnectedSlots()
 		{
 			connectionCount = 0;

@@ -67,7 +67,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			Undo.undoRedoPerformed += UndoPerformed;
 
-			data.setupView = new VTEditorSetupView();
+			data.setupView = new VTEditorSetupView(this);
 			data.setupView.OnDisable();
 			data.graphView = new VTEditorGraphView(this);
 			data.graphView.OnEnable();
@@ -271,11 +271,6 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			/*
-			DrawNodes();
-			DrawConnections();
-
-			DrawConnectionLine(Event.current);
-
 			//Reset scale to draw non-scaled elements
 			//GUI.matrix = oldMatrix;
 			*/

@@ -21,6 +21,13 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private SetupViewStyles styles;
 
+		private VTEditorWindow parentWindow;
+
+		public VTEditorSetupView(VTEditorWindow parentWindow)
+		{
+			this.parentWindow = parentWindow;
+		}
+
 		//LIFECYCLE
 
 		public void OnEnable()
