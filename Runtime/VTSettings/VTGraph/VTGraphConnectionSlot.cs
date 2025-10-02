@@ -14,11 +14,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		[SerializeField]
-		public readonly NodeConnectionSlotType connectionSlotType = NodeConnectionSlotType.Input;
-		[SerializeField, SerializeReference]
-		public readonly VTGraphNode parentNode = null;
+		public NodeConnectionSlotType connectionSlotType = NodeConnectionSlotType.Input;
+		[SerializeField, SerializeReference, HideInInspector]
+		public VTGraphNode parentNode  = null;
 		[SerializeField]
-		public readonly int indexOnParentNode = 0;
+		public int indexOnParentNode = 0;
 		[SerializeField]
 		private int connectionCount = 0;
 

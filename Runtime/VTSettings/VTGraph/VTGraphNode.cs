@@ -10,9 +10,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public virtual string NodeTitle { get; }
 
-		[SerializeField]
+		[SerializeField, SerializeReference]
 		public VTGraphConnectionSlot[] inputConnections;
-		[SerializeField]
+		[SerializeField, SerializeReference]
 		public VTGraphConnectionSlot[] outputConnections;
 
 		[field: SerializeField]

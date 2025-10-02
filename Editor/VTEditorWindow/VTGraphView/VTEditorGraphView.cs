@@ -21,6 +21,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public readonly float connectionPointSize = 11f;
 			public readonly float halfConnectionPointSize = 7f;
 			public readonly float connectionLineWidth = 3f;
+			public readonly float connectionPointExtraClickHeight = 5f;
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
@@ -64,10 +65,11 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			public VTGraph currentGraph;
 
-			public VTGraphNode selectedGraphNode;
+			public List<VTGraphNode> selectedGraphNodes = new List<VTGraphNode>();
 			public VTGraphNode draggingNode;
 			public VTGraphNode startClickOnNode;
 			public VTGraphConnectionSlot draggingConnectionSlot;
+			public bool draggedNodeOnMousePress = false;
 
 			/// <summary>
 			/// When we don't have a currentGraph loaded, we still let the
@@ -130,7 +132,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			data.draggingNode = null;
 			data.startClickOnNode = null;
-			ClearSelectedGraphNode();
+			ClearSelectedGraphNodes();
 			data.draggingConnectionSlot = null;
 		}
 
@@ -149,15 +151,18 @@ namespace RobProductions.VisualTerrain.Editor
 			parentWindow.EditedAsset();
 		}
 
-		void DeleteNode(VTGraphNode node)
+		void DeleteNodes(List<VTGraphNode> nodeList)
 		{
 			if(data.currentGraph == null)
 			{
 				return;
 			}
 
-			parentWindow.RegisterAssetUndo("Deleted Node");
-			data.currentGraph.RemoveNode(node);
+			parentWindow.RegisterAssetUndo("Deleted Nodes");
+			foreach(VTGraphNode node in nodeList)
+			{
+				data.currentGraph.RemoveNode(node);
+			}
 			parentWindow.EditedAsset();
 		}
 
@@ -185,7 +190,7 @@ namespace RobProductions.VisualTerrain.Editor
 			parentWindow.EditedAsset();
 		}
 
-		void BringNodeToFront(VTGraphNode node)
+		void BringNodeToFront(VTGraphNode node, bool registerUndo)
 		{
 			if(data.currentGraph == null)
 			{
@@ -200,9 +205,21 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if (data.currentGraph.nodeList.Count > 1 && indexOfNode != lastIndex)
 			{
-				parentWindow.RegisterAssetUndo("Changed Node Order");
-				data.currentGraph.SetNodeIndex(node, lastIndex);
-				parentWindow.EditedAsset();
+				/*
+				if(registerUndo)
+				{
+					parentWindow.RegisterAssetUndo("Changed Node Order");
+				}
+				*/
+
+				//data.currentGraph.SetNodeIndex(node, lastIndex);
+
+				/*
+				if (registerUndo)
+				{
+					parentWindow.EditedAsset();
+				}
+				*/
 			}
 		}
 
@@ -215,6 +232,21 @@ namespace RobProductions.VisualTerrain.Editor
 
 			parentWindow.RegisterAssetUndo("Dragged Node");
 			data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
+			parentWindow.EditedAsset();
+		}
+
+		void DragNodes(List<VTGraphNode> draggingNodes, Vector2 delta)
+		{
+			if (data.currentGraph == null)
+			{
+				return;
+			}
+
+			parentWindow.RegisterAssetUndo("Dragged Nodes");
+			foreach(VTGraphNode node in draggingNodes)
+			{
+				data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
+			}
 			parentWindow.EditedAsset();
 		}
 
@@ -232,16 +264,20 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
-		void FocusView(VTGraphNode optionalFocusMode)
+		void FocusView(List<VTGraphNode> optionalFocusNodes)
 		{
 			if(data.currentGraph != null)
 			{
 				//No need to register undo for view change
 				var accumulatedViewOffset = Vector2.zero;
 				var parentWindowCenter = new Vector2(parentWindow.position.width * 0.5f, parentWindow.position.height * 0.5f) - (styles.nodeBaseSize * 0.5f);
-				if(optionalFocusMode != null)
+				if(optionalFocusNodes != null && optionalFocusNodes.Count > 0)
 				{
-					accumulatedViewOffset = -optionalFocusMode.NodePosition + parentWindowCenter;
+					foreach (VTGraphNode node in optionalFocusNodes)
+					{
+						accumulatedViewOffset += -node.NodePosition + parentWindowCenter;
+					}
+					accumulatedViewOffset /= optionalFocusNodes.Count;
 				}
 				else if (data.currentGraph.nodeList.Count > 0)
 				{
@@ -286,7 +322,7 @@ namespace RobProductions.VisualTerrain.Editor
 					}
 					else if (e.button == 0)
 					{
-						var overSlot = GetTopConnectionSlotAtPosition(e.mousePosition);
+						var overSlot = GetTopConnectionSlotAtPosition(e.mousePosition, true);
 						if(overSlot != null)
 						{
 							data.draggingConnectionSlot = overSlot;
@@ -298,12 +334,6 @@ namespace RobProductions.VisualTerrain.Editor
 							data.startClickOnNode = overNode;
 						}
 					}
-					/*
-					if (e.button == 0)
-					{
-						ClearConnectionSelection();
-					}
-					*/
 					break;
 				case EventType.MouseDrag:
 					if ((e.button == 0 && e.alt) || e.button == 2)
@@ -325,21 +355,70 @@ namespace RobProductions.VisualTerrain.Editor
 
 						if(data.currentGraph != null && data.draggingNode != null)
 						{
-							SetSelectedGraphNode(data.draggingNode);
+							if(data.selectedGraphNodes.Contains(data.draggingNode))
+							{
+								//Drag the whole group
+								DragNodes(data.selectedGraphNodes, e.delta);
+							}
+							else
+							{
+								if(e.shift)
+								{
+									//Add to selected node group and drag
+									AddSelectedGraphNode(data.draggingNode);
+									DragNodes(data.selectedGraphNodes, e.delta);
+								}
+								else
+								{
+									//Just select this node and drag it
+									SetSelectedGraphNode(data.draggingNode);
+									DragNode(data.draggingNode, e.delta);
+								}
+							}
 
-							DragNode(data.draggingNode, e.delta);
+							data.draggedNodeOnMousePress = true;
 							GUI.changed = true;
 							return true;
 						}
 					}
 					break;
 				case EventType.MouseUp:
-					if(e.button == 0)
+					if (e.button == 0 && !e.alt)
+					{
+						if (data.currentGraph != null)
+						{
+							bool selectedANode = false;
+							var nodeAtMousePosition = GetTopNodeAtPosition(e.mousePosition);
+							if (nodeAtMousePosition != null && data.startClickOnNode == nodeAtMousePosition)
+							{
+								//Select a node or add it to selection
+								if (e.shift)
+								{
+									AddSelectedGraphNode(nodeAtMousePosition);
+								}
+								else if (!data.draggedNodeOnMousePress)
+								{
+									SetSelectedGraphNode(nodeAtMousePosition);
+								}
+								selectedANode = true;
+								GUI.changed = true;
+							}
+
+							if (!selectedANode)
+							{
+								ClearSelectedGraphNodes();
+								GUI.changed = true;
+							}
+						}
+
+						data.startClickOnNode = null;
+					}
+					if (e.button == 0)
 					{
 						if(data.draggingConnectionSlot != null)
 						{
 							//Handle ending connection creation
-							var overSlot = GetTopConnectionSlotAtPosition(e.mousePosition);
+							var overSlot = GetTopConnectionSlotAtPosition(e.mousePosition, true);
 							if (overSlot != null)
 							{
 								CreateNodeConnection(data.draggingConnectionSlot, overSlot);
@@ -347,36 +426,8 @@ namespace RobProductions.VisualTerrain.Editor
 						}
 
 						data.draggingNode = null;
+						data.draggedNodeOnMousePress = false;
 						data.draggingConnectionSlot = null;
-					}
-					if (e.button == 0 && !e.alt)
-					{
-						if (data.currentGraph != null)
-						{
-							bool selectedANode = false;
-							var nodeAtMousePosition = GetTopNodeAtPosition(e.mousePosition);
-							if(nodeAtMousePosition != null && data.startClickOnNode == nodeAtMousePosition)
-							{
-								SetSelectedGraphNode(nodeAtMousePosition);
-								selectedANode = true;
-								GUI.changed = true;
-							}
-
-							if(!selectedANode)
-							{
-								ClearSelectedGraphNode();
-								GUI.changed = true;
-							}
-						}
-
-						data.startClickOnNode = null;
-
-						/*
-						if (data.draggingConnection)
-						{
-							ClearConnectionSelection();
-						}
-						*/
 					}
 					break;
 				case EventType.ScrollWheel:
@@ -386,16 +437,16 @@ namespace RobProductions.VisualTerrain.Editor
 					if(e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
 					{
 						//Delete the selected node
-						if(data.selectedGraphNode != null)
+						if(data.selectedGraphNodes != null)
 						{
-							DeleteNode(data.selectedGraphNode);
+							DeleteNodes(data.selectedGraphNodes);
 							GUI.changed = true;
 						}
 					}
 					else if (e.keyCode == KeyCode.F)
 					{
 						//Focus the view on all nodes or selected node
-						FocusView(data.selectedGraphNode);
+						FocusView(data.selectedGraphNodes);
 						GUI.changed = true;
 					}
 					break;
@@ -413,8 +464,8 @@ namespace RobProductions.VisualTerrain.Editor
 				if(overNode != null)
 				{
 					genericMenu.AddSeparator("");
-					var closureNode = overNode;
-					genericMenu.AddItem(new GUIContent("Delete Node"), false, () => DeleteNode(closureNode));
+					var closureNode = data.selectedGraphNodes;
+					genericMenu.AddItem(new GUIContent("Delete Node"), false, () => DeleteNodes(closureNode));
 				}
 			}
 			if (genericMenu.GetItemCount() > 0)
@@ -423,24 +474,46 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
-		void ClearSelectedGraphNode()
+		void ClearSelectedGraphNodes()
 		{
-			SetSelectedGraphNode(null);
+			data.selectedGraphNodes.Clear();
 		}
 
-		void SetSelectedGraphNode(VTGraphNode v)
+		void RemoveSelectedGraphNode(VTGraphNode v)
 		{
-			if(data.selectedGraphNode == v)
+			if(v == null)
+			{
+				return;
+			}
+			if(data.selectedGraphNodes.Contains(v))
+			{
+				data.selectedGraphNodes.Remove(v);
+			}
+		}
+
+		void AddSelectedGraphNode(VTGraphNode v)
+		{
+			if(v == null)
+			{
+				return;
+			}
+			if(data.selectedGraphNodes.Contains(v))
 			{
 				return;
 			}
 
-			data.selectedGraphNode = v;
+			data.selectedGraphNodes.Add(v);
+		}
 
-			if(data.selectedGraphNode != null)
+		void SetSelectedGraphNode(VTGraphNode v)
+		{
+			if(v == null)
 			{
-				BringNodeToFront(data.selectedGraphNode);
+				return;
 			}
+			ClearSelectedGraphNodes();
+			AddSelectedGraphNode(v);
+			BringNodeToFront(v, true);
 		}
 
 		//RENDERING
@@ -511,7 +584,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var nodeRect = GetNodeRenderRect(node);
 
 			var finalNodeStyle = styles.defaultNodeStyle;
-			if(node == data.selectedGraphNode)
+			if(data.selectedGraphNodes.Contains(node))
 			{
 				finalNodeStyle = styles.selectedNodeStyle;
 			}
@@ -557,7 +630,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(!inProgressLine && optionalConnection != null)
 			{
-				if (Handles.Button((startPosition + endPosition) * 0.5f, Quaternion.identity, 4, 8, Handles.RectangleHandleCap))
+				if (Handles.Button((startPosition + endPosition) * 0.5f, Quaternion.identity, 4, 8, Handles.CircleHandleCap))
 				{
 					var closureConnection = optionalConnection;
 					DeleteNodeConnection(optionalConnection);
@@ -606,11 +679,17 @@ namespace RobProductions.VisualTerrain.Editor
 			return ret;
 		}
 
-		VTGraphConnectionSlot GetTopConnectionSlotAtPosition(Vector2 graphPosition)
+		VTGraphConnectionSlot GetTopConnectionSlotAtPosition(Vector2 graphPosition, bool addExtraClickHeight)
 		{
 			if(data.currentGraph == null)
 			{
 				return null;
+			}
+
+			float extraClickHeight = 0.0f;
+			if(addExtraClickHeight)
+			{
+				extraClickHeight = styles.connectionPointExtraClickHeight;
 			}
 
 			VTGraphConnectionSlot ret = null;
@@ -619,6 +698,7 @@ namespace RobProductions.VisualTerrain.Editor
 				foreach(VTGraphConnectionSlot inputSlot in node.inputConnections)
 				{
 					var slotBounds = GetConnectionSlotRenderRect(inputSlot);
+					slotBounds.height += extraClickHeight;
 					if(slotBounds.Contains(graphPosition))
 					{
 						ret = inputSlot;
@@ -627,7 +707,8 @@ namespace RobProductions.VisualTerrain.Editor
 				foreach(VTGraphConnectionSlot outputSlot in node.outputConnections)
 				{
 					var slotBounds = GetConnectionSlotRenderRect(outputSlot);
-					if(slotBounds.Contains(graphPosition))
+					slotBounds.height += extraClickHeight;
+					if (slotBounds.Contains(graphPosition))
 					{
 						ret = outputSlot;
 					}

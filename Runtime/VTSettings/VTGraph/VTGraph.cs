@@ -106,12 +106,32 @@ namespace RobProductions.VisualTerrain.Runtime
 				//These slots are already connected
 				return false;
 			}
-
-			//TODO: In the future, when we encounter an input slot that is already taken,
-			//just disconnect that one first and then connect this
-
+			if(slot1.parentNode == slot2.parentNode)
+			{
+				//Cannot connect node to itself
+				return false;
+			}
+			if(slot1.IsConnected() && slot1.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+			{
+				//Disconnect existing connections if we're a full input
+				var existingConnections = GetConnectionsToSlot(slot1);
+				foreach(VTGraphConnection connection in existingConnections)
+				{
+					RemoveNodeConnection(connection);
+				}
+			}
+			if (slot2.IsConnected() && slot2.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+			{
+				//Disconnect existing connections if we're a full input
+				var existingConnections = GetConnectionsToSlot(slot2);
+				foreach (VTGraphConnection connection in existingConnections)
+				{
+					RemoveNodeConnection(connection);
+				}
+			}
 			if (!slot1.CanAddConnectedSlot() || !slot2.CanAddConnectedSlot())
 			{
+				//We still can't add the connection for some reason, so bail
 				return false;
 			}
 
@@ -180,6 +200,21 @@ namespace RobProductions.VisualTerrain.Runtime
 			foreach(var connection in connectionsList)
 			{
 				if((connection.inputSlot != null && connection.inputSlot.parentNode == node) || (connection.outputSlot != null && connection.outputSlot.parentNode == node))
+				{
+					ret.Add(connection);
+				}
+			}
+
+			return ret;
+		}
+
+		public List<VTGraphConnection> GetConnectionsToSlot(VTGraphConnectionSlot slot)
+		{
+			var ret = new List<VTGraphConnection>();
+
+			foreach (var connection in connectionsList)
+			{
+				if ((connection.inputSlot != null && connection.inputSlot == slot) || (connection.outputSlot != null && connection.outputSlot == slot))
 				{
 					ret.Add(connection);
 				}
