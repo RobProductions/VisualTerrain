@@ -68,7 +68,7 @@ namespace RobProductions.VisualTerrain.Editor
 			Undo.undoRedoPerformed += UndoPerformed;
 
 			data.setupView = new VTEditorSetupView(this);
-			data.setupView.OnDisable();
+			data.setupView.OnEnable();
 			data.graphView = new VTEditorGraphView(this);
 			data.graphView.OnEnable();
 
