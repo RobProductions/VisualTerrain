@@ -13,6 +13,19 @@ namespace RobProductions.VisualTerrain.Editor
 	public class VTEditorWindow : EditorWindow
 	{
 		private const string windowName = "Visual Terrain Editor";
+		string[] moreOptionsButtons = new string[2] { "Refresh GUI", "Clear Settings Asset" };
+
+		private class EditorWindowStyles
+		{
+			public GUIStyle propertiesButtonStyle;
+
+			public EditorWindowStyles()
+			{
+				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
+			}
+		}
+
+		private EditorWindowStyles styles;
 
 		public enum VTGraphScreen
 		{
@@ -26,6 +39,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public VTEditorSetupView setupView;
 			public VTEditorGraphView graphView;
+
+			public bool displaySetupPanel = false;
 
 			public VTSettingsAsset currentAsset = null;
 			public bool windowActive = false;
@@ -210,12 +225,24 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnGUI()
 		{
+			//Create the GUI styles
+			if(styles == null)
+			{
+				styles = new EditorWindowStyles();
+			}
+
 			var toolbarHeight = EditorStyles.toolbar.CalcHeight(GUIContent.none, position.width);
 
 			var mainScreenRect = new Rect(0.0f, toolbarHeight, position.width, position.height - toolbarHeight);
 
 			//Draw the graph view underneath the main panel
-			var currentSetupWidth = 120.0f;
+
+			var currentSetupWidth = 0.0f;
+			if(data.displaySetupPanel)
+			{
+				currentSetupWidth = 250.0f;
+			}
+
 			var graphViewRect = new Rect(
 				mainScreenRect.x + currentSetupWidth, mainScreenRect.y, mainScreenRect.width - currentSetupWidth, mainScreenRect.height);
 			data.graphView.DrawGraphView(graphViewRect);
@@ -225,7 +252,10 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Then draw the setup view if needed
 			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
-			data.setupView.DrawSetupView(setupViewRect);
+			if (data.displaySetupPanel)
+			{
+				data.setupView.DrawSetupView(setupViewRect);
+			}
 
 			//Expand window space to bottom
 			GUILayout.FlexibleSpace();
@@ -286,6 +316,15 @@ namespace RobProductions.VisualTerrain.Editor
 					{
 						ClearVTSettingsAsset();
 					}
+					var propertiesStyle = styles.propertiesButtonStyle;
+
+					var content = new GUIContent("Properties");
+					content.tooltip = "Toggle properties panel display.";
+					data.displaySetupPanel = GUILayout.Toggle(data.displaySetupPanel, content, propertiesStyle);
+
+					GUILayout.Space(6f);
+
+					EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
 				}
 				GUILayout.FlexibleSpace();
 				if(data.currentAsset != null)

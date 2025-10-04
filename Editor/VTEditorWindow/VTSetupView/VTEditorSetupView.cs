@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using RobProductions.VisualTerrain.Runtime;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -66,9 +67,15 @@ namespace RobProductions.VisualTerrain.Editor
 			//Begin a subarea so GUILayout works within just the setup box
 			GUILayout.BeginArea(setupRect);
 
-			EditorGUILayout.HelpBox("Hi", MessageType.Info);
+			
 
 			GUILayout.EndArea();
+		}
+
+		void LayoutDrawTerrainProperties(VTSetupTerrain terrainSetup)
+		{
+
+			EditorGUILayout.HelpBox("Hi", MessageType.Info);
 		}
 	}
 }

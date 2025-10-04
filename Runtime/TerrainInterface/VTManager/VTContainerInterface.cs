@@ -5,24 +5,31 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTContainerInterface
 	{
+		[System.Serializable]
 		private class ObjectInterfaceStats
 		{
 			public readonly string terrainHolderName = "Terrains";
 		}
 
+		[SerializeField]
 		private ObjectInterfaceStats stats = new ObjectInterfaceStats();
 
+		[System.Serializable]
 		private class ObjectInterfaceData
 		{
 			public Transform terrainHolder;
 
 		}
 
+		[SerializeField]
 		private ObjectInterfaceData data = new ObjectInterfaceData();
 
+		[SerializeField, SerializeReference]
 		private VisualTerrainManager manager;
+
 		private VTSettingsAsset settingsAsset;
 
 		public VTContainerInterface(VisualTerrainManager manager)

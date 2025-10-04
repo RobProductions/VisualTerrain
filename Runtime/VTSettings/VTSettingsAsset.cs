@@ -16,7 +16,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class SetupData
 		{
-
+			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
 		}
 
 		[SerializeField]

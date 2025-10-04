@@ -60,7 +60,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				return;
 			}
-
+			
 			GenerateTerrain();
 		}
 

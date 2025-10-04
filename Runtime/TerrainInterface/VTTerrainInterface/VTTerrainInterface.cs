@@ -4,15 +4,19 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTTerrainInterface
 	{
+		[System.Serializable]
 		private class TerrainInterfaceStats
 		{
 
 		}
 
+		[SerializeField]
 		private TerrainInterfaceStats stats = new TerrainInterfaceStats();
 
+		//[System.Serializable]
 		private class TerrainReference
 		{
 			public TerrainData terrainData;
@@ -26,9 +30,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			public List<TerrainReference> terrainRefs = new List<TerrainReference>();
 		}
 
+		[SerializeField]
 		private TerrainInterfaceData data = new TerrainInterfaceData();
 
+		[SerializeField, SerializeReference]
 		private VisualTerrainManager manager;
+
 		private VTSettingsAsset settingsAsset;
 
 		public VTTerrainInterface(VisualTerrainManager manager)
@@ -52,11 +59,17 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public void GenerateTerrain()
 		{
+			RefreshSettingsAsset();
 			if (settingsAsset == null)
 			{
 				return;
 			}
+			//Debug.Log("Generating terrain");
 
+			//Delete any extra terrain objects that we don't have reference to
+			DeleteUnreferencedTerrainObjects();
+
+			//Trim and create new terrain references to work with later
 			int requiredTerrainReferences = 1;
 			EnforceTerrainReferenceObjects(requiredTerrainReferences);
 			DeleteExtraTerrainReferences(requiredTerrainReferences);
@@ -112,6 +125,26 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		/// <summary>
+		/// Delete terrain objects that are not referenced by our
+		/// terrain reference list.
+		/// </summary>
+		void DeleteUnreferencedTerrainObjects()
+		{
+			var terrainHolder = manager.containerInterface.GetTerrainHolder();
+			foreach(Transform thisTerrain in terrainHolder)
+			{
+				var thisTerrainComponent = thisTerrain.GetComponent<Terrain>();
+				if(thisTerrainComponent != null)
+				{
+					if(GetReferenceWithTerrainComponent(thisTerrainComponent) == null)
+					{
+						GameObject.DestroyImmediate(thisTerrain.gameObject);
+					}
+				}
+			}
+		}
+
+		/// <summary>
 		/// Trim off any additional references that are not needed for
 		/// the current terrain generation op.
 		/// </summary>
@@ -137,8 +170,21 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			if(terrainRef != null)
 			{
-				GameObject.Destroy(terrainRef.terrainObject);
+				GameObject.DestroyImmediate(terrainRef.terrainObject);
 			}
+		}
+
+		TerrainReference GetReferenceWithTerrainComponent(Terrain v)
+		{
+			foreach(TerrainReference terrainRef in data.terrainRefs)
+			{
+				if(terrainRef.terrainComponent == v)
+				{
+					return terrainRef;
+				}
+			}
+
+			return null;
 		}
 	}
 }
