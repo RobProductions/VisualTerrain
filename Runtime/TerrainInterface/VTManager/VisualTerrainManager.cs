@@ -15,7 +15,12 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <summary>
 		/// An interface to manage object holders and terrain.
 		/// </summary>
-		public VTObjectInterface objectInterface;
+		public VTContainerInterface containerInterface;
+		/// <summary>
+		/// An interface to manage generation and modification
+		/// of terrain GameObjects.
+		/// </summary>
+		public VTTerrainInterface terrainInterface;
 
 		//LIFECYCLE
 
@@ -36,9 +41,13 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		void CheckInit()
 		{
-			if (objectInterface == null)
+			if (containerInterface == null)
 			{
-				objectInterface = new VTObjectInterface(this);
+				containerInterface = new VTContainerInterface(this);
+			}
+			if(terrainInterface == null)
+			{
+				terrainInterface = new VTTerrainInterface(this);
 			}
 		}
 
@@ -68,7 +77,10 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			//Create object holders within the manager transform
 			//to hold terrain meshes and placed objects
-			objectInterface.CreateNeededObjectHolders();
+			containerInterface.CreateNeededObjectHolders();
+			//Create the actual terrain objects if needed
+			terrainInterface.GenerateTerrain();
+
 		}
 	}
 }

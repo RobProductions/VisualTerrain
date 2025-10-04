@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
-	public class VTObjectInterface
+	public class VTContainerInterface
 	{
 		private class ObjectInterfaceStats
 		{
@@ -25,7 +25,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		private VisualTerrainManager manager;
 		private VTSettingsAsset settingsAsset;
 
-		public VTObjectInterface(VisualTerrainManager manager)
+		public VTContainerInterface(VisualTerrainManager manager)
 		{
 			this.manager = manager;
 			RefreshSettingsAsset();
