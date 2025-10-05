@@ -18,10 +18,12 @@ namespace RobProductions.VisualTerrain.Editor
 		private class EditorWindowStyles
 		{
 			public GUIStyle propertiesButtonStyle;
+			public GUIStyle moreOptionsButtonStyle;
 
 			public EditorWindowStyles()
 			{
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
+				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
 			}
 		}
 
@@ -40,7 +42,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public VTEditorSetupView setupView;
 			public VTEditorGraphView graphView;
 
-			public bool displaySetupPanel = false;
+			public bool displayPropertiesPanel = false;
 
 			public VTSettingsAsset currentAsset = null;
 			public bool windowActive = false;
@@ -49,6 +51,7 @@ namespace RobProductions.VisualTerrain.Editor
 		private VTEditorWindowData data = new VTEditorWindowData();
 
 		private const string storeAssetKey = "RobProductions.VisualTerrain.VTSettingsAsset";
+		private const string storeDisplayPropertiesKey = "RobProductions.VisualTerrain.DisplayProperties";
 
 		//LIFECYCLE
 
@@ -92,6 +95,8 @@ namespace RobProductions.VisualTerrain.Editor
 			CheckLoadStoredAsset();
 			//Then set it to refresh all associated data
 			SetVTSettingsAsset(data.currentAsset);
+			//Load stored EditorWindow data
+			CheckStoredDisplayProperties();
 
 			data.windowActive = true;
 			data.windowActive = true;
@@ -125,6 +130,12 @@ namespace RobProductions.VisualTerrain.Editor
 			SetStoredAsset(newAsset);
 			data.currentAsset = newAsset;
 			RefreshGraphScreen();
+
+			if(newAsset == null)
+			{
+				data.displayPropertiesPanel = false;
+			}
+			Repaint();
 		}
 
 		void CheckLoadStoredAsset()
@@ -147,6 +158,22 @@ namespace RobProductions.VisualTerrain.Editor
 				finalPath = AssetDatabase.GetAssetPath(storedAsset);
 			}
 			EditorPrefs.SetString(storeAssetKey, finalPath);
+		}
+
+		void CheckStoredDisplayProperties()
+		{
+			if(EditorPrefs.HasKey(storeDisplayPropertiesKey))
+			{
+				if(data.currentAsset != null)
+				{
+					data.displayPropertiesPanel = EditorPrefs.GetBool(storeDisplayPropertiesKey, false);
+				}
+			}
+		}
+
+		void SetStoredDisplayProperties(bool v)
+		{
+			EditorPrefs.SetBool(storeDisplayPropertiesKey, v);
 		}
 
 		/// <summary>
@@ -238,7 +265,7 @@ namespace RobProductions.VisualTerrain.Editor
 			//Draw the graph view underneath the main panel
 
 			var currentSetupWidth = 0.0f;
-			if(data.displaySetupPanel)
+			if(data.displayPropertiesPanel)
 			{
 				currentSetupWidth = 250.0f;
 			}
@@ -252,7 +279,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Then draw the setup view if needed
 			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
-			if (data.displaySetupPanel)
+			if (data.displayPropertiesPanel)
 			{
 				data.setupView.DrawSetupView(setupViewRect);
 			}
@@ -306,21 +333,54 @@ namespace RobProductions.VisualTerrain.Editor
 			*/
 		}
 
+		private class MoreOptionsPopup : PopupWindowContent
+		{
+			VTEditorWindow parentWindow;
+
+			public MoreOptionsPopup(VTEditorWindow parentWindow)
+			{
+				this.parentWindow = parentWindow;
+			}
+
+			public override void OnGUI(Rect rect)
+			{
+				if(GUILayout.Button("Refresh UI"))
+				{
+					parentWindow.Repaint();
+				}
+
+				if(parentWindow.data.currentAsset != null)
+				{
+					if(GUILayout.Button("Clear Asset"))
+					{
+						parentWindow.ClearVTSettingsAsset();
+					}
+				}
+			}
+		}
+
 		private void DrawToolbar()
 		{
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
-				if(data.currentAsset != null)
+				if (GUILayout.Button(EditorGUIUtility.IconContent("_Menu@2x"), EditorStyles.toolbarButton))
 				{
-					if(GUILayout.Button("Clear Asset", EditorStyles.miniButton))
-					{
-						ClearVTSettingsAsset();
-					}
+					PopupWindow.Show(new Rect(Event.current.mousePosition.x, Event.current.mousePosition.y, 0, 0), new MoreOptionsPopup(this));
+				}
+
+				if (data.currentAsset != null)
+				{
 					var propertiesStyle = styles.propertiesButtonStyle;
+					bool lastPropertiesSetting = data.displayPropertiesPanel;
 
 					var content = new GUIContent("Properties");
 					content.tooltip = "Toggle properties panel display.";
-					data.displaySetupPanel = GUILayout.Toggle(data.displaySetupPanel, content, propertiesStyle);
+					data.displayPropertiesPanel = GUILayout.Toggle(data.displayPropertiesPanel, content, propertiesStyle);
+
+					if(lastPropertiesSetting != data.displayPropertiesPanel)
+					{
+						SetStoredDisplayProperties(data.displayPropertiesPanel);
+					}
 
 					GUILayout.Space(6f);
 

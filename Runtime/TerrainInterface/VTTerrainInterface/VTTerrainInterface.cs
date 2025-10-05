@@ -16,7 +16,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		private TerrainInterfaceStats stats = new TerrainInterfaceStats();
 
-		//[System.Serializable]
+		[System.Serializable]
 		private class TerrainReference
 		{
 			public TerrainData terrainData;
