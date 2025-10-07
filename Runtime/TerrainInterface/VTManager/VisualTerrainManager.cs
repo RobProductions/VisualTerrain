@@ -2,6 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace RobProductions.VisualTerrain.Runtime
 {
 	[ExecuteInEditMode]
@@ -72,6 +76,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				return;
 			}
+#if UNITY_EDITOR
+			//Register all changes to the Undo system in Editor mode
+			Undo.RegisterCompleteObjectUndo(gameObject, "Generated Visual Terrain");
+#endif
+
 			//Make sure data is initialized
 			CheckInit();
 
@@ -81,6 +90,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Create the actual terrain objects if needed
 			terrainInterface.GenerateTerrain();
 
+			
 		}
 	}
 }

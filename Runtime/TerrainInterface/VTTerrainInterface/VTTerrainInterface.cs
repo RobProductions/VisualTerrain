@@ -73,6 +73,55 @@ namespace RobProductions.VisualTerrain.Runtime
 			int requiredTerrainReferences = 1;
 			EnforceTerrainReferenceObjects(requiredTerrainReferences);
 			DeleteExtraTerrainReferences(requiredTerrainReferences);
+
+			//Set the terrain properties
+			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup);
+		}
+
+		//TERRAIN PROPERTIES
+
+		void ConfigureTerrainProperties(VTSetupTerrain setupProperties)
+		{
+			var terrainSize = setupProperties.terrainSize;
+
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisRefData = thisRef.terrainData;
+
+				//Set resolutions
+				int finalHeightmapRes = 33;
+				switch (setupProperties.terrainResolution.heightmapResolution)
+				{
+					case VTSetupTerrain.HeightmapResolution.x65:
+						finalHeightmapRes = 65;
+						break;
+					case VTSetupTerrain.HeightmapResolution.x129:
+						finalHeightmapRes = 129;
+						break;
+					case VTSetupTerrain.HeightmapResolution.x257:
+						finalHeightmapRes = 257;
+						break;
+					case VTSetupTerrain.HeightmapResolution.x513:
+						finalHeightmapRes = 513;
+						break;
+					case VTSetupTerrain.HeightmapResolution.x1025:
+						finalHeightmapRes = 1025;
+						break;
+					case VTSetupTerrain.HeightmapResolution.x2049:
+						finalHeightmapRes = 2049;
+						break;
+					case VTSetupTerrain.HeightmapResolution.x4097:
+						finalHeightmapRes = 4097;
+						break;
+				}
+				thisRefData.heightmapResolution = finalHeightmapRes;
+
+				//Set size
+				thisRefData.size = new Vector3(terrainSize.meshWidthLength.x,
+					terrainSize.meshHeight, 
+					terrainSize.meshWidthLength.y);
+			}
 		}
 
 		//TERRAIN REFERENCE

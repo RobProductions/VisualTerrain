@@ -120,6 +120,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//ASSET MANAGEMENT
 
+		public VTSettingsAsset GetCurrentAsset()
+		{
+			return data.currentAsset;
+		}
+
 		public void ClearVTSettingsAsset()
 		{
 			SetVTSettingsAsset(null);

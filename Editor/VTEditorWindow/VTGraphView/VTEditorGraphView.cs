@@ -796,8 +796,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor, Rect graphViewRect)
 		{
-			int widthDivs = Mathf.CeilToInt(graphViewRect.width / gridSpacing) + 6;
-			int heightDivs = Mathf.CeilToInt(graphViewRect.height / gridSpacing) + 6;
+			int widthDivs = Mathf.CeilToInt(graphViewRect.width / gridSpacing) + 12;
+			int heightDivs = Mathf.CeilToInt(graphViewRect.height / gridSpacing) + 12;
 
 			Handles.BeginGUI();
 			Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
