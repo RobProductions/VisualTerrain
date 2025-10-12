@@ -16,6 +16,18 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// </summary>
 		public VTSettingsAsset settingsAsset;
 
+		[System.Serializable]
+		public class VTManagerProperties
+		{
+			[Header("Containers")]
+			public string terrainObjectName = "TerrainObject";
+		}
+
+		/// <summary>
+		/// Setup properties for the manager and generated objects.
+		/// </summary>
+		public VTManagerProperties properties = new VTManagerProperties();
+
 		/// <summary>
 		/// An interface to manage object holders and terrain.
 		/// </summary>
@@ -70,7 +82,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//GENERATION
 
-		void GenerateTerrain()
+		public void GenerateTerrain()
 		{
 			if(settingsAsset == null)
 			{

@@ -1,11 +1,9 @@
 #if UNITY_EDITOR
 
-using Codice.Client.Commands;
 using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.VersionControl;
 using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Editor

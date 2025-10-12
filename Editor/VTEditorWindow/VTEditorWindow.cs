@@ -19,9 +19,11 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			public GUIStyle propertiesButtonStyle;
 			public GUIStyle moreOptionsButtonStyle;
+			public GUIContent moreOptionsContent;
 
 			public EditorWindowStyles()
 			{
+				moreOptionsContent = EditorGUIUtility.IconContent("_Menu@2x");
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
 			}
@@ -368,7 +370,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
-				if (GUILayout.Button(EditorGUIUtility.IconContent("_Menu@2x"), EditorStyles.toolbarButton))
+				if (GUILayout.Button(styles.moreOptionsContent, EditorStyles.toolbarButton))
 				{
 					PopupWindow.Show(new Rect(Event.current.mousePosition.x, Event.current.mousePosition.y, 0, 0), new MoreOptionsPopup(this));
 				}
@@ -403,7 +405,8 @@ namespace RobProductions.VisualTerrain.Editor
 					GUILayout.EndVertical();
 					if (GUILayout.Button("Generate", EditorStyles.miniButton))
 					{
-
+						//Tell all managers with this asset to generate the terrain
+						VTEditorSceneInterface.GenerateTerrainsWithAsset(data.currentAsset);
 					}
 				}
 

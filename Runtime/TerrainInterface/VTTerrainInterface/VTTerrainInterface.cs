@@ -89,6 +89,9 @@ namespace RobProductions.VisualTerrain.Runtime
 				var thisRef = data.terrainRefs[i];
 				var thisRefData = thisRef.terrainData;
 
+				//Enforce object name
+				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
+
 				//Set resolutions
 				int finalHeightmapRes = 33;
 				switch (setupProperties.terrainResolution.heightmapResolution)
