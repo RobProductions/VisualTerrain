@@ -19,6 +19,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class VTManagerProperties
 		{
+			/// <summary>
+			/// The base name of generated terrain objects.
+			/// </summary>
 			[Header("Containers")]
 			public string terrainObjectName = "TerrainObject";
 		}

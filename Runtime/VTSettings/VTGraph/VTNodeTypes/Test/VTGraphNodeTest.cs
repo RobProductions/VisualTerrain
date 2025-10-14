@@ -16,8 +16,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public VTGraphNodeTest()
 		{
-			SetupEmptyInputConnections(1);
-			SetupEmptyOutputConnections(1);
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
 		}
 	}
 }

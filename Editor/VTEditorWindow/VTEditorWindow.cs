@@ -13,17 +13,21 @@ namespace RobProductions.VisualTerrain.Editor
 	public class VTEditorWindow : EditorWindow
 	{
 		private const string windowName = "Visual Terrain Editor";
-		string[] moreOptionsButtons = new string[2] { "Refresh GUI", "Clear Settings Asset" };
 
 		private class EditorWindowStyles
 		{
 			public GUIStyle propertiesButtonStyle;
 			public GUIStyle moreOptionsButtonStyle;
 			public GUIContent moreOptionsContent;
+			public GUIContent displayPropertiesContent;
 
 			public EditorWindowStyles()
 			{
 				moreOptionsContent = EditorGUIUtility.IconContent("_Menu@2x");
+				moreOptionsContent.tooltip = "Show additional window options.";
+				displayPropertiesContent = new GUIContent("Properties");
+				displayPropertiesContent.tooltip = "Toggle properties panel display.";
+
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
 			}
@@ -288,6 +292,19 @@ namespace RobProductions.VisualTerrain.Editor
 			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
 			if (data.displayPropertiesPanel)
 			{
+				var setupMode = VTEditorSetupView.SetupViewMode.TerrainProperties;
+				var currentSelectedNodes = data.graphView.GetSelectedGraphNodes();
+				if(currentSelectedNodes.Count > 1)
+				{
+					setupMode = VTEditorSetupView.SetupViewMode.MultiNodeProperties;
+				}
+				else if (currentSelectedNodes.Count == 1)
+				{
+					setupMode = VTEditorSetupView.SetupViewMode.NodeProperties;
+
+					data.setupView.SetEditingNode(currentSelectedNodes[0]);
+				}
+				data.setupView.SetSetupViewMode(setupMode);
 				data.setupView.DrawSetupView(setupViewRect);
 			}
 
@@ -380,9 +397,7 @@ namespace RobProductions.VisualTerrain.Editor
 					var propertiesStyle = styles.propertiesButtonStyle;
 					bool lastPropertiesSetting = data.displayPropertiesPanel;
 
-					var content = new GUIContent("Properties");
-					content.tooltip = "Toggle properties panel display.";
-					data.displayPropertiesPanel = GUILayout.Toggle(data.displayPropertiesPanel, content, propertiesStyle);
+					data.displayPropertiesPanel = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
 
 					if(lastPropertiesSetting != data.displayPropertiesPanel)
 					{

@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -13,7 +14,10 @@ namespace RobProductions.VisualTerrain.Editor
 		public class GraphViewStyles
 		{
 			//UI Values
-			public readonly Vector2 nodeBaseSize = new Vector2(200f, 45f);
+			public readonly Vector2 nodeBaseSize = new Vector2(200f, 50f);
+			public readonly Vector2 nodeExpandedSize = new Vector2(200f, 120f);
+			public readonly float nodeTitleOffset = 6f;
+
 			public readonly float connectionPointInitialVertical = 20f;
 			public readonly float connectionPointVerticalSpacing = 24f;
 			public readonly float connectionPointSize = 11f;
@@ -35,6 +39,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public GUIStyle defaultNodeStyle;
 			public GUIStyle selectedNodeStyle;
+			public GUIStyle nodeTitleStyle;
 
 			public GraphViewStyles()
 			{
@@ -49,6 +54,9 @@ namespace RobProductions.VisualTerrain.Editor
 				selectedNodeStyle = new GUIStyle(defaultNodeStyle);
 				//selectedNodeStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1 on.png") as Texture2D;
 				selectedNodeStyle.normal.background = EditorGUIUtility.Load("mini btn on focus@2x") as Texture2D;
+
+				nodeTitleStyle = new GUIStyle(defaultNodeStyle);
+				nodeTitleStyle.normal.background = null;
 
 				//Background solid color texture
 				windowBgStyle = new GUIStyle(GUI.skin.box);
@@ -68,6 +76,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public VTGraphNode startClickOnNode;
 			public VTGraphConnectionSlot draggingConnectionSlot;
 			public bool draggedNodeOnMousePress = false;
+			public bool draggedViewOnMousePress = false;
 
 			/// <summary>
 			/// When we don't have a currentGraph loaded, we still let the
@@ -130,6 +139,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			data.draggingNode = null;
 			data.startClickOnNode = null;
+			data.draggedViewOnMousePress = false;
 			ClearSelectedGraphNodes();
 			data.draggingConnectionSlot = null;
 		}
@@ -185,6 +195,29 @@ namespace RobProductions.VisualTerrain.Editor
 
 			parentWindow.RegisterAssetStructureUndo("Disconnected Nodes");
 			data.currentGraph.RemoveNodeConnection(connection);
+			parentWindow.EditedAsset();
+		}
+
+		void SetNodesExpanded(List<VTGraphNode> nodes, bool setExpanded)
+		{
+			if (data.currentGraph == null)
+			{
+				return;
+			}
+
+			parentWindow.RegisterAssetStructureUndo("Set Nodes Expanded");
+			foreach (VTGraphNode node in nodes)
+			{
+				if(!data.currentGraph.nodeList.Contains(node))
+				{
+					continue;
+				}
+				if(node.IsExpanded == setExpanded)
+				{
+					continue;
+				}
+				node.IsExpanded = setExpanded;
+			}
 			parentWindow.EditedAsset();
 		}
 
@@ -329,6 +362,7 @@ namespace RobProductions.VisualTerrain.Editor
 					if ((e.button == 0 && e.alt) || e.button == 2)
 					{
 						//Left alt + left click or middle click will drag the view
+						data.draggedViewOnMousePress = true;
 						DragView(e.delta);
 						GUI.changed = true;
 						return true;
@@ -336,6 +370,12 @@ namespace RobProductions.VisualTerrain.Editor
 					else if (e.button == 0)
 					{
 						//Regular left click can drag a node or connection point
+						if(data.draggedViewOnMousePress)
+						{
+							//But not if we were dragging the view first
+							return false;
+						}
+
 						if(data.currentGraph != null && data.draggingConnectionSlot != null)
 						{
 							data.draggingConnectionMousePosition = e.mousePosition;
@@ -375,7 +415,7 @@ namespace RobProductions.VisualTerrain.Editor
 				case EventType.MouseUp:
 					if (e.button == 0 && !e.alt)
 					{
-						if (data.currentGraph != null)
+						if (data.currentGraph != null && !data.draggedViewOnMousePress)
 						{
 							bool selectedANode = false;
 							var nodeAtMousePosition = GetTopNodeAtPosition(e.mousePosition);
@@ -402,6 +442,7 @@ namespace RobProductions.VisualTerrain.Editor
 						}
 
 						data.startClickOnNode = null;
+						data.draggedViewOnMousePress = false;
 					}
 					if (e.button == 0)
 					{
@@ -427,7 +468,7 @@ namespace RobProductions.VisualTerrain.Editor
 					if(e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
 					{
 						//Delete the selected node
-						if(data.selectedGraphNodes != null)
+						if (data.selectedGraphNodes.Count > 0)
 						{
 							DeleteNodes(data.selectedGraphNodes);
 							GUI.changed = true;
@@ -438,6 +479,20 @@ namespace RobProductions.VisualTerrain.Editor
 						//Focus the view on all nodes or selected node
 						FocusView(data.selectedGraphNodes);
 						GUI.changed = true;
+					}
+					else if (e.keyCode == KeyCode.E)
+					{
+						//Set the selected nodes expanded status
+						if(data.selectedGraphNodes.Count > 0)
+						{
+							bool setExpanded = true;
+							if (data.selectedGraphNodes[0].IsExpanded)
+							{
+								setExpanded = false;
+							}
+							SetNodesExpanded(data.selectedGraphNodes, setExpanded);
+							GUI.changed = true;
+						}
 					}
 					break;
 			}
@@ -450,7 +505,9 @@ namespace RobProductions.VisualTerrain.Editor
 			GenericMenu genericMenu = new GenericMenu();
 			if (data.currentGraph != null)
 			{
-				genericMenu.AddItem(new GUIContent("Add Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Node/Texture Output"), false, () => CreateNodeAtPosition<VTGraphNodeTextureOutput>(mousePosition));
+
 				if(overNode != null)
 				{
 					genericMenu.AddSeparator("");
@@ -502,6 +559,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			data.selectedGraphNodes.Add(v);
+			GUI.FocusControl(null);
 		}
 
 		void SetSelectedGraphNode(VTGraphNode v)
@@ -513,6 +571,11 @@ namespace RobProductions.VisualTerrain.Editor
 			ClearSelectedGraphNodes();
 			AddSelectedGraphNode(v);
 			BringNodeToFront(v);
+		}
+
+		public List<VTGraphNode> GetSelectedGraphNodes()
+		{
+			return data.selectedGraphNodes;
 		}
 
 		//RENDERING
@@ -588,7 +651,21 @@ namespace RobProductions.VisualTerrain.Editor
 				finalNodeStyle = styles.selectedNodeStyle;
 			}
 
-			GUI.Box(nodeRect, node.NodeTitle, finalNodeStyle);
+			GUI.Box(nodeRect, "", finalNodeStyle);
+			var titleRect = new Rect(nodeRect.position - new Vector2(0.0f, styles.nodeTitleOffset), nodeRect.size);
+			GUI.Label(titleRect, node.NodeTitle, styles.nodeTitleStyle);
+
+			var output = node.GetOutputConnection();
+			if(output != null)
+			{
+				if(output.valueType == VTGraphConnectionSlot.SlotValueType.Texture && output.textureValue != null)
+				{
+					var textureRegion = new Rect(nodeRect.position + new Vector2(-30, -30), nodeRect.size * 0.5f);
+					GUI.DrawTexture(textureRegion, output.textureValue);
+				}
+			}
+
+			//var nodeOutput = node.outputConnections
 			DrawConnectionSlotsForNode(node);
 		}
 
@@ -611,6 +688,12 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void DrawGraphConnectionSlot(VTGraphConnectionSlot slot)
 		{
+			if(slot.slotHidden)
+			{
+				//Don't draw hidden slots
+				return;
+			}
+
 			var defaultColor = GUI.color;
 
 			GUI.color = Color.gray;
@@ -744,6 +827,10 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
 			var nodeSize = styles.nodeBaseSize;
+			if(node.IsExpanded)
+			{
+				nodeSize = styles.nodeExpandedSize;
+			}
 
 			var nodeRect = new Rect(finalNodePosition, nodeSize);
 

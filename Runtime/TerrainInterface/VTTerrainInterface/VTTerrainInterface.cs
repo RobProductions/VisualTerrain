@@ -120,6 +120,66 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 				thisRefData.heightmapResolution = finalHeightmapRes;
 
+				int finalSplatmapRes = 16;
+				switch (setupProperties.terrainResolution.splatmapResolution)
+				{
+					case VTSetupTerrain.SplatmapResolution.x32:
+						finalSplatmapRes = 32;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x64:
+						finalSplatmapRes = 64;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x128:
+						finalSplatmapRes = 128;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x256:
+						finalSplatmapRes = 256;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x512:
+						finalSplatmapRes = 512;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x1024:
+						finalSplatmapRes = 1024;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x2048:
+						finalSplatmapRes = 2048;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x4096:
+						finalSplatmapRes = 4096;
+						break;
+				}
+				thisRefData.alphamapResolution = finalSplatmapRes;
+
+				int finalCompositeRes = 16;
+				switch (setupProperties.terrainResolution.compositeSplatmapResolution)
+				{
+					case VTSetupTerrain.SplatmapResolution.x32:
+						finalCompositeRes = 32;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x64:
+						finalCompositeRes = 64;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x128:
+						finalCompositeRes = 128;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x256:
+						finalCompositeRes = 256;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x512:
+						finalCompositeRes = 512;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x1024:
+						finalCompositeRes = 1024;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x2048:
+						finalCompositeRes = 2048;
+						break;
+					case VTSetupTerrain.SplatmapResolution.x4096:
+						finalCompositeRes = 4096;
+						break;
+				}
+				thisRefData.baseMapResolution = finalCompositeRes;
+
 				//Set size
 				thisRefData.size = new Vector3(terrainSize.meshWidthLength.x,
 					terrainSize.meshHeight, 

@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using RobProductions.VisualTerrain.Runtime;
+using System.Linq;
+using System;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -22,6 +24,16 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		private SetupViewStyles styles;
+
+		public enum SetupViewMode
+		{
+			TerrainProperties = 0,
+			NodeProperties = 1,
+			MultiNodeProperties = 2,
+		}
+
+		private SetupViewMode setupViewMode = SetupViewMode.TerrainProperties;
+		private VTGraphNode editingNode = null;
 
 		private Vector2 scrollPosition = Vector2.zero;
 
@@ -57,6 +69,26 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
+		//SETTERS
+
+		public void SetSetupViewMode(SetupViewMode mode)
+		{
+			setupViewMode = mode;
+		}
+
+		public void SetEditingNode(VTGraphNode node)
+		{
+			editingNode = node;
+		}
+
+		//PROCESSING
+
+		public void ProcessEvent()
+		{
+			//TODO: This
+			//Use GUI.FocusControl to null when clicking on background
+		}
+
 		//RENDERING
 
 		public void DrawSetupView(Rect setupRect)
@@ -84,7 +116,18 @@ namespace RobProductions.VisualTerrain.Editor
 			var currentAsset = parentWindow.GetCurrentAsset();
 			if(currentAsset != null)
 			{
-				LayoutDrawTerrainProperties(currentAsset.setupData.terrainSetup);
+				if(setupViewMode == SetupViewMode.TerrainProperties)
+				{
+					LayoutDrawTerrainProperties(currentAsset.setupData.terrainSetup);
+				}
+				else if (setupViewMode == SetupViewMode.NodeProperties)
+				{
+					LayoutDrawNodeProperties(editingNode);
+				}
+				else if (setupViewMode == SetupViewMode.MultiNodeProperties)
+				{
+					LayoutDrawMultiSelectProperties();
+				}
 			}
 
 			//If we changed any values, inform that we edited the asset
@@ -99,6 +142,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 			GUILayout.EndArea();
 		}
+
+		//TERRAIN MODE
 
 		void LayoutDrawTerrainProperties(VTSetupTerrain terrainSetup)
 		{
@@ -126,7 +171,60 @@ namespace RobProductions.VisualTerrain.Editor
 				parentWindow.RegisterAssetStructureUndo("Edited Heightmap Resolution");
 				terrainSetup.terrainResolution.heightmapResolution = heightmapRes;
 			}
+
+			var splatmapRes = (VTSetupTerrain.SplatmapResolution)EditorGUILayout.EnumPopup("Splatmap Resolution", terrainSetup.terrainResolution.splatmapResolution);
+			if (splatmapRes != terrainSetup.terrainResolution.splatmapResolution)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Splatmap Resolution");
+				terrainSetup.terrainResolution.splatmapResolution = splatmapRes;
+			}
+
+			var compositeRes = (VTSetupTerrain.SplatmapResolution)EditorGUILayout.EnumPopup("Composite Resolution", terrainSetup.terrainResolution.compositeSplatmapResolution);
+			if (compositeRes != terrainSetup.terrainResolution.compositeSplatmapResolution)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Composite Splatmap Resolution");
+				terrainSetup.terrainResolution.compositeSplatmapResolution = compositeRes;
+			}
 		}
+
+		//NODE SELECTED MODE
+
+		void LayoutDrawNodeProperties(VTGraphNode node)
+		{
+			if(node == null)
+			{
+				GUILayout.Label("No node available");
+				return;
+			}
+
+			if(node.inputConnections.Length > 0)
+			{
+				DrawLabelSeparator("Default Inputs");
+
+				for(int i = 0; i < node.inputConnections.Length; i++)
+				{
+					var thisSlot = node.inputConnections[0];
+					if(thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
+					{
+						Texture2D newTexture = (Texture2D)EditorGUILayout.ObjectField(thisSlot.defaultTextureValue, typeof(Texture2D), allowSceneObjects: false);
+						if(newTexture != thisSlot.defaultTextureValue)
+						{
+							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+							thisSlot.defaultTextureValue = newTexture;
+						}
+					}
+				}
+			}
+		}
+
+		//MULTI SELECT MODE
+
+		void LayoutDrawMultiSelectProperties()
+		{
+			EditorGUILayout.LabelField("Multiple nodes selected");
+		}
+
+		//UTILITY
 
 		void DrawLabelSeparator(string labelText)
 		{
