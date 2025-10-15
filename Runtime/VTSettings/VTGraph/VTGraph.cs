@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static RobProductions.VisualTerrain.Runtime.VTGraphConnectionSlot;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
@@ -83,6 +85,111 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
+		//PROCESSING
+
+		/// <summary>
+		/// Process all nodes in this island group by first traversing to
+		/// the leaf nodes and calculating inputs backwards from
+		/// there. When complete, all connected nodes
+		/// will be up to date in their output values.
+		/// </summary>
+		/// <param name="startingNode"></param>
+		public void ProcessAllConnectedNodes(VTGraphNode startingNode)
+		{
+			//Visit all leaf branches to process them so that
+			//all required inputs get calculated
+			Stack<VTGraphNode> stack = new Stack<VTGraphNode>();
+			stack.Push(startingNode);
+			HashSet<VTGraphNode> handledNodeList = new HashSet<VTGraphNode>();
+
+			while (stack.Count > 0)
+			{
+				VTGraphNode currentNode = stack.Pop();
+				if(handledNodeList.Contains(currentNode))
+				{
+					continue;
+				}
+				handledNodeList.Add(currentNode);
+				bool processedNode = false;
+
+				foreach(VTGraphConnectionSlot slot in currentNode.outputConnections)
+				{
+					if(slot.IsConnected())
+					{
+						var allConnections = GetConnectionsToSlot(slot);
+						foreach(VTGraphConnection connection in allConnections)
+						{
+							if (connection.inputSlot.parentNode != currentNode)
+							{
+								stack.Push(connection.inputSlot.parentNode);
+							}
+						}
+					}
+					else
+					{
+						if(!processedNode)
+						{
+							ProcessNode(currentNode);
+							processedNode = true;
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Process all input slot values from connected nodes
+		/// and then process this node's output values.
+		/// </summary>
+		/// <param name="node"></param>
+		public void ProcessNode(VTGraphNode node)
+		{
+			TraverseInputsProcessNode(node, new HashSet<VTGraphNode>());
+		}
+
+		/// Calculate the input slot values for this node by processing 
+		/// the output values of their connections via recursion,
+		/// and then process this node's output. Adds this node
+		/// to the handledNodes to stop infinite chains.
+		void TraverseInputsProcessNode(VTGraphNode node, HashSet<VTGraphNode> handledNodes)
+		{
+			if(handledNodes.Contains(node))
+			{
+				//We already handled this node in the recursion chain.
+				return;
+			}
+			handledNodes.Add(node);
+			foreach (VTGraphConnectionSlot slot in node.inputConnections)
+			{
+				CalculateInputValueFromConnection(slot, handledNodes);
+			}
+			node.ProcessNode();
+		}
+
+		/// <summary>
+		/// Calculate the given input slot's value
+		/// by processing connected nodes.
+		/// </summary>
+		/// <param name="slot"></param>
+		void CalculateInputValueFromConnection(VTGraphConnectionSlot slot, HashSet<VTGraphNode> handledNodes)
+		{
+			var connection = GetConnectionToInputSlot(slot);
+			if (connection != null)
+			{
+				//Process the value of the connected node
+				TraverseInputsProcessNode(connection.outputSlot.parentNode, handledNodes);
+				//Now we can set this value from that
+				slot.SetTextureValue(connection.outputSlot.textureValue);
+				slot.SetFloatValue(connection.outputSlot.floatValue);
+			}
+			else
+			{
+				//Just set the default value
+				slot.SetTextureValue(slot.defaultTextureValue);
+				slot.SetFloatValue(slot.defaultFloatValue);
+			}
+		}
+
 		//CONNECTIONS
 
 		/// <summary>
@@ -109,6 +216,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			if(slot1.parentNode == slot2.parentNode)
 			{
 				//Cannot connect node to itself
+				return false;
+			}
+			if (slot1.slotHidden || slot2.slotHidden)
+			{
+				//Cannot connect hidden slots
 				return false;
 			}
 			if(slot1.IsConnected() && slot1.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
@@ -141,6 +253,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			var newConnectionRef = new VTGraphConnection(inputSlot, outputSlot);
 			connectionsList.Add(newConnectionRef);
 
+			//Reprocess the input node since it has now gotten a new value
+			ProcessAllConnectedNodes(newConnectionRef.inputSlot.parentNode);
+
 			return true;
 		}
 
@@ -160,6 +275,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			connection.outputSlot.RemoveConnectedSlot();
 
 			connectionsList.Remove(connection);
+
+			//Reprocess just the input node since the output doesn't change
+			ProcessAllConnectedNodes(connection.inputSlot.parentNode);
 		}
 
 		/// <summary>
@@ -204,6 +322,28 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			return ret;
+		}
+
+		/// <summary>
+		/// Get the node attached to this input slot if present,
+		/// null if not connected.
+		/// </summary>
+		/// <param name="slot"></param>
+		/// <returns></returns>
+		public VTGraphNode GetNodeConnectedToInputSlot(VTGraphConnectionSlot slot)
+		{
+			if (slot.connectionSlotType != NodeConnectionSlotType.Input)
+			{
+				VTLog.LogWarning("Tried to get node connected to InputSlot but slot type was not Input!");
+				return null;
+			}
+			var connection = GetConnectionToInputSlot(slot);
+			if(connection != null)
+			{
+				return connection.outputSlot.parentNode;
+			}
+
+			return null;
 		}
 
 		/// <summary>

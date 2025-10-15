@@ -83,10 +83,20 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//PROCESSING
 
-		public void ProcessEvent()
+		public bool ProcessEvents(Event e)
 		{
-			//TODO: This
-			//Use GUI.FocusControl to null when clicking on background
+			switch(e.type)
+			{
+				case EventType.MouseDown:
+					if(e.button == 0)
+					{
+						GUI.FocusControl(null);
+						GUI.changed = true;
+						return true;
+					}
+					break;
+			}
+			return false;
 		}
 
 		//RENDERING
@@ -199,11 +209,23 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(node.inputConnections.Length > 0)
 			{
-				DrawLabelSeparator("Default Inputs");
+				DrawLabelSeparator("Input Settings");
 
 				for(int i = 0; i < node.inputConnections.Length; i++)
 				{
+					GUILayout.Space(styles.labelSeparatorPreSpace);
+
 					var thisSlot = node.inputConnections[0];
+					VTGraphConnectionSlot.SlotValueType valueType = (VTGraphConnectionSlot.SlotValueType)EditorGUILayout.EnumPopup("Value Type", thisSlot.valueType);
+					if(valueType != thisSlot.valueType)
+					{
+						parentWindow.RegisterAssetStructureUndo("Edited Input Value Type");
+						thisSlot.valueType = valueType;
+					}
+
+					EditorGUILayout.BeginHorizontal();
+					GUILayout.Label("Default");
+
 					if(thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
 					{
 						Texture2D newTexture = (Texture2D)EditorGUILayout.ObjectField(thisSlot.defaultTextureValue, typeof(Texture2D), allowSceneObjects: false);
@@ -213,6 +235,17 @@ namespace RobProductions.VisualTerrain.Editor
 							thisSlot.defaultTextureValue = newTexture;
 						}
 					}
+					else if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Float)
+					{
+						float newFloat = (float)EditorGUILayout.FloatField(thisSlot.defaultFloatValue);
+						if(newFloat != thisSlot.defaultFloatValue)
+						{
+							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+							thisSlot.defaultFloatValue = newFloat;
+						}
+					}
+					EditorGUILayout.EndHorizontal();
+
 				}
 			}
 		}

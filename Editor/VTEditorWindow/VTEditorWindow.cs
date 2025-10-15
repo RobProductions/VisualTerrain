@@ -316,19 +316,37 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Process input
 			var currentEvent = Event.current;
-			bool doGraphEvent = true;
+			bool doGraphEvent = false;
+			bool doPropertiesEvent = false;
 			bool handledGraphEvent = false;
+			bool handledPropertiesEvent = false;
 
 			if(currentEvent.isMouse)
 			{
 				//For mouse events, we want to know if the pointer is
 				//inside the bounds of each view
-				if(!mainScreenRect.Contains(currentEvent.mousePosition) || setupViewRect.Contains(currentEvent.mousePosition))
+				if(mainScreenRect.Contains(currentEvent.mousePosition))
 				{
-					doGraphEvent = false;
+					if(setupViewRect.Contains(currentEvent.mousePosition))
+					{
+						doPropertiesEvent = true;
+					}
+					else
+					{
+						doGraphEvent = true;
+					}
 				}
 			}
+			else
+			{
+				doGraphEvent = true;
+				doPropertiesEvent = true;
+			}
 
+			if (doPropertiesEvent)
+			{
+				handledPropertiesEvent = data.setupView.ProcessEvents(currentEvent);
+			}
 			if(doGraphEvent)
 			{
 				handledGraphEvent = data.graphView.ProcessEvents(currentEvent);

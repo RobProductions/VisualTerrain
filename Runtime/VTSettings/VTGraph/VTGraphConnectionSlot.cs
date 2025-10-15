@@ -33,7 +33,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		[field: SerializeField]
-		public SlotValueType valueType { get; private set; } = SlotValueType.Texture;
+		public SlotValueType valueType { get; set; } = SlotValueType.Texture;
 
 		[SerializeField]
 		public Texture2D defaultTextureValue = null;
@@ -134,32 +134,6 @@ namespace RobProductions.VisualTerrain.Runtime
 		public float GetFloatValue()
 		{
 			return floatValue;
-		}
-
-		public void GetInputValueFromConnections()
-		{
-			if(valueType == SlotValueType.Texture)
-			{
-				if(IsConnected())
-				{
-
-				}
-				else
-				{
-					SetTextureValue(defaultTextureValue);
-				}
-			}
-			else if(valueType == SlotValueType.Float)
-			{
-				if(IsConnected())
-				{
-
-				}
-				else
-				{
-					SetFloatValue(defaultFloatValue);
-				}
-			}
 		}
 
 	}

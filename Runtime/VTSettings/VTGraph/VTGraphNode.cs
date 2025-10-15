@@ -18,7 +18,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public Vector2 NodePosition { get; set; } = Vector2.zero;
 		[field: SerializeField]
-		public bool IsExpanded { get; set; } = true;
+		public bool IsExpanded { get; set; } = false;
 
 		//SETUP
 
@@ -42,15 +42,17 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//PROCESSING
 
+		/// <summary>
+		/// Naively processes the node output value
+		/// based on the input. The input values
+		/// will not search for connections or process
+		/// other nodes. That is left to VTGraph.ProcessNode().
+		/// </summary>
 		public virtual void ProcessNode()
 		{
-			//TODO: This
+			return;
 		}
 
-		public void ProcessInputSlots()
-		{
-
-		}
 
 		//GETTERS
 

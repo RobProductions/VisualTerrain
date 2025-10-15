@@ -28,7 +28,6 @@ namespace RobProductions.VisualTerrain.Runtime
 		public override void ProcessNode()
 		{
 			base.ProcessNode();
-			ProcessInputSlots();
 
 			var output = GetOutputConnection();
 			if(output != null)

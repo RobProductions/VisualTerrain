@@ -19,5 +19,17 @@ namespace RobProductions.VisualTerrain.Runtime
 			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
 			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
 		}
+
+
+		public override void ProcessNode()
+		{
+			base.ProcessNode();
+			
+			var output = GetOutputConnection();
+			if (output != null)
+			{
+				output.SetTextureValue(GetInputConnection().textureValue);
+			}
+		}
 	}
 }
