@@ -259,6 +259,11 @@ namespace RobProductions.VisualTerrain.Editor
 			data.graphView.SetTargetGraph(finalDisplayGraph);
 		}
 
+		public VTEditorGraphView GetGraphView()
+		{
+			return data.graphView;
+		}
+
 		//RENDERING
 
 		private void OnGUI()

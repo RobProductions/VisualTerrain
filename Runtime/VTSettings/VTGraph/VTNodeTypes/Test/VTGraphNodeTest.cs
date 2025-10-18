@@ -21,9 +21,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 
-		public override void ProcessNode()
+		public override void ProcessNode(VTGraphProcessingSettings settings)
 		{
-			base.ProcessNode();
+			base.ProcessNode(settings);
 			
 			var output = GetOutputConnection();
 			if (output != null)

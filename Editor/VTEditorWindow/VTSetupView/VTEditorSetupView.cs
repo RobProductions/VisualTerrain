@@ -215,12 +215,13 @@ namespace RobProductions.VisualTerrain.Editor
 				{
 					GUILayout.Space(styles.labelSeparatorPreSpace);
 
-					var thisSlot = node.inputConnections[0];
+					var thisSlot = node.inputConnections[i];
 					VTGraphConnectionSlot.SlotValueType valueType = (VTGraphConnectionSlot.SlotValueType)EditorGUILayout.EnumPopup("Value Type", thisSlot.valueType);
 					if(valueType != thisSlot.valueType)
 					{
 						parentWindow.RegisterAssetStructureUndo("Edited Input Value Type");
 						thisSlot.valueType = valueType;
+						parentWindow.GetGraphView().TryUpdateNodePreviewImage(node);
 					}
 
 					EditorGUILayout.BeginHorizontal();
@@ -233,6 +234,7 @@ namespace RobProductions.VisualTerrain.Editor
 						{
 							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
 							thisSlot.defaultTextureValue = newTexture;
+							parentWindow.GetGraphView().TryUpdateNodePreviewImage(node);
 						}
 					}
 					else if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Float)
@@ -242,6 +244,7 @@ namespace RobProductions.VisualTerrain.Editor
 						{
 							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
 							thisSlot.defaultFloatValue = newFloat;
+							parentWindow.GetGraphView().TryUpdateNodePreviewImage(node);
 						}
 					}
 					EditorGUILayout.EndHorizontal();

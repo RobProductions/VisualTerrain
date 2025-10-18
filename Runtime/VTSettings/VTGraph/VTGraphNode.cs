@@ -20,14 +20,15 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public bool IsExpanded { get; set; } = false;
 
+
 		//SETUP
 
-		public void SetupEmptyInputConnections(int inputCount, VTGraphConnectionSlot.SlotValueType valueType)
+		public void SetupEmptyInputConnections(int inputCount, VTGraphConnectionSlot.SlotValueType defaultValueType)
 		{
 			inputConnections = new VTGraphConnectionSlot[inputCount];
 			for(int i = 0; i < inputConnections.Length; i++)
 			{
-				inputConnections[i] = new VTGraphConnectionSlot(VTGraphConnectionSlot.NodeConnectionSlotType.Input, this, valueType, i);
+				inputConnections[i] = new VTGraphConnectionSlot(VTGraphConnectionSlot.NodeConnectionSlotType.Input, this, defaultValueType, i);
 			}
 		}
 
@@ -48,11 +49,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// will not search for connections or process
 		/// other nodes. That is left to VTGraph.ProcessNode().
 		/// </summary>
-		public virtual void ProcessNode()
+		public virtual void ProcessNode(VTGraphProcessingSettings settings)
 		{
 			return;
 		}
-
 
 		//GETTERS
 

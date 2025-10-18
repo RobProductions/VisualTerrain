@@ -94,7 +94,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// will be up to date in their output values.
 		/// </summary>
 		/// <param name="startingNode"></param>
-		public void ProcessAllConnectedNodes(VTGraphNode startingNode)
+		public void ProcessAllConnectedNodes(VTGraphNode startingNode, VTGraphProcessingSettings settings)
 		{
 			//Visit all leaf branches to process them so that
 			//all required inputs get calculated
@@ -129,7 +129,7 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						if(!processedNode)
 						{
-							ProcessNode(currentNode);
+							ProcessNode(currentNode, settings);
 							processedNode = true;
 						}
 					}
@@ -144,14 +144,26 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <param name="node"></param>
 		public void ProcessNode(VTGraphNode node)
 		{
-			TraverseInputsProcessNode(node, new HashSet<VTGraphNode>());
+			ProcessNode(node, new VTGraphProcessingSettings());
+		}
+
+		/// <summary>
+		/// Process all input slot values from connected nodes
+		/// and then process this node's output values.
+		/// Use VTGraphProcessingSettings to create
+		/// more performant preview processing.
+		/// </summary>
+		/// <param name="node"></param>
+		public void ProcessNode(VTGraphNode node, VTGraphProcessingSettings settings)
+		{
+			TraverseInputsProcessNode(node, new HashSet<VTGraphNode>(), settings);
 		}
 
 		/// Calculate the input slot values for this node by processing 
 		/// the output values of their connections via recursion,
 		/// and then process this node's output. Adds this node
 		/// to the handledNodes to stop infinite chains.
-		void TraverseInputsProcessNode(VTGraphNode node, HashSet<VTGraphNode> handledNodes)
+		void TraverseInputsProcessNode(VTGraphNode node, HashSet<VTGraphNode> handledNodes, VTGraphProcessingSettings settings)
 		{
 			if(handledNodes.Contains(node))
 			{
@@ -161,9 +173,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			handledNodes.Add(node);
 			foreach (VTGraphConnectionSlot slot in node.inputConnections)
 			{
-				CalculateInputValueFromConnection(slot, handledNodes);
+				CalculateInputValueFromConnection(slot, handledNodes, settings);
 			}
-			node.ProcessNode();
+			node.ProcessNode(settings);
 		}
 
 		/// <summary>
@@ -171,13 +183,13 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// by processing connected nodes.
 		/// </summary>
 		/// <param name="slot"></param>
-		void CalculateInputValueFromConnection(VTGraphConnectionSlot slot, HashSet<VTGraphNode> handledNodes)
+		void CalculateInputValueFromConnection(VTGraphConnectionSlot slot, HashSet<VTGraphNode> handledNodes, VTGraphProcessingSettings settings)
 		{
 			var connection = GetConnectionToInputSlot(slot);
 			if (connection != null)
 			{
 				//Process the value of the connected node
-				TraverseInputsProcessNode(connection.outputSlot.parentNode, handledNodes);
+				TraverseInputsProcessNode(connection.outputSlot.parentNode, handledNodes, settings);
 				//Now we can set this value from that
 				slot.SetTextureValue(connection.outputSlot.textureValue);
 				slot.SetFloatValue(connection.outputSlot.floatValue);
@@ -188,6 +200,11 @@ namespace RobProductions.VisualTerrain.Runtime
 				slot.SetTextureValue(slot.defaultTextureValue);
 				slot.SetFloatValue(slot.defaultFloatValue);
 			}
+		}
+
+		public void UpdateNodePreviewValue(VTGraphNode node)
+		{
+
 		}
 
 		//CONNECTIONS
@@ -254,7 +271,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			connectionsList.Add(newConnectionRef);
 
 			//Reprocess the input node since it has now gotten a new value
-			ProcessAllConnectedNodes(newConnectionRef.inputSlot.parentNode);
+			//ProcessAllConnectedNodes(newConnectionRef.inputSlot.parentNode, new VTGraphProcessingSettings());
 
 			return true;
 		}
@@ -277,7 +294,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			connectionsList.Remove(connection);
 
 			//Reprocess just the input node since the output doesn't change
-			ProcessAllConnectedNodes(connection.inputSlot.parentNode);
+			//ProcessAllConnectedNodes(connection.inputSlot.parentNode);
 		}
 
 		/// <summary>

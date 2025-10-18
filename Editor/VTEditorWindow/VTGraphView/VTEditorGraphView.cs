@@ -16,8 +16,9 @@ namespace RobProductions.VisualTerrain.Editor
 			//UI Values
 			public readonly Vector2 nodeBaseSize = new Vector2(200f, 50f);
 			public readonly Vector2 nodeExpandedSize = new Vector2(200f, 120f);
+			public readonly float nodeExtraHeightPerSlot = 30f;
 			public readonly float nodePreviewImageHeight = 60f;
-			public readonly float nodeTitleOffset = 6f;
+			public readonly float nodeTitleOffset = 4.5f;
 
 			public readonly float connectionPointInitialVertical = 24f;
 			public readonly float connectionPointVerticalSpacing = 24f;
@@ -87,6 +88,8 @@ namespace RobProductions.VisualTerrain.Editor
 			public Vector2 noGraphViewOffset = Vector2.zero;
 
 			public Vector2 draggingConnectionMousePosition = Vector2.zero;
+
+			public Dictionary<VTGraphNode, Texture2D> nodePreviewImageMap = new Dictionary<VTGraphNode, Texture2D>();
 		}
 
 		private GraphViewData data = new GraphViewData();
@@ -144,6 +147,46 @@ namespace RobProductions.VisualTerrain.Editor
 			data.draggedViewOnMousePress = false;
 			ClearSelectedGraphNodes();
 			data.draggingConnectionSlot = null;
+
+			RegenerateAllNodePreviewImages(true);
+		}
+
+		public void RegenerateAllNodePreviewImages(bool markEditAsset)
+		{
+			data.nodePreviewImageMap.Clear();
+			if (data.currentGraph == null)
+			{
+				return;
+			}
+
+			foreach(VTGraphNode node in data.currentGraph.nodeList)
+			{
+				TryUpdateNodePreviewImage(node);
+			}
+
+			if(markEditAsset)
+			{
+				parentWindow.EditedAsset();
+			}
+		}
+
+		public void TryUpdateNodePreviewImage(VTGraphNode node)
+		{
+			if(data.nodePreviewImageMap.ContainsKey(node))
+			{
+				data.nodePreviewImageMap.Remove(node);
+			}
+
+			var output = node.GetOutputConnection();
+			if (output != null)
+			{
+				data.currentGraph.ProcessNode(node);
+				var textureValue = output.GetTextureValue();
+				if(textureValue != null)
+				{
+					data.nodePreviewImageMap[node] = textureValue;
+				}
+			}
 		}
 
 		//NODE/GRAPH INTERACTIONS
@@ -173,35 +216,21 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				data.currentGraph.RemoveNode(node);
 			}
+			RegenerateAllNodePreviewImages(false);
 			parentWindow.EditedAsset();
 		}
 
-		void ManualProcessNodes(List<VTGraphNode> nodeList)
+		void UpdateNodePreview(List<VTGraphNode> nodeList)
 		{
 			if(data.currentGraph == null)
 			{
 				return;
 			}
 
-			parentWindow.RegisterAssetStructureUndo("Processed Nodes");
+			//parentWindow.RegisterAssetStructureUndo("Processed Nodes");
 			foreach (VTGraphNode node in nodeList)
 			{
-				data.currentGraph.ProcessNode(node);
-			}
-			parentWindow.EditedAsset();
-		}
-
-		void ManualProcessConnectedNodes(List<VTGraphNode> nodeList)
-		{
-			if (data.currentGraph == null)
-			{
-				return;
-			}
-
-			parentWindow.RegisterAssetStructureUndo("Processed Connected Nodes");
-			foreach (VTGraphNode node in nodeList)
-			{
-				data.currentGraph.ProcessAllConnectedNodes(node);
+				TryUpdateNodePreviewImage(node);
 			}
 			parentWindow.EditedAsset();
 		}
@@ -215,6 +244,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 			parentWindow.RegisterAssetStructureUndo("Connected Nodes");
 			data.currentGraph.AddNodeConnection(slot1, slot2);
+
+			//Update preview of both nodes
+			TryUpdateNodePreviewImage(slot1.parentNode);
+			TryUpdateNodePreviewImage(slot2.parentNode);
+
 			parentWindow.EditedAsset();
 		}
 
@@ -227,6 +261,10 @@ namespace RobProductions.VisualTerrain.Editor
 
 			parentWindow.RegisterAssetStructureUndo("Disconnected Nodes");
 			data.currentGraph.RemoveNodeConnection(connection);
+
+			//Update preview of the input node
+			TryUpdateNodePreviewImage(connection.inputSlot.parentNode);
+
 			parentWindow.EditedAsset();
 		}
 
@@ -537,25 +575,25 @@ namespace RobProductions.VisualTerrain.Editor
 			GenericMenu genericMenu = new GenericMenu();
 			if (data.currentGraph != null)
 			{
-				genericMenu.AddItem(new GUIContent("Add Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Node/Texture Output"), false, () => CreateNodeAtPosition<VTGraphNodeTextureOutput>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Output Node/Texture Output"), false, () => CreateNodeAtPosition<VTGraphNodeTextureOutput>(mousePosition));
 
 				if(overNode != null)
 				{
 					genericMenu.AddSeparator("");
 					string deleteNodeTitle = "Delete Node";
-					string processNodeTitle = "Process Node";
-					string processConnectedNodeTitle = "Process All Connected";
+					string updateNodePreviewTitle = "Update Node Preview";
+					//string processConnectedNodeTitle = "Process All Connected";
 					if (data.selectedGraphNodes.Count > 1 && data.selectedGraphNodes.Contains(overNode))
 					{
 						//Rename title because we're affecting multiple nodes
 						deleteNodeTitle = "Delete Nodes";
-						processNodeTitle = "Process Nodes";
+						updateNodePreviewTitle = "Update Node Preview";
 					}
 
 					var closureNodes = data.selectedGraphNodes;
-					genericMenu.AddItem(new GUIContent(processConnectedNodeTitle), false, () => ManualProcessConnectedNodes(closureNodes));
-					genericMenu.AddItem(new GUIContent(processNodeTitle), false, () => ManualProcessNodes(closureNodes));
+					genericMenu.AddItem(new GUIContent(updateNodePreviewTitle), false, () => UpdateNodePreview(closureNodes));
 					genericMenu.AddItem(new GUIContent(deleteNodeTitle), false, () => DeleteNodes(closureNodes));
 				}
 			}
@@ -703,16 +741,15 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(node.IsExpanded)
 			{
-				var output = node.GetOutputConnection();
-				if (output != null)
+				if(data.nodePreviewImageMap.ContainsKey(node))
 				{
-					if (output.valueType == VTGraphConnectionSlot.SlotValueType.Texture && output.textureValue != null)
+					if (data.nodePreviewImageMap[node] != null)
 					{
 						var textureRelativePos = new Vector2(nodeRect.size.x * .25f, nodeRect.size.y - styles.nodePreviewImageHeight - 10f);
 						var textureSize = new Vector2(nodeRect.size.x * .5f, styles.nodePreviewImageHeight);
 
 						var textureRegion = new Rect(nodeRect.position + textureRelativePos, textureSize);
-						GUI.DrawTexture(textureRegion, output.textureValue, ScaleMode.ScaleToFit);
+						GUI.DrawTexture(textureRegion, data.nodePreviewImageMap[node], ScaleMode.ScaleToFit);
 					}
 				}
 			}
@@ -882,6 +919,13 @@ namespace RobProductions.VisualTerrain.Editor
 			if(node.IsExpanded)
 			{
 				nodeSize = styles.nodeExpandedSize;
+			}
+
+			var maxSlotCount = Mathf.Max(node.inputConnections.Length, node.outputConnections.Length) - 1;
+			if(maxSlotCount > 0)
+			{
+				//Add extra height for multiple slots
+				nodeSize.y += styles.nodeExtraHeightPerSlot * maxSlotCount;
 			}
 
 			var nodeRect = new Rect(finalNodePosition, nodeSize);
