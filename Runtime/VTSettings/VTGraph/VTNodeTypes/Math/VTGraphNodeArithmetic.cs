@@ -29,9 +29,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				return;
 			}
-
 			var input1 = GetInputConnection(0);
 			var input2 = GetInputConnection(1);
+
 			//Handle texture combos
 			var input1Texture = input1.GetTextureValue();
 			var input2Texture = input2.GetTextureValue();
@@ -41,7 +41,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				try
 				{
-
 					var outputTex = new Texture2D(input1Texture.width, input1Texture.height);
 					Color32[] workingPixels = input1Texture.GetPixels32();
 
@@ -60,19 +59,22 @@ namespace RobProductions.VisualTerrain.Runtime
 					}
 					else if (input2.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
 					{
-						var input2Pixels = input2Texture.GetPixels32();
-						for (int i = 0; i < workingPixels.Length; i++)
+						if(input2Texture != null)
 						{
-							Color col = workingPixels[i];
-							if(i < input2Pixels.Length)
+							var input2Pixels = input2Texture.GetPixels32();
+							for (int i = 0; i < workingPixels.Length; i++)
 							{
-								Color input2Col = input2Pixels[i];
-								col.r += input2Col.r;
-								col.g += input2Col.g;
-								col.b += input2Col.b;
-							}
+								Color col = workingPixels[i];
+								if (i < input2Pixels.Length)
+								{
+									Color input2Col = input2Pixels[i];
+									col.r += input2Col.r;
+									col.g += input2Col.g;
+									col.b += input2Col.b;
+								}
 
-							workingPixels[i] = col;
+								workingPixels[i] = col;
+							}
 						}
 					}
 
@@ -90,6 +92,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				output.SetTextureValue(null);
 			}
+
+			//Handle float combos
+			output.SetFloatValue(input1Float + input2Float);
 		}
 
 		byte FloatPercentToByte(float v)

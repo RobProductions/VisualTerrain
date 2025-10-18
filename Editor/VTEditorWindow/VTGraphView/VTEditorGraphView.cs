@@ -189,6 +189,44 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
+		public void TryUpdateOutputConnectedPreviews(VTGraphNode node)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			HashSet<VTGraphNode> handledNodes = new HashSet<VTGraphNode>();
+			Stack<VTGraphNode> outputConnectedNodes = new Stack<VTGraphNode>();
+			outputConnectedNodes.Push(node);
+
+			while(outputConnectedNodes.Count > 0)
+			{
+				var thisNode = outputConnectedNodes.Pop();
+				if(handledNodes.Contains(thisNode))
+				{
+					continue;
+				}
+				handledNodes.Add(thisNode);
+				TryUpdateNodePreviewImage(thisNode);
+
+				foreach (VTGraphConnectionSlot slot in thisNode.outputConnections)
+				{
+					if (slot.IsConnected())
+					{
+						var allConnections = data.currentGraph.GetConnectionsToSlot(slot);
+						foreach (VTGraphConnection connection in allConnections)
+						{
+							if (connection.inputSlot.parentNode != thisNode)
+							{
+								outputConnectedNodes.Push(connection.inputSlot.parentNode);
+							}
+						}
+					}
+				}
+			}
+		}
+
 		//NODE/GRAPH INTERACTIONS
 
 		void CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
@@ -246,8 +284,8 @@ namespace RobProductions.VisualTerrain.Editor
 			data.currentGraph.AddNodeConnection(slot1, slot2);
 
 			//Update preview of both nodes
-			TryUpdateNodePreviewImage(slot1.parentNode);
-			TryUpdateNodePreviewImage(slot2.parentNode);
+			TryUpdateOutputConnectedPreviews(slot1.parentNode);
+			TryUpdateOutputConnectedPreviews(slot2.parentNode);
 
 			parentWindow.EditedAsset();
 		}
@@ -262,8 +300,8 @@ namespace RobProductions.VisualTerrain.Editor
 			parentWindow.RegisterAssetStructureUndo("Disconnected Nodes");
 			data.currentGraph.RemoveNodeConnection(connection);
 
-			//Update preview of the input node
-			TryUpdateNodePreviewImage(connection.inputSlot.parentNode);
+			//Update preview of the input node and its output
+			TryUpdateOutputConnectedPreviews(connection.inputSlot.parentNode);
 
 			parentWindow.EditedAsset();
 		}
