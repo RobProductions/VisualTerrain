@@ -27,12 +27,12 @@ namespace RobProductions.VisualTerrain.Runtime
 		public static Texture2D GetGraphHeightmapTexture(VTGraph graph, VTGraphProcessingSettings settings)
 		{
 			var allNodes = graph.nodeList;
-			VTGraphNodeTextureOutput outputNode = null;
+			VTGraphNodeHeightOutput outputNode = null;
 			foreach(VTGraphNode node in allNodes)
 			{
-				if(node is VTGraphNodeTextureOutput)
+				if(node is VTGraphNodeHeightOutput)
 				{
-					outputNode = node as VTGraphNodeTextureOutput;
+					outputNode = node as VTGraphNodeHeightOutput;
 				}
 			}
 

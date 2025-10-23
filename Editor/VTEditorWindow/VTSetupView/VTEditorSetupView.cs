@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using RobProductions.VisualTerrain.Runtime;
-using System.Linq;
 using System;
 
 namespace RobProductions.VisualTerrain.Editor
@@ -216,7 +215,7 @@ namespace RobProductions.VisualTerrain.Editor
 					GUILayout.Space(styles.labelSeparatorPreSpace);
 
 					var thisSlot = node.inputConnections[i];
-					VTGraphConnectionSlot.SlotValueType valueType = (VTGraphConnectionSlot.SlotValueType)EditorGUILayout.EnumPopup("Value Type", thisSlot.valueType);
+					VTGraphConnectionSlot.SlotValueType valueType = (VTGraphConnectionSlot.SlotValueType)EditorGUILayout.EnumPopup(thisSlot.connectionSlotName, thisSlot.valueType);
 					if(valueType != thisSlot.valueType)
 					{
 						parentWindow.RegisterAssetStructureUndo("Edited Input Value Type");

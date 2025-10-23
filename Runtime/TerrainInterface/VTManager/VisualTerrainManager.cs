@@ -20,6 +20,13 @@ namespace RobProductions.VisualTerrain.Runtime
 		public class VTManagerProperties
 		{
 			/// <summary>
+			/// When enabled, set terrain tp a lower resolution 
+			/// heightmap for previewing purposes.
+			/// </summary>
+			[Header("Generation")]
+			public bool previewMode = false;
+
+			/// <summary>
 			/// The base name of generated terrain objects.
 			/// </summary>
 			[Header("Containers")]
@@ -68,6 +75,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				terrainInterface = new VTTerrainInterface(this);
 			}
+		}
+
+		//GETTERS
+
+		public bool IsPreviewMode()
+		{
+			return properties.previewMode;
 		}
 
 		//INPUT

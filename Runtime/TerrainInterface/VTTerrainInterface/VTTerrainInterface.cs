@@ -94,7 +94,7 @@ namespace RobProductions.VisualTerrain.Runtime
 					var thisRef = data.terrainRefs[i];
 					var thisData = thisRef.terrainData;
 
-					var resValue = ConvertHeightmapResolution(setupProperties.terrainResolution.heightmapResolution);
+					var resValue = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
 					float[,] terrainHeights = new float[resValue, resValue];
 
 					if(heightmap != null)
@@ -145,66 +145,27 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
 
 				//Set resolutions
-				int finalHeightmapRes = ConvertHeightmapResolution(setupProperties.terrainResolution.heightmapResolution);
-				thisRefData.heightmapResolution = finalHeightmapRes;
+				thisRefData.heightmapResolution = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
 
-				int finalSplatmapRes = 16;
-				switch (setupProperties.terrainResolution.splatmapResolution)
+				int finalSplatmapRes;
+				if(manager.IsPreviewMode())
 				{
-					case VTSetupTerrain.SplatmapResolution.x32:
-						finalSplatmapRes = 32;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x64:
-						finalSplatmapRes = 64;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x128:
-						finalSplatmapRes = 128;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x256:
-						finalSplatmapRes = 256;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x512:
-						finalSplatmapRes = 512;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x1024:
-						finalSplatmapRes = 1024;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x2048:
-						finalSplatmapRes = 2048;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x4096:
-						finalSplatmapRes = 4096;
-						break;
+					finalSplatmapRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
+				}
+				else
+				{
+					finalSplatmapRes = SplatmapResToNumber(setupProperties.terrainResolution.splatmapResolution);
 				}
 				thisRefData.alphamapResolution = finalSplatmapRes;
 
-				int finalCompositeRes = 16;
-				switch (setupProperties.terrainResolution.compositeSplatmapResolution)
+				int finalCompositeRes;
+				if(manager.IsPreviewMode())
 				{
-					case VTSetupTerrain.SplatmapResolution.x32:
-						finalCompositeRes = 32;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x64:
-						finalCompositeRes = 64;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x128:
-						finalCompositeRes = 128;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x256:
-						finalCompositeRes = 256;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x512:
-						finalCompositeRes = 512;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x1024:
-						finalCompositeRes = 1024;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x2048:
-						finalCompositeRes = 2048;
-						break;
-					case VTSetupTerrain.SplatmapResolution.x4096:
-						finalCompositeRes = 4096;
-						break;
+					finalCompositeRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
+				}
+				else
+				{
+					finalCompositeRes = SplatmapResToNumber(setupProperties.terrainResolution.compositeSplatmapResolution);
 				}
 				thisRefData.baseMapResolution = finalCompositeRes;
 
@@ -213,36 +174,6 @@ namespace RobProductions.VisualTerrain.Runtime
 					terrainSize.meshHeight, 
 					terrainSize.meshWidthLength.y);
 			}
-		}
-
-		int ConvertHeightmapResolution(VTSetupTerrain.HeightmapResolution res)
-		{
-			int finalHeightmapRes = 33;
-			switch (res)
-			{
-				case VTSetupTerrain.HeightmapResolution.x65:
-					finalHeightmapRes = 65;
-					break;
-				case VTSetupTerrain.HeightmapResolution.x129:
-					finalHeightmapRes = 129;
-					break;
-				case VTSetupTerrain.HeightmapResolution.x257:
-					finalHeightmapRes = 257;
-					break;
-				case VTSetupTerrain.HeightmapResolution.x513:
-					finalHeightmapRes = 513;
-					break;
-				case VTSetupTerrain.HeightmapResolution.x1025:
-					finalHeightmapRes = 1025;
-					break;
-				case VTSetupTerrain.HeightmapResolution.x2049:
-					finalHeightmapRes = 2049;
-					break;
-				case VTSetupTerrain.HeightmapResolution.x4097:
-					finalHeightmapRes = 4097;
-					break;
-			}
-			return finalHeightmapRes;
 		}
 
 		//TERRAIN REFERENCE
@@ -355,6 +286,87 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			return null;
+		}
+
+		//VALUES
+
+		int GetFinalHeightmapRes(VTSetupTerrain.HeightmapResolution standardResolution)
+		{
+			if(manager == null)
+			{
+				return 0;
+			}
+
+			if (manager.IsPreviewMode())
+			{
+				return HeightmapResToNumber(VTSetupTerrain.HeightmapResolution.x65);
+			}
+
+			return HeightmapResToNumber(standardResolution);
+		}
+
+		int HeightmapResToNumber(VTSetupTerrain.HeightmapResolution res)
+		{
+			int finalHeightmapRes = 33;
+			switch (res)
+			{
+				case VTSetupTerrain.HeightmapResolution.x65:
+					finalHeightmapRes = 65;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x129:
+					finalHeightmapRes = 129;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x257:
+					finalHeightmapRes = 257;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x513:
+					finalHeightmapRes = 513;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x1025:
+					finalHeightmapRes = 1025;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x2049:
+					finalHeightmapRes = 2049;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x4097:
+					finalHeightmapRes = 4097;
+					break;
+			}
+			return finalHeightmapRes;
+		}
+
+		int SplatmapResToNumber(VTSetupTerrain.SplatmapResolution res)
+		{
+			int finalSplatmapRes = 16;
+			switch (res)
+			{
+				case VTSetupTerrain.SplatmapResolution.x32:
+					finalSplatmapRes = 32;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x64:
+					finalSplatmapRes = 64;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x128:
+					finalSplatmapRes = 128;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x256:
+					finalSplatmapRes = 256;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x512:
+					finalSplatmapRes = 512;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x1024:
+					finalSplatmapRes = 1024;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x2048:
+					finalSplatmapRes = 2048;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x4096:
+					finalSplatmapRes = 4096;
+					break;
+			}
+
+			return finalSplatmapRes;
 		}
 	}
 }

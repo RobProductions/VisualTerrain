@@ -17,7 +17,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		public VTGraphNodeArithmetic()
 		{
 			SetupEmptyInputConnections(2, VTGraphConnectionSlot.SlotValueType.Float);
+			inputConnections[0].connectionSlotName = "Base Input";
+			inputConnections[1].connectionSlotName = "Term Input";
+
 			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Float);
+			outputConnections[0].connectionSlotName = "Result";
 		}
 
 		public override void ProcessNode(VTGraphProcessingSettings settings)

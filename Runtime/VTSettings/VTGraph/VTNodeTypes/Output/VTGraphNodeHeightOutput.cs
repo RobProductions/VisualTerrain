@@ -1,28 +1,27 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
-	public class VTGraphNodeTextureOutput : VTGraphNode
+	public class VTGraphNodeHeightOutput : VTGraphNode
 	{
 		public override string NodeTitle
 		{
 			get
 			{
-				return "Texture Output";
+				return "Height Output";
 			}
 		}
 
-		public VTGraphNodeTextureOutput()
+		public VTGraphNodeHeightOutput()
 		{
 			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			inputConnections[0].connectionSlotName = "Heightmap";
+
 			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
-			var output = GetOutputConnection();
-			if(output != null)
-			{
-				output.slotHidden = true;
-			}
+			outputConnections[0].slotHidden = true;
 		}
 
 		public override void ProcessNode(VTGraphProcessingSettings settings)

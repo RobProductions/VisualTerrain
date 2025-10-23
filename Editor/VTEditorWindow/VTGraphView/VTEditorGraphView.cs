@@ -15,9 +15,10 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			//UI Values
 			public readonly Vector2 nodeBaseSize = new Vector2(200f, 50f);
-			public readonly Vector2 nodeExpandedSize = new Vector2(200f, 120f);
+			public readonly Vector2 nodeExpandedSize = new Vector2(200f, 130f);
 			public readonly float nodeExtraHeightPerSlot = 30f;
-			public readonly float nodePreviewImageHeight = 60f;
+			public readonly float nodePreviewImageHeight = 76f;
+			public readonly float nodePreviewImagePadding = 8f;
 			public readonly float nodeTitleOffset = 4.5f;
 
 			public readonly float connectionPointInitialVertical = 24f;
@@ -26,6 +27,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public readonly float halfConnectionPointSize = 7f;
 			public readonly float connectionLineWidth = 3f;
 			public readonly float connectionPointExtraClickHeight = 5f;
+			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -4f);
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
@@ -90,6 +92,11 @@ namespace RobProductions.VisualTerrain.Editor
 			public Vector2 draggingConnectionMousePosition = Vector2.zero;
 
 			public Dictionary<VTGraphNode, Texture2D> nodePreviewImageMap = new Dictionary<VTGraphNode, Texture2D>();
+
+			public VTGraphProcessingSettings previewProcessingSettings = new VTGraphProcessingSettings(
+				VTGraphProcessingSettings.TextureGenerationResolution.RestrictToSize,
+				VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize
+			);
 		}
 
 		private GraphViewData data = new GraphViewData();
@@ -172,6 +179,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public void TryUpdateNodePreviewImage(VTGraphNode node)
 		{
+			if(node == null)
+			{
+				return;
+			}
+
 			if(data.nodePreviewImageMap.ContainsKey(node))
 			{
 				data.nodePreviewImageMap.Remove(node);
@@ -180,7 +192,8 @@ namespace RobProductions.VisualTerrain.Editor
 			var output = node.GetOutputConnection();
 			if (output != null)
 			{
-				data.currentGraph.ProcessNode(node);
+				
+				data.currentGraph.ProcessNode(node, data.previewProcessingSettings);
 				var textureValue = output.GetTextureValue();
 				if(textureValue != null)
 				{
@@ -614,8 +627,9 @@ namespace RobProductions.VisualTerrain.Editor
 			if (data.currentGraph != null)
 			{
 				genericMenu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
 				genericMenu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Output Node/Texture Output"), false, () => CreateNodeAtPosition<VTGraphNodeTextureOutput>(mousePosition));
+				genericMenu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
 
 				if(overNode != null)
 				{
@@ -754,6 +768,11 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
+			if (node == null)
+			{
+				VTLog.LogError("Node was null in DrawGraphNode!");
+				return;
+			}
 
 			var nodeRect = GetNodeRenderRect(node);
 
@@ -783,8 +802,8 @@ namespace RobProductions.VisualTerrain.Editor
 				{
 					if (data.nodePreviewImageMap[node] != null)
 					{
-						var textureRelativePos = new Vector2(nodeRect.size.x * .25f, nodeRect.size.y - styles.nodePreviewImageHeight - 10f);
-						var textureSize = new Vector2(nodeRect.size.x * .5f, styles.nodePreviewImageHeight);
+						var textureRelativePos = new Vector2(styles.nodePreviewImagePadding, nodeRect.size.y - styles.nodePreviewImageHeight - styles.nodePreviewImagePadding);
+						var textureSize = new Vector2(nodeRect.size.x - (styles.nodePreviewImagePadding * 2.0f), styles.nodePreviewImageHeight);
 
 						var textureRegion = new Rect(nodeRect.position + textureRelativePos, textureSize);
 						GUI.DrawTexture(textureRegion, data.nodePreviewImageMap[node], ScaleMode.ScaleToFit);
@@ -821,6 +840,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
+			//Draw the connection dot
 			var defaultColor = GUI.color;
 
 			GUI.color = Color.gray;
@@ -829,6 +849,17 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.Box(slotRect, "", EditorStyles.radioButton);
 
 			GUI.color = defaultColor;
+
+			//Draw the connection slot name label
+			if(slot.connectionSlotName != "")
+			{
+				if(slot.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+				{
+					var slotLabelPos = slotRect.position + styles.connectionLabelInputOffset;
+					var slotLabelRect = new Rect(slotLabelPos, new Vector2(styles.nodeBaseSize.x, slotRect.size.y * 2.0f));
+					GUI.Label(slotLabelRect, slot.connectionSlotName);
+				}
+			}
 		}
 
 		void DrawGraphConnectionLine(Vector3 startPosition, Vector3 endPosition, bool inProgressLine, VTGraphConnection optionalConnection = null)
@@ -858,6 +889,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void DrawGraphConnection(VTGraphConnection connection)
 		{
+			if(connection == null)
+			{
+				VTLog.LogError("Connection was null in DrawGraphConnection!");
+				return;
+			}
 			if(connection.inputSlot == null)
 			{
 				VTLog.LogError("InputSlot was null in DrawGraphConnection!");

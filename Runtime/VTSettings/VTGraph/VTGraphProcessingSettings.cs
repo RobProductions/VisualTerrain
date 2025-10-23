@@ -7,7 +7,7 @@ namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTGraphProcessingSettings
 	{
-		public enum TextureGenResolution
+		public enum TextureGenerationResolution
 		{
 			Full = 0,
 			Half = 1,
@@ -15,6 +15,22 @@ namespace RobProductions.VisualTerrain.Runtime
 			RestrictToSize = 3,
 		}
 
-		public TextureGenResolution textureGenResolution = TextureGenResolution.Full;
+		public TextureGenerationResolution textureGenResolution = TextureGenerationResolution.Full;
+
+		public enum TextureOutputResolution
+		{
+			Full = 0,
+			RestrictToSize = 1,
+		}
+
+		public TextureOutputResolution textureOutputResolution = TextureOutputResolution.Full;
+
+		public VTGraphProcessingSettings(
+			TextureGenerationResolution textureGenResolution = TextureGenerationResolution.Full, 
+			TextureOutputResolution textureOutputResolution = TextureOutputResolution.Full)
+		{
+			this.textureGenResolution = textureGenResolution;
+			this.textureOutputResolution = textureOutputResolution;
+		}
 	}
 }

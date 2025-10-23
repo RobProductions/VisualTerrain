@@ -13,6 +13,8 @@ namespace RobProductions.VisualTerrain.Runtime
 	[CreateAssetMenu(fileName = "VT Settings Asset", menuName = "VisualTerrain/VT Settings Asset", order = 0)]
 	public class VTSettingsAsset : ScriptableObject
 	{
+		public const int ASSET_API_VERSION = 1;
+
 		[System.Serializable]
 		public class SetupData
 		{
@@ -31,6 +33,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public GenerationData generationData = new GenerationData();
 
+		[SerializeField]
+		private int serializedAssetVersion = 0;
+
 		public VTSettingsAsset()
 		{
 			/*
@@ -40,6 +45,30 @@ namespace RobProductions.VisualTerrain.Runtime
 			generationData.heightmapGraph.AddNode(testNode);
 			generationData.heightmapGraph.AddNode(new VTGraphNodeTest());
 			*/
+
+			CreateDefaultNodes();
+		}
+
+		void CreateDefaultNodes()
+		{
+
+		}
+
+		private void OnEnable()
+		{
+			//If we loaded an old version of the asset,
+			//format it correctly for the new version
+			if(serializedAssetVersion < ASSET_API_VERSION)
+			{
+				ValidateNewVersionFormat(serializedAssetVersion);
+			}
+			//Then set the stored version number
+			serializedAssetVersion = ASSET_API_VERSION;
+		}
+
+		void ValidateNewVersionFormat(int oldVersionNum)
+		{
+			VTLog.Log("Validating new version format from VERSION: " + oldVersionNum);
 		}
 	}
 }

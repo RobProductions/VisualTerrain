@@ -15,6 +15,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			Output = 1,
 		}
 
+		[SerializeField]
+		public string connectionSlotName = "Connection";
 		[field: SerializeField]
 		public NodeConnectionSlotType connectionSlotType { get; private set; } = NodeConnectionSlotType.Input;
 		[SerializeField, SerializeReference, HideInInspector]

@@ -54,6 +54,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			return;
 		}
 
+		public virtual bool RenderNodeProperties()
+		{
+			return false;
+		}
+
 		//GETTERS
 
 		/// <summary>
