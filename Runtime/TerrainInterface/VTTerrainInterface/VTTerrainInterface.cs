@@ -1,0 +1,371 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace RobProductions.VisualTerrain.Runtime
+{
+	[System.Serializable]
+	public class VTTerrainInterface
+	{
+		[System.Serializable]
+		private class TerrainInterfaceStats
+		{
+
+		}
+
+		[SerializeField]
+		private TerrainInterfaceStats stats = new TerrainInterfaceStats();
+
+		[System.Serializable]
+		private class TerrainReference
+		{
+			public TerrainData terrainData;
+			public Terrain terrainComponent;
+			public GameObject terrainObject;
+		}
+
+		[System.Serializable]
+		private class TerrainInterfaceData
+		{
+			public List<TerrainReference> terrainRefs = new List<TerrainReference>();
+		}
+
+		[SerializeField]
+		private TerrainInterfaceData data = new TerrainInterfaceData();
+
+		[SerializeField, SerializeReference]
+		private VisualTerrainManager manager;
+
+		private VTSettingsAsset settingsAsset;
+
+		public VTTerrainInterface(VisualTerrainManager manager)
+		{
+			this.manager = manager;
+			RefreshSettingsAsset();
+		}
+
+		void RefreshSettingsAsset()
+		{
+			if (manager == null)
+			{
+				VTLog.LogError("Manager was null in RefreshSettingsAsset!");
+				return;
+			}
+
+			settingsAsset = manager.settingsAsset;
+		}
+
+		//GENERATION
+
+		public void GenerateTerrain()
+		{
+			RefreshSettingsAsset();
+			if (settingsAsset == null)
+			{
+				return;
+			}
+			//Debug.Log("Generating terrain");
+
+			//Delete any extra terrain objects that we don't have reference to
+			DeleteUnreferencedTerrainObjects();
+
+			//Trim and create new terrain references to work with later
+			int requiredTerrainReferences = 1;
+			EnforceTerrainReferenceObjects(requiredTerrainReferences);
+			DeleteExtraTerrainReferences(requiredTerrainReferences);
+
+			//Set the terrain properties
+			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup);
+
+			//Set the terrain height values
+			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset);
+			SetTerrainHeight(settingsAsset.setupData.terrainSetup, heightmapValue);
+		}
+
+		//TERRAIN HEIGHT
+
+		void SetTerrainHeight(VTSetupTerrain setupProperties, Texture2D heightmap)
+		{
+			try
+			{
+				for (int i = 0; i < data.terrainRefs.Count; i++)
+				{
+					var thisRef = data.terrainRefs[i];
+					var thisData = thisRef.terrainData;
+
+					var resValue = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
+					float[,] terrainHeights = new float[resValue, resValue];
+
+					if(heightmap != null)
+					{
+						for (int x = 0; x < resValue; x++)
+						{
+							for (int y = 0; y < resValue; y++)
+							{
+								float percentX = (float)x / resValue;
+								float percentY = (float)y / resValue;
+								int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.width);
+								int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.height);
+								Color pixelValue = heightmap.GetPixel(pixelX, pixelY);
+
+								terrainHeights[y, x] = GetGrayscaleValueFromColor(pixelValue);
+							}
+						}
+					}
+
+					thisData.SetHeights(0, 0, terrainHeights);
+				}
+			}
+			catch (UnityException e)
+			{
+				//We might have an unreadable texture
+				VTLog.LogWarning(e.Message);
+			}
+		}
+
+		float GetGrayscaleValueFromColor(Color col)
+		{
+			return (col.r + col.g + col.b) / 3f;
+			//return col.r;
+		}
+
+		//TERRAIN PROPERTIES
+
+		void ConfigureTerrainProperties(VTSetupTerrain setupProperties)
+		{
+			var terrainSize = setupProperties.terrainSize;
+
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisRefData = thisRef.terrainData;
+
+				//Enforce object name
+				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
+
+				//Set resolutions
+				thisRefData.heightmapResolution = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
+
+				int finalSplatmapRes;
+				if(manager.IsPreviewMode())
+				{
+					finalSplatmapRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
+				}
+				else
+				{
+					finalSplatmapRes = SplatmapResToNumber(setupProperties.terrainResolution.splatmapResolution);
+				}
+				thisRefData.alphamapResolution = finalSplatmapRes;
+
+				int finalCompositeRes;
+				if(manager.IsPreviewMode())
+				{
+					finalCompositeRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
+				}
+				else
+				{
+					finalCompositeRes = SplatmapResToNumber(setupProperties.terrainResolution.compositeSplatmapResolution);
+				}
+				thisRefData.baseMapResolution = finalCompositeRes;
+
+				//Set size
+				thisRefData.size = new Vector3(terrainSize.meshWidthLength.x,
+					terrainSize.meshHeight, 
+					terrainSize.meshWidthLength.y);
+			}
+		}
+
+		//TERRAIN REFERENCE
+
+		void EnforceTerrainReferenceObjects(int requiredReferences)
+		{
+			for(int i = 0; i < requiredReferences; i++)
+			{
+				if (data.terrainRefs.Count <= i)
+				{
+					//We need to make a new ref and create TerrainData
+					TerrainReference newRef = new TerrainReference();
+					data.terrainRefs.Add(newRef);
+				}
+
+				var thisRef = data.terrainRefs[i];
+				//Create terrain data if needed
+				if(thisRef.terrainData == null)
+				{
+					thisRef.terrainData = new TerrainData();
+
+				}
+
+				//Now create terrain object if needed
+				if(thisRef.terrainComponent == null)
+				{
+					thisRef.terrainComponent = CreateTerrainObject(thisRef.terrainData);
+				}
+				thisRef.terrainObject = thisRef.terrainComponent.gameObject;
+
+				//TODO: Enforce terrain position?
+			}
+			
+		}
+
+		/// <summary>
+		/// Given the TerrainData project asset, create gameobjects 
+		/// in the scene needed for this terrain ref.
+		/// </summary>
+		/// <param name="backingData"></param>
+		/// <returns></returns>
+		Terrain CreateTerrainObject(TerrainData backingData)
+		{
+			var newTerrain = Terrain.CreateTerrainGameObject(backingData);
+			newTerrain.transform.SetParent(manager.containerInterface.GetTerrainHolder());
+			newTerrain.transform.localPosition = Vector3.zero;
+			newTerrain.transform.localRotation = Quaternion.identity;
+
+			return newTerrain.GetComponent<Terrain>();
+		}
+
+		/// <summary>
+		/// Delete terrain objects that are not referenced by our
+		/// terrain reference list.
+		/// </summary>
+		void DeleteUnreferencedTerrainObjects()
+		{
+			var terrainHolder = manager.containerInterface.GetTerrainHolder();
+			foreach(Transform thisTerrain in terrainHolder)
+			{
+				var thisTerrainComponent = thisTerrain.GetComponent<Terrain>();
+				if(thisTerrainComponent != null)
+				{
+					if(GetReferenceWithTerrainComponent(thisTerrainComponent) == null)
+					{
+						GameObject.DestroyImmediate(thisTerrain.gameObject);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Trim off any additional references that are not needed for
+		/// the current terrain generation op.
+		/// </summary>
+		/// <param name="requiredReferences"></param>
+		void DeleteExtraTerrainReferences(int requiredReferences)
+		{
+			for(int i = data.terrainRefs.Count - 1; i >= 0; i--)
+			{
+				if(i >= requiredReferences)
+				{
+					//Delete this ref above or equal to the reference count
+					DeleteTerrainReference(data.terrainRefs[i]);
+					data.terrainRefs.RemoveAt(i);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Destroy associated data and objects within this terrain ref.
+		/// </summary>
+		/// <param name="terrainRef"></param>
+		void DeleteTerrainReference(TerrainReference terrainRef)
+		{
+			if(terrainRef != null)
+			{
+				GameObject.DestroyImmediate(terrainRef.terrainObject);
+			}
+		}
+
+		TerrainReference GetReferenceWithTerrainComponent(Terrain v)
+		{
+			foreach(TerrainReference terrainRef in data.terrainRefs)
+			{
+				if(terrainRef.terrainComponent == v)
+				{
+					return terrainRef;
+				}
+			}
+
+			return null;
+		}
+
+		//VALUES
+
+		int GetFinalHeightmapRes(VTSetupTerrain.HeightmapResolution standardResolution)
+		{
+			if(manager == null)
+			{
+				return 0;
+			}
+
+			if (manager.IsPreviewMode())
+			{
+				return HeightmapResToNumber(VTSetupTerrain.HeightmapResolution.x65);
+			}
+
+			return HeightmapResToNumber(standardResolution);
+		}
+
+		int HeightmapResToNumber(VTSetupTerrain.HeightmapResolution res)
+		{
+			int finalHeightmapRes = 33;
+			switch (res)
+			{
+				case VTSetupTerrain.HeightmapResolution.x65:
+					finalHeightmapRes = 65;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x129:
+					finalHeightmapRes = 129;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x257:
+					finalHeightmapRes = 257;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x513:
+					finalHeightmapRes = 513;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x1025:
+					finalHeightmapRes = 1025;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x2049:
+					finalHeightmapRes = 2049;
+					break;
+				case VTSetupTerrain.HeightmapResolution.x4097:
+					finalHeightmapRes = 4097;
+					break;
+			}
+			return finalHeightmapRes;
+		}
+
+		int SplatmapResToNumber(VTSetupTerrain.SplatmapResolution res)
+		{
+			int finalSplatmapRes = 16;
+			switch (res)
+			{
+				case VTSetupTerrain.SplatmapResolution.x32:
+					finalSplatmapRes = 32;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x64:
+					finalSplatmapRes = 64;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x128:
+					finalSplatmapRes = 128;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x256:
+					finalSplatmapRes = 256;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x512:
+					finalSplatmapRes = 512;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x1024:
+					finalSplatmapRes = 1024;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x2048:
+					finalSplatmapRes = 2048;
+					break;
+				case VTSetupTerrain.SplatmapResolution.x4096:
+					finalSplatmapRes = 4096;
+					break;
+			}
+
+			return finalSplatmapRes;
+		}
+	}
+}
