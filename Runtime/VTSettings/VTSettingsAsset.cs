@@ -60,7 +60,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			//format it correctly for the new version
 			if(serializedAssetVersion < ASSET_API_VERSION)
 			{
-				ValidateNewVersionFormat(serializedAssetVersion);
+				//Initializes at 0, so we can skip that "version",
+				//it must be up to date already
+				if (serializedAssetVersion > 0)
+				{
+					ValidateNewVersionFormat(serializedAssetVersion);
+				}
 			}
 			//Then set the stored version number
 			serializedAssetVersion = ASSET_API_VERSION;
