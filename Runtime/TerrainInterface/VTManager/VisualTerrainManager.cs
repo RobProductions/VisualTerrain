@@ -48,6 +48,16 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// </summary>
 		public VTTerrainInterface terrainInterface;
 
+		public class VTManagerEvents
+		{
+			public delegate void OnStartGenerateTerrain(VisualTerrainManager manager);
+			public OnStartGenerateTerrain onStartGenerateTerrainEvent;
+			public delegate void OnFinishGenerateTerrain(VisualTerrainManager manager);
+			public OnFinishGenerateTerrain onFinishGenerateTerrainEvent;
+		}
+
+		public VTManagerEvents events = new VTManagerEvents();
+
 		//LIFECYCLE
 
 		private void Awake()
@@ -105,6 +115,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				return;
 			}
+
+			//We can attempt to generate
+			events.onStartGenerateTerrainEvent?.Invoke(this);
+
 #if UNITY_EDITOR
 			//Register all changes to the Undo system in Editor mode
 			Undo.RegisterCompleteObjectUndo(gameObject, "Generated Visual Terrain");
@@ -119,7 +133,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Create the actual terrain objects if needed
 			terrainInterface.GenerateTerrain();
 
-			
+			//We finished all the generation steps
+			events.onFinishGenerateTerrainEvent?.Invoke(this);
 		}
 	}
 }

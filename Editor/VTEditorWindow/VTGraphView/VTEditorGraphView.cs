@@ -5,12 +5,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace RobProductions.VisualTerrain.Editor
 {
 	public class VTEditorGraphView
 	{
+		/// <summary>
+		/// The amount of view scaling that can happen
+		/// before the value gets clamped.
+		/// </summary>
+		public readonly Vector2 viewScaleRange = new Vector2(0.2f, 1.4f);
+		public readonly float stopSmallGridAtScale = 0.4f;
+		public readonly float viewScaleButtonChangeAmount = 0.05f;
+		public readonly float viewScaleScrollChangeAmount = 0.02f;
+
 		public class GraphViewStyles
 		{
 			//UI Values
@@ -31,6 +39,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
+			public readonly float gridLineWidth = 1.0f;
 
 			//UI Colors
 			public readonly Color connectionLineColor = new Color(0.8f, 0.85f, 0.92f);
@@ -75,6 +84,7 @@ namespace RobProductions.VisualTerrain.Editor
 		private class GraphViewData
 		{
 			public VTGraph currentGraph;
+			public Rect currentRenderRect = new Rect();
 
 			public List<VTGraphNode> selectedGraphNodes = new List<VTGraphNode>();
 			public VTGraphNode draggingNode;
@@ -85,9 +95,14 @@ namespace RobProductions.VisualTerrain.Editor
 
 			/// <summary>
 			/// When we don't have a currentGraph loaded, we still let the
-			/// user move the graph view around and use this to track the offset
+			/// user move the graph view around and use this to track the offset.
 			/// </summary>
 			public Vector2 noGraphViewOffset = Vector2.zero;
+			/// <summary>
+			/// When we don't have a currentGraph loaded, we still let the
+			/// user scale the graph view and track it with this.
+			/// </summary>
+			public float noGraphViewScale = 1.0f;
 
 			public Vector2 draggingConnectionMousePosition = Vector2.zero;
 
@@ -101,6 +116,7 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		private GraphViewData data = new GraphViewData();
+
 
 		private VTEditorWindow parentWindow;
 
@@ -372,7 +388,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			parentWindow.RegisterAssetDataUndo("Dragged Node");
-			data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
+			data.currentGraph.SetNodePosition(node, node.NodePosition + (delta / GetCurrentViewScale()));
 			parentWindow.EditedAsset();
 		}
 
@@ -386,7 +402,7 @@ namespace RobProductions.VisualTerrain.Editor
 			parentWindow.RegisterAssetDataUndo("Dragged Nodes");
 			foreach(VTGraphNode node in draggingNodes)
 			{
-				data.currentGraph.SetNodePosition(node, node.NodePosition + delta);
+				data.currentGraph.SetNodePosition(node, node.NodePosition + (delta / GetCurrentViewScale()));
 			}
 			parentWindow.EditedAsset();
 		}
@@ -396,12 +412,44 @@ namespace RobProductions.VisualTerrain.Editor
 			if (data.currentGraph != null)
 			{
 				//No need to register undo for view change
-				data.currentGraph.displayData.ViewOffset += delta;
+				data.currentGraph.displayData.ViewOffset += (delta / GetCurrentViewScale());
 				parentWindow.EditedAsset();
 			}
 			else
 			{
-				data.noGraphViewOffset += delta;
+				data.noGraphViewOffset += (delta / GetCurrentViewScale());
+			}
+		}
+
+		void ScaleView(float amount, Vector2 zoomCenterPoint)
+		{
+			if (data.currentGraph != null)
+			{
+				SetViewScale(data.currentGraph.displayData.ViewScale + amount, zoomCenterPoint);
+			}
+			else
+			{
+				SetViewScale(data.noGraphViewScale + amount, zoomCenterPoint);
+			}
+		}
+
+		void SetViewScale(float setValue, Vector2 zoomCenterPoint)
+		{
+			if (data.currentGraph != null)
+			{
+				//No need to register undo for view change
+				var oldScale = data.currentGraph.displayData.ViewScale;
+				data.currentGraph.displayData.ViewScale = setValue;
+				data.currentGraph.displayData.ViewScale = Mathf.Clamp(data.currentGraph.displayData.ViewScale, viewScaleRange.x, viewScaleRange.y);
+
+				var adjustFactor = (zoomCenterPoint - data.currentGraph.displayData.ViewOffset) * (data.currentGraph.displayData.ViewScale / oldScale);
+				data.currentGraph.displayData.ViewOffset = zoomCenterPoint - adjustFactor;
+				parentWindow.EditedAsset();
+			}
+			else
+			{
+				data.noGraphViewScale = setValue;
+				data.noGraphViewScale = Mathf.Clamp(data.noGraphViewScale, viewScaleRange.x, viewScaleRange.y);
 			}
 		}
 
@@ -564,7 +612,6 @@ namespace RobProductions.VisualTerrain.Editor
 						}
 
 						data.startClickOnNode = null;
-						data.draggedViewOnMousePress = false;
 					}
 					if (e.button == 0)
 					{
@@ -582,9 +629,14 @@ namespace RobProductions.VisualTerrain.Editor
 						data.draggedNodeOnMousePress = false;
 						data.draggingConnectionSlot = null;
 					}
+					data.draggedViewOnMousePress = false;
 					break;
 				case EventType.ScrollWheel:
-					//OnScroll(e.delta, e.mousePosition);
+					if(Mathf.Abs(e.delta.y) > 1f)
+					{
+						ScaleView(-e.delta.y * viewScaleScrollChangeAmount, GetOffsetZoomCenterPoint());
+						GUI.changed = true;
+					}
 					break;
 				case EventType.KeyDown:
 					if(e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
@@ -615,6 +667,21 @@ namespace RobProductions.VisualTerrain.Editor
 							SetNodesExpanded(data.selectedGraphNodes, setExpanded);
 							GUI.changed = true;
 						}
+					}
+					else if (e.keyCode == KeyCode.Equals)
+					{
+						ScaleView(viewScaleButtonChangeAmount, GetOffsetZoomCenterPoint());
+						GUI.changed = true;
+					}
+					else if (e.keyCode == KeyCode.Minus)
+					{
+						ScaleView(-viewScaleButtonChangeAmount, GetOffsetZoomCenterPoint());
+						GUI.changed = true;
+					}
+					else if (e.keyCode == KeyCode.Alpha0)
+					{
+						SetViewScale(1.0f, GetOffsetZoomCenterPoint());
+						GUI.changed = true;
 					}
 					break;
 			}
@@ -709,20 +776,28 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public void DrawGraphView(Rect graphViewRect)
 		{
-			//First created needed GUIStyles
+			//Cache the render rect for later
+			data.currentRenderRect = graphViewRect;
+
+			//Create needed GUIStyles
 			CreateGUIStyles();
 
 			//Then draw background grid
 			DrawBackgroundColor(graphViewRect);
-			DrawGrid(styles.grid1Spacing, 0.1f, Color.black, graphViewRect);
-			DrawGrid(styles.grid2Spacing, 0.25f, Color.black, graphViewRect);
+			float largeGridOpacity = 0.15f;
+			if(GetCurrentViewScale() >= stopSmallGridAtScale)
+			{
+				largeGridOpacity = 0.25f;
+				DrawGrid(styles.grid1Spacing, 0.1f, Color.black, styles.gridLineWidth, graphViewRect);
+			}
+			DrawGrid(styles.grid2Spacing, largeGridOpacity, Color.black, styles.gridLineWidth, graphViewRect);
 
 			//Draw nodes
 			DrawGraphConnections();
 			DrawGraphNodes();
 			if(data.draggingConnectionSlot != null)
 			{
-				var halfConnectionSize = Vector2.one * styles.halfConnectionPointSize;
+				var halfConnectionSize = Vector2.one * GetCurrentHalfConnectionPointSize();
 				var slotPosition = GetConnectionSlotPosition(data.draggingConnectionSlot) + halfConnectionSize;
 				if(data.draggingConnectionSlot.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
 				{
@@ -776,6 +851,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			var nodeRect = GetNodeRenderRect(node);
+			var viewScale = GetCurrentViewScale();
 
 			var finalNodeStyle = styles.defaultNodeStyle;
 			if(data.selectedGraphNodes.Contains(node))
@@ -803,8 +879,9 @@ namespace RobProductions.VisualTerrain.Editor
 				{
 					if (data.nodePreviewImageMap[node] != null)
 					{
-						var textureRelativePos = new Vector2(styles.nodePreviewImagePadding, nodeRect.size.y - styles.nodePreviewImageHeight - styles.nodePreviewImagePadding);
-						var textureSize = new Vector2(nodeRect.size.x - (styles.nodePreviewImagePadding * 2.0f), styles.nodePreviewImageHeight);
+						float scaledPreviewHeight = (styles.nodePreviewImageHeight * viewScale);
+						var textureRelativePos = new Vector2(styles.nodePreviewImagePadding * viewScale, nodeRect.size.y - scaledPreviewHeight - (styles.nodePreviewImagePadding * viewScale));
+						var textureSize = new Vector2(nodeRect.size.x - (styles.nodePreviewImagePadding * viewScale * 2.0f), scaledPreviewHeight);
 
 						var textureRegion = new Rect(nodeRect.position + textureRelativePos, textureSize);
 						GUI.DrawTexture(textureRegion, data.nodePreviewImageMap[node], ScaleMode.ScaleToFit);
@@ -847,7 +924,7 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.color = Color.gray;
 
 			var slotRect = GetConnectionSlotRenderRect(slot);
-			GUI.Box(slotRect, "", EditorStyles.radioButton);
+			GUI.Box(slotRect, "", GUI.skin.button);
 
 			GUI.color = defaultColor;
 
@@ -906,7 +983,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			var halfConnectionSize = Vector2.one * styles.halfConnectionPointSize;
+			var halfConnectionSize = Vector2.one * GetCurrentHalfConnectionPointSize();
 			var startPosition = GetConnectionSlotPosition(connection.inputSlot) + halfConnectionSize;
 			var endPosition = GetConnectionSlotPosition(connection.outputSlot) + halfConnectionSize;
 			DrawGraphConnectionLine(startPosition, endPosition, false, connection);
@@ -972,14 +1049,70 @@ namespace RobProductions.VisualTerrain.Editor
 			return ret;
 		}
 
+		/// <summary>
+		/// Get the current view offset.
+		/// Note: this can't be used for math of objects in the graph
+		/// because their positions must be added before calculating scale.
+		/// </summary>
+		/// <returns></returns>
 		Vector2 GetCurrentViewOffset()
 		{
 			if(data.currentGraph != null)
 			{
-				return data.currentGraph.displayData.ViewOffset;
+				//The relative screen position is the stored position * stored scale
+				return data.currentGraph.displayData.ViewOffset * data.currentGraph.displayData.ViewScale;
 			}
 
-			return data.noGraphViewOffset;
+			return data.noGraphViewOffset * data.noGraphViewScale;
+		}
+
+		/// <summary>
+		/// Transform a relative pos into screen pos with view scaling.
+		/// </summary>
+		/// <param name="relativePos"></param>
+		/// <returns></returns>
+		Vector2 GetRelativeViewOffset(Vector2 relativePos)
+		{
+			if (data.currentGraph != null)
+			{
+				//The relative screen position is the stored position * stored scale
+				return (data.currentGraph.displayData.ViewOffset + relativePos) * data.currentGraph.displayData.ViewScale;
+			}
+
+			return (data.noGraphViewOffset + relativePos) * data.noGraphViewScale;
+		}
+
+		/// <summary>
+		/// Get the current view scaling multiplier for rendering.
+		/// </summary>
+		/// <returns></returns>
+		float GetCurrentViewScale()
+		{
+			if(data.currentGraph != null)
+			{
+				data.currentGraph.displayData.ViewScale = Mathf.Clamp(data.currentGraph.displayData.ViewScale, viewScaleRange.x, viewScaleRange.y);
+				return data.currentGraph.displayData.ViewScale;
+			}
+
+			data.noGraphViewScale = Mathf.Clamp(data.noGraphViewScale, viewScaleRange.x, viewScaleRange.y);
+			return data.noGraphViewScale;
+		}
+
+		/// <summary>
+		/// Returns a ViewOffset in the center of the screen
+		/// before scaling so that the zoom operation can
+		/// center on it.
+		/// </summary>
+		/// <returns></returns>
+		Vector2 GetOffsetZoomCenterPoint()
+		{
+			var halfScreenCenter = (data.currentRenderRect.size / GetCurrentViewScale()) * 0.5f;
+			if(data.currentGraph != null)
+			{
+				return data.currentGraph.displayData.ViewOffset + halfScreenCenter;
+			}
+
+			return data.noGraphViewOffset + halfScreenCenter;
 		}
 
 		Rect GetNodeRenderRect(VTGraphNode node)
@@ -989,7 +1122,7 @@ namespace RobProductions.VisualTerrain.Editor
 				VTLog.LogError("Node was null in GetNodeRenderRect!");
 				return new Rect();
 			}
-			var finalNodePosition = node.NodePosition + GetCurrentViewOffset();
+			var finalNodePosition = GetRelativeViewOffset(node.NodePosition);
 			var nodeSize = styles.nodeBaseSize;
 			if(node.IsExpanded)
 			{
@@ -1002,21 +1135,33 @@ namespace RobProductions.VisualTerrain.Editor
 				//Add extra height for multiple slots
 				nodeSize.y += styles.nodeExtraHeightPerSlot * maxSlotCount;
 			}
+			var finalNodeSize = nodeSize * GetCurrentViewScale();
 
-			var nodeRect = new Rect(finalNodePosition, nodeSize);
+			var nodeRect = new Rect(finalNodePosition, finalNodeSize);
 
 			return nodeRect;
 		}
 
+		float GetCurrentConnectionPointSize()
+		{
+			return styles.connectionPointSize * GetCurrentViewScale();
+		}
+
+		float GetCurrentHalfConnectionPointSize()
+		{
+			return styles.halfConnectionPointSize * GetCurrentViewScale();
+		}
+
 		Vector2 GetRelativeConnectionSlotPosition(VTGraphConnectionSlot.NodeConnectionSlotType slotType, Rect parentNodeRect, int slotIndex)
 		{
-			float halfConnectionSize = styles.connectionPointSize * 0.5f;
-			if(slotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
+			float halfConnectionSize = GetCurrentConnectionPointSize() * 0.5f;
+			float yOffset = (styles.connectionPointInitialVertical + (styles.connectionPointVerticalSpacing * slotIndex)) * GetCurrentViewScale();
+			if (slotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
 			{
-				return new Vector2(-halfConnectionSize, styles.connectionPointInitialVertical + (styles.connectionPointVerticalSpacing * slotIndex));
+				return new Vector2(-halfConnectionSize, yOffset);
 			}
 
-			return new Vector2(parentNodeRect.width - (halfConnectionSize * 1.8f), styles.connectionPointInitialVertical + (styles.connectionPointVerticalSpacing * slotIndex));
+			return new Vector2(parentNodeRect.width - (halfConnectionSize * 1.8f), yOffset);
 		}
 
 		Vector2 GetConnectionSlotPosition(VTGraphConnectionSlot slot)
@@ -1029,7 +1174,7 @@ namespace RobProductions.VisualTerrain.Editor
 		Rect GetConnectionSlotRenderRect(VTGraphConnectionSlot slot)
 		{
 			var slotPosition = GetConnectionSlotPosition(slot);
-			return new Rect(slotPosition, Vector2.one * styles.connectionPointSize);
+			return new Rect(slotPosition, Vector2.one * GetCurrentConnectionPointSize());
 		}
 
 		//BG
@@ -1050,30 +1195,42 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.color = defaultColor;
 		}
 
-		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor, Rect graphViewRect)
+		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor, float lineWidth, Rect graphViewRect)
 		{
-			int widthDivs = Mathf.CeilToInt(graphViewRect.width / gridSpacing) + 12;
-			int heightDivs = Mathf.CeilToInt(graphViewRect.height / gridSpacing) + 12;
-
 			Handles.BeginGUI();
 			Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
 
+			var viewScaleAmount = GetCurrentViewScale();
+			float finalSpacingAmount = gridSpacing * viewScaleAmount;
+
+			int widthDivs = Mathf.CeilToInt((graphViewRect.width / finalSpacingAmount) * 1.6f);
+			int heightDivs = Mathf.CeilToInt((graphViewRect.height / finalSpacingAmount) * 1.6f);
+
 			var viewOffsetPos = GetCurrentViewOffset();
-			Vector3 newOffset = new Vector3(viewOffsetPos.x % gridSpacing, viewOffsetPos.y % gridSpacing, 0);
+			Vector3 newOffset = new Vector3(viewOffsetPos.x % finalSpacingAmount, viewOffsetPos.y % finalSpacingAmount, 0);
 			Vector3 graphStartOffset = new Vector3(graphViewRect.x, graphViewRect.y, 0);
 
 			for (int i = 0; i < widthDivs; i++)
 			{
-				Handles.DrawLine(new Vector3(gridSpacing * i, -gridSpacing, 0) + newOffset, new Vector3(gridSpacing * i, graphViewRect.height * 1.5f, 0f) + newOffset);
+				var startPos = new Vector3(finalSpacingAmount * i, -finalSpacingAmount, 0) + newOffset;
+				var endPos = new Vector3(finalSpacingAmount * i, graphViewRect.height * 1.6f, 0f) + newOffset;
+				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
 
 			for (int j = 0; j < heightDivs; j++)
 			{
-				Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * j, 0) + newOffset, new Vector3(graphViewRect.width * 1.5f, gridSpacing * j, 0f) + newOffset);
+				var startPos = new Vector3(-finalSpacingAmount, finalSpacingAmount * j, 0) + newOffset;
+				var endPos = new Vector3(graphViewRect.width * 1.6f, finalSpacingAmount * j, 0f) + newOffset;
+				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
 
 			Handles.color = Color.white;
 			Handles.EndGUI();
+		}
+
+		Vector3 RoundVec3(Vector3 inputVec)
+		{
+			return new Vector3(Mathf.Round(inputVec.x), Mathf.Round(inputVec.y), Mathf.Round(inputVec.z));
 		}
 	}
 }

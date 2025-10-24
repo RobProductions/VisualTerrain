@@ -14,6 +14,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			[field: SerializeField]
 			public Vector2 ViewOffset { get; set; } = Vector2.zero;
+			[field: SerializeField]
+			public float ViewScale { get; set; } = 1.0f;
 		}
 
 		[SerializeField]

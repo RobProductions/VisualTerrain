@@ -17,6 +17,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			Multiply = 2,
 			Divide = 3,
 			Power = 4,
+			Min = 5,
+			Max = 6,
 		}
 
 		[SerializeField]
@@ -114,11 +116,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				return baseInput - termInput;
 			}
-			if(operation == ArithmeticOperation.Multiply)
+			else if(operation == ArithmeticOperation.Multiply)
 			{
 				return baseInput * termInput;
 			}
-			if(operation == ArithmeticOperation.Divide)
+			else if(operation == ArithmeticOperation.Divide)
 			{
 				if(Mathf.Approximately(termInput, 0f))
 				{
@@ -126,9 +128,17 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 				return baseInput / termInput;
 			}
-			if(operation == ArithmeticOperation.Power)
+			else if(operation == ArithmeticOperation.Power)
 			{
 				return Mathf.Pow(baseInput, termInput);
+			}
+			else if(operation == ArithmeticOperation.Min)
+			{
+				return Mathf.Min(baseInput, termInput);
+			}
+			else if(operation == ArithmeticOperation.Max)
+			{
+				return Mathf.Max(baseInput, termInput);
 			}
 
 			return baseInput + termInput;
