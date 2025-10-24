@@ -8,13 +8,18 @@ namespace RobProductions.VisualTerrain.Runtime
 	{
 		/// <summary>
 		/// Get the heightmap output value from a graph
-		/// in full quality.
+		/// using the quality settings dictated by the asset.
 		/// </summary>
 		/// <param name="graph"></param>
 		/// <returns></returns>
-		public static Texture2D GetGraphHeightmapTexture(VTGraph graph)
+		public static Texture2D GetAssetHeightmapTexture(VTSettingsAsset asset)
 		{
-			return GetGraphHeightmapTexture(graph, new VTGraphProcessingSettings());
+			var processingSettings = new VTGraphProcessingSettings(
+				textureGenResolution: VTGraphProcessingSettings.TextureGenerationResolution.Full,
+				textureOutputResolution: VTGraphProcessingSettings.TextureOutputResolution.Full,
+				textureGenResolutionNumber: 1024
+			);
+			return GetGraphHeightmapTexture(asset.generationData.heightmapGraph, processingSettings);
 		}
 
 		/// <summary>

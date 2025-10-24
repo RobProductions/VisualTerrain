@@ -202,11 +202,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
-		public void UpdateNodePreviewValue(VTGraphNode node)
-		{
-
-		}
-
 		//CONNECTIONS
 
 		/// <summary>

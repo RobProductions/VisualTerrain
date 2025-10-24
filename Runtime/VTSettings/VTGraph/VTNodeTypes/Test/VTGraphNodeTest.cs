@@ -6,13 +6,7 @@ namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTGraphNodeTest : VTGraphNode
 	{
-		public override string NodeTitle
-		{
-			get
-			{
-				return "Test Node";
-			}
-		}
+		public override string NodeTitle => "Test Node";
 
 		public VTGraphNodeTest()
 		{

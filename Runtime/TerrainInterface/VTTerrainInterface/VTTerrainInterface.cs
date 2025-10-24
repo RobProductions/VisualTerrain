@@ -78,8 +78,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup);
 
 			//Set the terrain height values
-			var heightmapGraph = settingsAsset.generationData.heightmapGraph;
-			var heightmapValue = VTGraphValueInterface.GetGraphHeightmapTexture(heightmapGraph);
+			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset);
 			SetTerrainHeight(settingsAsset.setupData.terrainSetup, heightmapValue);
 		}
 

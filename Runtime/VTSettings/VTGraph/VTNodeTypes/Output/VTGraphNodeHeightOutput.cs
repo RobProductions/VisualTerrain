@@ -7,13 +7,7 @@ namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTGraphNodeHeightOutput : VTGraphNode
 	{
-		public override string NodeTitle
-		{
-			get
-			{
-				return "Height Output";
-			}
-		}
+		public override string NodeTitle => "Height Output";
 
 		public VTGraphNodeHeightOutput()
 		{

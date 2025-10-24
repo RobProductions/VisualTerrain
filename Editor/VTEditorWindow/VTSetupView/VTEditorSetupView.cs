@@ -208,6 +208,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(node.inputConnections.Length > 0)
 			{
+				//Render input settings
 				DrawLabelSeparator("Input Settings");
 
 				for(int i = 0; i < node.inputConnections.Length; i++)
@@ -247,9 +248,33 @@ namespace RobProductions.VisualTerrain.Editor
 						}
 					}
 					EditorGUILayout.EndHorizontal();
-
 				}
 			}
+
+			if(node.HasNodeProperties)
+			{
+				//Render node properties
+				DrawLabelSeparator("Node Properties");
+				GUILayout.Space(styles.labelSeparatorPreSpace);
+
+				node.beginEditNodePropertyEvent += BeginEditNodeProperty;
+				node.endEditNodePropertyEvent += EndEditNodeProperty;
+
+				node.RenderNodeProperties();
+
+				node.beginEditNodePropertyEvent -= BeginEditNodeProperty;
+				node.endEditNodePropertyEvent -= EndEditNodeProperty;
+			}
+		}
+
+		void BeginEditNodeProperty(string desc)
+		{
+			parentWindow.RegisterAssetStructureUndo(desc);
+		}
+
+		void EndEditNodeProperty(VTGraphNode node)
+		{
+			parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
 		}
 
 		//MULTI SELECT MODE

@@ -1,18 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTGraphNodeArithmetic : VTGraphNode
 	{
-		public override string NodeTitle
+		public override string NodeTitle => "Arithmetic";
+		public override bool HasNodeProperties => true;
+
+		public enum ArithmeticOperation
 		{
-			get
-			{
-				return "Arithmetic";
-			}
+			Add = 0,
+			Subtract = 1,
+			Multiply = 2,
+			Divide = 3,
+			Power = 4,
 		}
+
+		[SerializeField]
+		public ArithmeticOperation operation = ArithmeticOperation.Add;
 
 		public VTGraphNodeArithmetic()
 		{
@@ -53,13 +61,12 @@ namespace RobProductions.VisualTerrain.Runtime
 						for (int i = 0; i < workingPixels.Length; i++)
 						{
 							Color col = workingPixels[i];
-							col.r += input2Float;
-							col.g += input2Float;
-							col.b += input2Float;
+							col.r = PerformOperation(col.r, input2Float);
+							col.g = PerformOperation(col.g, input2Float);
+							col.b = PerformOperation(col.b, input2Float);
 
 							workingPixels[i] = col;
 						}
-
 					}
 					else if (input2.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
 					{
@@ -72,9 +79,9 @@ namespace RobProductions.VisualTerrain.Runtime
 								if (i < input2Pixels.Length)
 								{
 									Color input2Col = input2Pixels[i];
-									col.r += input2Col.r;
-									col.g += input2Col.g;
-									col.b += input2Col.b;
+									col.r = PerformOperation(col.r, input2Col.r);
+									col.g = PerformOperation(col.g, input2Col.g);
+									col.b = PerformOperation(col.b, input2Col.b);
 								}
 
 								workingPixels[i] = col;
@@ -98,7 +105,33 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			//Handle float combos
-			output.SetFloatValue(input1Float + input2Float);
+			output.SetFloatValue(PerformOperation(input1Float, input2Float));
+		}
+
+		float PerformOperation(float baseInput, float termInput)
+		{
+			if(operation == ArithmeticOperation.Subtract)
+			{
+				return baseInput - termInput;
+			}
+			if(operation == ArithmeticOperation.Multiply)
+			{
+				return baseInput * termInput;
+			}
+			if(operation == ArithmeticOperation.Divide)
+			{
+				if(Mathf.Approximately(termInput, 0f))
+				{
+					return baseInput / 0.0001f;
+				}
+				return baseInput / termInput;
+			}
+			if(operation == ArithmeticOperation.Power)
+			{
+				return Mathf.Pow(baseInput, termInput);
+			}
+
+			return baseInput + termInput;
 		}
 
 		byte FloatPercentToByte(float v)
@@ -113,6 +146,21 @@ namespace RobProductions.VisualTerrain.Runtime
 				return 0;
 			}
 			return (byte)Mathf.RoundToInt(linearMap);
+		}
+
+		//RENDERING
+
+		public override void RenderNodeProperties()
+		{
+			base.RenderNodeProperties();
+
+			ArithmeticOperation operationValue = (ArithmeticOperation)EditorGUILayout.EnumPopup("Operation", operation);
+			if (operationValue != operation)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				operation = operationValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
 		}
 	}
 }

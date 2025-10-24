@@ -17,6 +17,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public TextureGenerationResolution textureGenResolution = TextureGenerationResolution.Full;
 
+
 		public enum TextureOutputResolution
 		{
 			Full = 0,
@@ -25,12 +26,16 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public TextureOutputResolution textureOutputResolution = TextureOutputResolution.Full;
 
+		public int textureGenResolutionNumber = 256;
+
 		public VTGraphProcessingSettings(
 			TextureGenerationResolution textureGenResolution = TextureGenerationResolution.Full, 
-			TextureOutputResolution textureOutputResolution = TextureOutputResolution.Full)
+			TextureOutputResolution textureOutputResolution = TextureOutputResolution.Full,
+			int textureGenResolutionNumber = 256)
 		{
 			this.textureGenResolution = textureGenResolution;
 			this.textureOutputResolution = textureOutputResolution;
+			this.textureGenResolutionNumber = textureGenResolutionNumber;
 		}
 	}
 }

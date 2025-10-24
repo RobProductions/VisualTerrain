@@ -95,7 +95,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public VTGraphProcessingSettings previewProcessingSettings = new VTGraphProcessingSettings(
 				VTGraphProcessingSettings.TextureGenerationResolution.RestrictToSize,
-				VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize
+				VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize,
+				textureGenResolutionNumber: 256
 			);
 		}
 

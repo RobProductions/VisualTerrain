@@ -7,8 +7,8 @@ namespace RobProductions.VisualTerrain.Runtime
 	[System.Serializable]
 	public class VTGraphNode
 	{
-		[field: SerializeField]
-		public virtual string NodeTitle { get; }
+		public virtual string NodeTitle { get => "Unnamed Node"; }
+		public virtual bool HasNodeProperties { get => false; }
 
 		[SerializeField, SerializeReference]
 		public VTGraphConnectionSlot[] inputConnections;
@@ -20,6 +20,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public bool IsExpanded { get; set; } = false;
 
+		public delegate void BeginEditNodeProperty(string description);
+		public BeginEditNodeProperty beginEditNodePropertyEvent;
+		public delegate void EndEditNodeProperty(VTGraphNode editedOnNode);
+		public EndEditNodeProperty endEditNodePropertyEvent;
 
 		//SETUP
 
@@ -54,9 +58,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			return;
 		}
 
-		public virtual bool RenderNodeProperties()
+		public virtual void RenderNodeProperties()
 		{
-			return false;
+			return;
 		}
 
 		//GETTERS
