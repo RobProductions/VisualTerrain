@@ -25,21 +25,21 @@ namespace RobProductions.VisualTerrain.Editor
 			public readonly Vector2 nodeBaseSize = new Vector2(200f, 50f);
 			public readonly Vector2 nodeExpandedSize = new Vector2(200f, 130f);
 			public readonly float nodeExtraHeightPerSlot = 30f;
-			public readonly float nodePreviewImageHeight = 76f;
+			public readonly float nodePreviewImageHeight = 80f;
 			public readonly float nodePreviewImagePadding = 8f;
 			public readonly float nodeTitleOffset = 4.5f;
 
 			public readonly float connectionPointInitialVertical = 24f;
 			public readonly float connectionPointVerticalSpacing = 24f;
-			public readonly float connectionPointSize = 11f;
+			public readonly float connectionPointSize = 14f;
 			public readonly float halfConnectionPointSize = 7f;
 			public readonly float connectionLineWidth = 3f;
 			public readonly float connectionPointExtraClickHeight = 5f;
-			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -4f);
+			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -7f);
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
-			public readonly float gridLineWidth = 1.0f;
+			public readonly float gridLineWidth = 0f;
 
 			//UI Colors
 			public readonly Color connectionLineColor = new Color(0.8f, 0.85f, 0.92f);
@@ -54,6 +54,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public GUIStyle defaultNodeStyle;
 			public GUIStyle selectedNodeStyle;
 			public GUIStyle nodeTitleStyle;
+			public GUIStyle nodeTextStyle;
 
 			public GraphViewStyles()
 			{
@@ -71,6 +72,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 				nodeTitleStyle = new GUIStyle(defaultNodeStyle);
 				nodeTitleStyle.normal.background = null;
+
+				//Scalable text style
+				nodeTextStyle = new GUIStyle(GUI.skin.label);
 
 				//Background solid color texture
 				windowBgStyle = new GUIStyle(GUI.skin.box);
@@ -200,16 +204,13 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
-
-			if(data.nodePreviewImageMap.ContainsKey(node))
-			{
-				data.nodePreviewImageMap.Remove(node);
-			}
+			//Clear the preview to make a new one
+			RemoveNodePreviewImage(node);
 
 			var output = node.GetOutputConnection();
 			if (output != null)
 			{
-				
+				//If we have an output node, process it and get the output texture
 				data.currentGraph.ProcessNode(node, data.previewProcessingSettings);
 				var textureValue = output.GetTextureValue();
 				if(textureValue != null)
@@ -257,6 +258,14 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
+		public void RemoveNodePreviewImage(VTGraphNode node)
+		{
+			if (data.nodePreviewImageMap.ContainsKey(node))
+			{
+				data.nodePreviewImageMap.Remove(node);
+			}
+		}
+
 		//NODE/GRAPH INTERACTIONS
 
 		void CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
@@ -268,7 +277,8 @@ namespace RobProductions.VisualTerrain.Editor
 			var positionMinusOffset = position - GetCurrentViewOffset();
 
 			parentWindow.RegisterAssetDataUndo("Created New Node");
-			data.currentGraph.CreateNode<T>(positionMinusOffset);
+			var newNode = data.currentGraph.CreateNode<T>(positionMinusOffset);
+			TryUpdateNodePreviewImage(newNode);
 			parentWindow.EditedAsset();
 		}
 
@@ -280,11 +290,32 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			parentWindow.RegisterAssetStructureUndo("Deleted Nodes");
+
+			List<VTGraphNode> affectedNodes = new List<VTGraphNode>();
+
 			foreach(VTGraphNode node in nodeList)
 			{
+				//Get a list of all nodes affected if this one is deleted
+				var allConnectedNodes = data.currentGraph.GetOutputConnectedNodes(node);
+				foreach(VTGraphNode connectedNode in allConnectedNodes)
+				{
+					if(affectedNodes.Contains(connectedNode))
+					{
+						continue;
+					}
+					affectedNodes.Add(connectedNode);
+				}
+				//Remove the node
+				RemoveNodePreviewImage(node);
 				data.currentGraph.RemoveNode(node);
 			}
-			RegenerateAllNodePreviewImages(false);
+
+			//Now iterate through all affected nodes and update their islands
+			foreach(VTGraphNode affectedNode in affectedNodes)
+			{
+				TryUpdateOutputConnectedPreviews(affectedNode);
+			}
+
 			parentWindow.EditedAsset();
 		}
 
@@ -699,9 +730,9 @@ namespace RobProductions.VisualTerrain.Editor
 				genericMenu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
 				genericMenu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
 
+				genericMenu.AddSeparator("");
 				if(overNode != null)
 				{
-					genericMenu.AddSeparator("");
 					string deleteNodeTitle = "Delete Node";
 					string updateNodePreviewTitle = "Update Node Preview";
 					//string processConnectedNodeTitle = "Process All Connected";
@@ -715,6 +746,10 @@ namespace RobProductions.VisualTerrain.Editor
 					var closureNodes = data.selectedGraphNodes;
 					genericMenu.AddItem(new GUIContent(updateNodePreviewTitle), false, () => UpdateNodePreview(closureNodes));
 					genericMenu.AddItem(new GUIContent(deleteNodeTitle), false, () => DeleteNodes(closureNodes));
+				}
+				else
+				{
+					genericMenu.AddItem(new GUIContent("Update All Previews"), false, () => RegenerateAllNodePreviewImages(true));
 				}
 			}
 			if (genericMenu.GetItemCount() > 0)
@@ -781,6 +816,10 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Create needed GUIStyles
 			CreateGUIStyles();
+			//Update text size for current scale
+			var viewScale = GetCurrentViewScale();
+			styles.nodeTextStyle.fontSize = Mathf.RoundToInt(11f * viewScale);
+			styles.nodeTitleStyle.fontSize = Mathf.RoundToInt(12f * viewScale);
 
 			//Then draw background grid
 			DrawBackgroundColor(graphViewRect);
@@ -863,14 +902,34 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.Box(nodeRect, "", finalNodeStyle);
 
 			//Render label
-			var titleBGRect = new Rect(nodeRect.position + new Vector2(5f, 4f), new Vector2(nodeRect.size.x - 10f, 16f));
+			var titleBGRect = new Rect(nodeRect.position + (new Vector2(5f, 4f) * viewScale), new Vector2(nodeRect.size.x - (10f * viewScale), 16f * viewScale));
 
 			var bgColor = GUI.backgroundColor;
 			GUI.backgroundColor = styles.nodeLabelColor;
 			GUI.Box(titleBGRect, "", GUI.skin.box);
 			GUI.backgroundColor = bgColor;
 
-			var titleRect = new Rect(nodeRect.position - new Vector2(0.0f, styles.nodeTitleOffset), nodeRect.size);
+			var titleRect = new Rect(nodeRect.position, nodeRect.size);
+			float scaledOffset = styles.nodeTitleOffset;
+
+			if (viewScale < 0.4f)
+			{
+				scaledOffset = styles.nodeTitleOffset * 1.9f;
+			}
+			else if (viewScale < 0.6f)
+			{
+				scaledOffset = styles.nodeTitleOffset * 1.7f;
+			}
+			else if(viewScale < 0.8f)
+			{
+				scaledOffset = styles.nodeTitleOffset * 1.6f;
+			}
+			else if(viewScale < 1.0f)
+			{
+				scaledOffset = styles.nodeTitleOffset * 1.2f;
+			}
+
+			titleRect.position -= new Vector2(0.0f, scaledOffset);
 			GUI.Label(titleRect, node.NodeTitle, styles.nodeTitleStyle);
 
 			if(node.IsExpanded)
@@ -917,6 +976,7 @@ namespace RobProductions.VisualTerrain.Editor
 				//Don't draw hidden slots
 				return;
 			}
+			float viewScale = GetCurrentViewScale();
 
 			//Draw the connection dot
 			var defaultColor = GUI.color;
@@ -933,9 +993,9 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				if(slot.connectionSlotType == VTGraphConnectionSlot.NodeConnectionSlotType.Input)
 				{
-					var slotLabelPos = slotRect.position + styles.connectionLabelInputOffset;
+					var slotLabelPos = slotRect.position + (styles.connectionLabelInputOffset * viewScale);
 					var slotLabelRect = new Rect(slotLabelPos, new Vector2(styles.nodeBaseSize.x, slotRect.size.y * 2.0f));
-					GUI.Label(slotLabelRect, slot.connectionSlotName);
+					GUI.Label(slotLabelRect, slot.connectionSlotName, styles.nodeTextStyle);
 				}
 			}
 		}
@@ -1161,7 +1221,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return new Vector2(-halfConnectionSize, yOffset);
 			}
 
-			return new Vector2(parentNodeRect.width - (halfConnectionSize * 1.8f), yOffset);
+			return new Vector2(parentNodeRect.width - (halfConnectionSize * 1.2f), yOffset);
 		}
 
 		Vector2 GetConnectionSlotPosition(VTGraphConnectionSlot slot)
@@ -1203,34 +1263,38 @@ namespace RobProductions.VisualTerrain.Editor
 			var viewScaleAmount = GetCurrentViewScale();
 			float finalSpacingAmount = gridSpacing * viewScaleAmount;
 
-			int widthDivs = Mathf.CeilToInt((graphViewRect.width / finalSpacingAmount) * 1.6f);
-			int heightDivs = Mathf.CeilToInt((graphViewRect.height / finalSpacingAmount) * 1.6f);
+			float extraDivsMultiplier = 1.6f;
+			int widthDivs = Mathf.CeilToInt((graphViewRect.width / finalSpacingAmount) * extraDivsMultiplier);
+			int heightDivs = Mathf.CeilToInt((graphViewRect.height / finalSpacingAmount) * extraDivsMultiplier);
 
 			var viewOffsetPos = GetCurrentViewOffset();
-			Vector3 newOffset = new Vector3(viewOffsetPos.x % finalSpacingAmount, viewOffsetPos.y % finalSpacingAmount, 0);
-			Vector3 graphStartOffset = new Vector3(graphViewRect.x, graphViewRect.y, 0);
+			float gridStartOffsetX = viewOffsetPos.x % finalSpacingAmount;
+			float gridStartOffsetY = viewOffsetPos.y % finalSpacingAmount;
+
+			float extraLengthMultiplier = 1.5f;
 
 			for (int i = 0; i < widthDivs; i++)
 			{
-				var startPos = new Vector3(finalSpacingAmount * i, -finalSpacingAmount, 0) + newOffset;
-				var endPos = new Vector3(finalSpacingAmount * i, graphViewRect.height * 1.6f, 0f) + newOffset;
+				//Draw lines on every finalSpacingAmount from top to bottom of the rect
+				float xPos = gridStartOffsetX + (finalSpacingAmount * i);
+				var startPos = new Vector3(xPos, 0f, 0f);
+				var endPos = new Vector3(xPos, graphViewRect.height * extraLengthMultiplier, 0f);
+
 				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
 
 			for (int j = 0; j < heightDivs; j++)
 			{
-				var startPos = new Vector3(-finalSpacingAmount, finalSpacingAmount * j, 0) + newOffset;
-				var endPos = new Vector3(graphViewRect.width * 1.6f, finalSpacingAmount * j, 0f) + newOffset;
+				//Draw lines on every finalSpacingAmount from left to right of the rect
+				float yPos = gridStartOffsetY + (finalSpacingAmount * j);
+				var startPos = new Vector3(0, yPos, 0);
+				var endPos = new Vector3(graphViewRect.width * extraLengthMultiplier, yPos, 0f);
+
 				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
 
 			Handles.color = Color.white;
 			Handles.EndGUI();
-		}
-
-		Vector3 RoundVec3(Vector3 inputVec)
-		{
-			return new Vector3(Mathf.Round(inputVec.x), Mathf.Round(inputVec.y), Mathf.Round(inputVec.z));
 		}
 	}
 }
