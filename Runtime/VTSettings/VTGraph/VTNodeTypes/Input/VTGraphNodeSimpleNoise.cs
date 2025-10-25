@@ -40,7 +40,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			if (output != null)
 			{
 				int resolution = settings.textureGenResolutionNumber;
-				var noiseMap = GeneratePerlinNoiseMap(resolution, resolution, noiseOffsetX, noiseOffsetY);
+
+				var noiseMap = VTNoiseGenUtils.GeneratePerlinNoiseMap(
+					resolution, resolution, noiseOffsetX, noiseOffsetY, noiseScale, noiseStrength);
+
 				output.SetTextureValue(noiseMap);
 			}
 		}
@@ -80,27 +83,6 @@ namespace RobProductions.VisualTerrain.Runtime
 				noiseOffsetY = offsetFloatY;
 				endEditNodePropertyEvent?.Invoke(this);
 			}
-		}
-
-		//NOISE GENERATION
-
-		Texture2D GeneratePerlinNoiseMap(int width, int height, float xOffset, float yOffset)
-		{
-			var ret = new Texture2D(width, height);
-			for(int i = 0; i < width; i++)
-			{
-				for(int j = 0; j < height; j++)
-				{
-					float xIndex = (float)i / width * noiseScale + xOffset;
-					float yIndex = (float)j / height * noiseScale + yOffset;
-
-					var sampleNoiseValue = Mathf.PerlinNoise(xIndex, yIndex) * noiseStrength;
-					var newCol = new Color(sampleNoiseValue, sampleNoiseValue, sampleNoiseValue, 1.0f);
-					ret.SetPixel(i, j, newCol);
-				}
-			}
-			ret.Apply();
-			return ret;
 		}
 	}
 }

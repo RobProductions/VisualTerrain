@@ -1,6 +1,6 @@
 {
   "name": "com.robproductions.visualterrain",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "displayName": "Visual Terrain",
   "description": "An open source node-based Terrain generator for Unity.",
   "unity": "2020.3",

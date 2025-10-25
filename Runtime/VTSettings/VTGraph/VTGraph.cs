@@ -14,6 +14,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			[field: SerializeField]
 			public Vector2 ViewOffset { get; set; } = Vector2.zero;
+			[field: SerializeField]
+			public float ViewScale { get; set; } = 1.0f;
 		}
 
 		[SerializeField]
@@ -26,17 +28,19 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//NODES
 
-		public void CreateNode<T>() where T : VTGraphNode, new()
+		public VTGraphNode CreateNode<T>() where T : VTGraphNode, new()
 		{
-			CreateNode<T>(Vector2.zero);
+			return CreateNode<T>(Vector2.zero);
 		}
 
-		public void CreateNode<T>(Vector2 startingPosition) where T : VTGraphNode, new()
+		public VTGraphNode CreateNode<T>(Vector2 startingPosition) where T : VTGraphNode, new()
 		{
 			T newNode = new T();
 			AddNode(newNode);
 
 			SetNodePosition(newNode, startingPosition);
+
+			return newNode;
 		}
 
 		public void AddNode(VTGraphNode node)
@@ -314,6 +318,62 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			return false;
+		}
+
+		/// <summary>
+		/// Get a list of all the nodes that are connected to this
+		/// node via GraphConnection, on all slot types.
+		/// </summary>
+		/// <param name="node"></param>
+		/// <returns></returns>
+		public List<VTGraphNode> GetConnectedNodes(VTGraphNode node)
+		{
+			var ret = new List<VTGraphNode>();
+			var allConnections = GetConnectionsWithNode(node);
+			foreach(VTGraphConnection connection in allConnections)
+			{
+				if(connection.inputSlot.parentNode != node)
+				{
+					if(!ret.Contains(connection.inputSlot.parentNode))
+					{
+						ret.Add(connection.inputSlot.parentNode);
+					}
+				}
+				if(connection.outputSlot.parentNode != node)
+				{
+					if (!ret.Contains(connection.outputSlot.parentNode))
+					{
+						ret.Add(connection.outputSlot.parentNode);
+					}
+				}
+			}
+
+			return ret;
+		}
+
+		/// <summary>
+		/// Return all nodes connected to output slots of this node.
+		/// </summary>
+		/// <param name="node"></param>
+		/// <returns></returns>
+		public List<VTGraphNode> GetOutputConnectedNodes(VTGraphNode node)
+		{
+			var ret = new List<VTGraphNode>();
+			var allConnections = GetConnectionsWithNode(node);
+			foreach (VTGraphConnection connection in allConnections)
+			{
+				if(connection.inputSlot.parentNode == node)
+				{
+					//This is an input connection
+					continue;
+				}
+				if (!ret.Contains(connection.inputSlot.parentNode))
+				{
+					ret.Add(connection.inputSlot.parentNode);
+				}
+			}
+
+			return ret;
 		}
 
 		/// <summary>

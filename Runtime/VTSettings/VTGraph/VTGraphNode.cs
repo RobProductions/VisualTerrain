@@ -18,7 +18,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public Vector2 NodePosition { get; set; } = Vector2.zero;
 		[field: SerializeField]
-		public bool IsExpanded { get; set; } = false;
+		public bool IsExpanded { get; set; } = true;
 
 		public delegate void BeginEditNodeProperty(string description);
 		public BeginEditNodeProperty beginEditNodePropertyEvent;
