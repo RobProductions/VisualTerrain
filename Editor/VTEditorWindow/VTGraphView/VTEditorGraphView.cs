@@ -35,7 +35,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public readonly float halfConnectionPointSize = 7f;
 			public readonly float connectionLineWidth = 3f;
 			public readonly float connectionPointExtraClickHeight = 5f;
-			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -7f);
+			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -6.5f);
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
@@ -112,7 +112,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public Dictionary<VTGraphNode, Texture2D> nodePreviewImageMap = new Dictionary<VTGraphNode, Texture2D>();
 
-			public VTGraphProcessingSettings previewProcessingSettings = new VTGraphProcessingSettings(
+			public VTGraphProcessingSettings previewThumbProcessingSettings = new VTGraphProcessingSettings(
 				VTGraphProcessingSettings.TextureGenerationResolution.RestrictToSize,
 				VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize,
 				textureGenResolutionNumber: 256
@@ -120,7 +120,6 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		private GraphViewData data = new GraphViewData();
-
 
 		private VTEditorWindow parentWindow;
 
@@ -211,7 +210,7 @@ namespace RobProductions.VisualTerrain.Editor
 			if (output != null)
 			{
 				//If we have an output node, process it and get the output texture
-				data.currentGraph.ProcessNode(node, data.previewProcessingSettings);
+				data.currentGraph.ProcessNode(node, data.previewThumbProcessingSettings);
 				var textureValue = output.GetTextureValue();
 				if(textureValue != null)
 				{
@@ -1002,8 +1001,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void DrawGraphConnectionLine(Vector3 startPosition, Vector3 endPosition, bool inProgressLine, VTGraphConnection optionalConnection = null)
 		{
-			Vector3 startTangent = startPosition + (Vector3.left * 40f);
-			Vector3 endTangent = endPosition - (Vector3.left * 40f);
+			var viewScale = GetCurrentViewScale();
+			Vector3 startTangent = startPosition + ((Vector3.left * 40f) * viewScale);
+			Vector3 endTangent = endPosition - ((Vector3.left * 40f) * viewScale);
 
 			Handles.DrawBezier(
 				startPosition,

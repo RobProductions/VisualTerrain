@@ -297,7 +297,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
 			if (data.displayPropertiesPanel)
 			{
-				var setupMode = VTEditorSetupView.SetupViewMode.TerrainProperties;
+				var setupMode = VTEditorSetupView.SetupViewMode.AssetSettings;
 				var currentSelectedNodes = data.graphView.GetSelectedGraphNodes();
 				if(currentSelectedNodes.Count > 1)
 				{

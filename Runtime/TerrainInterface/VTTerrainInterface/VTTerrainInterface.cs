@@ -75,16 +75,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			DeleteExtraTerrainReferences(requiredTerrainReferences);
 
 			//Set the terrain properties
-			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup);
+			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
 
 			//Set the terrain height values
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset);
-			SetTerrainHeight(settingsAsset.setupData.terrainSetup, heightmapValue);
+			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
 		}
 
 		//TERRAIN HEIGHT
 
-		void SetTerrainHeight(VTSetupTerrain setupProperties, Texture2D heightmap)
+		void SetTerrainHeight(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, Texture2D heightmap)
 		{
 			try
 			{
@@ -93,17 +93,25 @@ namespace RobProductions.VisualTerrain.Runtime
 					var thisRef = data.terrainRefs[i];
 					var thisData = thisRef.terrainData;
 
-					var resValue = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
-					float[,] terrainHeights = new float[resValue, resValue];
+					int finalHeightmapRes;
+					if (manager.IsPreviewMode())
+					{
+						finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+					}
+					else
+					{
+						finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+					}
+					float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
 
 					if(heightmap != null)
 					{
-						for (int x = 0; x < resValue; x++)
+						for (int x = 0; x < finalHeightmapRes; x++)
 						{
-							for (int y = 0; y < resValue; y++)
+							for (int y = 0; y < finalHeightmapRes; y++)
 							{
-								float percentX = (float)x / resValue;
-								float percentY = (float)y / resValue;
+								float percentX = (float)x / finalHeightmapRes;
+								float percentY = (float)y / finalHeightmapRes;
 								int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.width);
 								int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.height);
 								Color pixelValue = heightmap.GetPixel(pixelX, pixelY);
@@ -131,7 +139,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//TERRAIN PROPERTIES
 
-		void ConfigureTerrainProperties(VTSetupTerrain setupProperties)
+		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties)
 		{
 			var terrainSize = setupProperties.terrainSize;
 
@@ -144,28 +152,25 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
 
 				//Set resolutions
-				thisRefData.heightmapResolution = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
-
+				int finalHeightmapRes;
 				int finalSplatmapRes;
-				if(manager.IsPreviewMode())
-				{
-					finalSplatmapRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
-				}
-				else
-				{
-					finalSplatmapRes = SplatmapResToNumber(setupProperties.terrainResolution.splatmapResolution);
-				}
-				thisRefData.alphamapResolution = finalSplatmapRes;
-
 				int finalCompositeRes;
-				if(manager.IsPreviewMode())
+
+				if (manager.IsPreviewMode())
 				{
-					finalCompositeRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
+					finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+					finalSplatmapRes = SplatmapResToNumber(processingProperties.preview.previewSplatmapResolution);
+					finalCompositeRes = SplatmapResToNumber(processingProperties.preview.previewSplatmapResolution);
 				}
 				else
 				{
+					finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+					finalSplatmapRes = SplatmapResToNumber(setupProperties.terrainResolution.splatmapResolution);
 					finalCompositeRes = SplatmapResToNumber(setupProperties.terrainResolution.compositeSplatmapResolution);
 				}
+
+				thisRefData.heightmapResolution = finalHeightmapRes;
+				thisRefData.alphamapResolution = finalSplatmapRes;
 				thisRefData.baseMapResolution = finalCompositeRes;
 
 				//Set size
@@ -288,21 +293,6 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		//VALUES
-
-		int GetFinalHeightmapRes(VTSetupTerrain.HeightmapResolution standardResolution)
-		{
-			if(manager == null)
-			{
-				return 0;
-			}
-
-			if (manager.IsPreviewMode())
-			{
-				return HeightmapResToNumber(VTSetupTerrain.HeightmapResolution.x65);
-			}
-
-			return HeightmapResToNumber(standardResolution);
-		}
 
 		int HeightmapResToNumber(VTSetupTerrain.HeightmapResolution res)
 		{

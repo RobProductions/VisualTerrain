@@ -14,7 +14,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			public float meshHeight = 5f;
 		}
 
-		public SetupTerrainSize terrainSize;
+		[SerializeField]
+		public SetupTerrainSize terrainSize = new SetupTerrainSize();
 
 		public enum HeightmapResolution
 		{
@@ -49,6 +50,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public SplatmapResolution compositeSplatmapResolution = SplatmapResolution.x256; 
 		}
 
-		public SetupTerrainResolution terrainResolution;
+		[SerializeField]
+		public SetupTerrainResolution terrainResolution = new SetupTerrainResolution();
 	}
 }

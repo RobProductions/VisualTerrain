@@ -5,8 +5,7 @@ using UnityEngine;
 namespace RobProductions.VisualTerrain.Runtime
 {
 	/// <summary>
-	/// This asset represents one entire project for managing terrain.
-	/// 
+	/// This asset represents one entire project for managing terrain. <br></br>
 	/// Data here is stored in the Assets folder and edited from the inspector or the
 	/// VT Editor Window which associates itself with a VT Settings Asset. 
 	/// </summary>
@@ -18,7 +17,14 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class SetupData
 		{
+			/// <summary>
+			/// When enabled, a lower quality version of the textures being processed
+			/// and low res settings will be used to
+			/// generate the terrain.
+			/// </summary>
+			public bool previewMode = true;
 			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
+			public VTSetupProcessing processingSetup = new VTSetupProcessing();
 		}
 
 		[SerializeField]
@@ -35,6 +41,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		[SerializeField]
 		private int serializedAssetVersion = 0;
+
+		//INIT
 
 		public VTSettingsAsset()
 		{
@@ -74,6 +82,13 @@ namespace RobProductions.VisualTerrain.Runtime
 		void ValidateNewVersionFormat(int oldVersionNum)
 		{
 			VTLog.Log("Validating new version format from VERSION: " + oldVersionNum);
+		}
+
+		//GETTERS
+
+		public bool IsPreviewMode()
+		{
+			return setupData.previewMode;
 		}
 	}
 }
