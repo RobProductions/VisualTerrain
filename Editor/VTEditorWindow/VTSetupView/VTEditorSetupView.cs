@@ -2,8 +2,8 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 using RobProductions.VisualTerrain.Runtime;
 
 namespace RobProductions.VisualTerrain.Editor
@@ -209,7 +209,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			else if (assetSettingsTab == AssetSettingsTab.ProcessingSetup)
 			{
-				LayoutDrawProcessingSetup();
+				LayoutDrawProcessingSetup(setupData.processingSetup);
 			}
 		}
 
@@ -253,13 +253,27 @@ namespace RobProductions.VisualTerrain.Editor
 				parentWindow.RegisterAssetStructureUndo("Edited Composite Splatmap Resolution");
 				terrainSetup.terrainResolution.compositeSplatmapResolution = compositeRes;
 			}
+
+			DrawLabelSeparator("Terrain Properties");
+
+			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
+			if(raytracingBool != terrainSetup.terrainProperties.raytracingSupport)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Raytracing Support");
+				terrainSetup.terrainProperties.raytracingSupport = raytracingBool;
+			}
+
 		}
 
-		void LayoutDrawProcessingSetup()
+		void LayoutDrawProcessingSetup(VTSetupProcessing processing)
 		{
+			DrawLabelSeparator("Texture Settings");
+
+			processing.texture.textureGenResolution = DrawSetupIntField("Texture Resolution", processing.texture.textureGenResolution);
+
 			DrawLabelSeparator("Preview Settings");
 
-			DrawLabelSeparator("???");
+			processing.preview.previewTextureGenResolution = DrawSetupIntField("Preview Texture Resolution", processing.preview.previewTextureGenResolution);
 
 		}
 
@@ -353,6 +367,16 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		//UTILITY
+
+		int DrawSetupIntField(string labelName, int value)
+		{
+			var changedInt = EditorGUILayout.IntField(labelName, value);
+			if (changedInt != value)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return changedInt;
+		}
 
 		void DrawTabButton(Texture2D icon, AssetSettingsTab tabType, GUIStyle baseStyle)
 		{

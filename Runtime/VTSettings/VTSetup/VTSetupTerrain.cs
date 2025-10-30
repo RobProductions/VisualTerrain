@@ -52,5 +52,14 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		[SerializeField]
 		public SetupTerrainResolution terrainResolution = new SetupTerrainResolution();
+
+		[System.Serializable]
+		public class SetupTerrainProperties
+		{
+			public bool raytracingSupport = false;
+		}
+
+		[SerializeField]
+		public SetupTerrainProperties terrainProperties = new SetupTerrainProperties();
 	}
 }

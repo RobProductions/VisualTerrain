@@ -18,8 +18,11 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			public GUIStyle propertiesButtonStyle;
 			public GUIStyle moreOptionsButtonStyle;
+			public GUIStyle previewButtonStyle;
+
 			public GUIContent moreOptionsContent;
 			public GUIContent displayPropertiesContent;
+			public GUIContent previewToggleContent;
 
 			public EditorWindowStyles()
 			{
@@ -27,9 +30,13 @@ namespace RobProductions.VisualTerrain.Editor
 				moreOptionsContent.tooltip = "Show additional window options.";
 				displayPropertiesContent = new GUIContent("Properties");
 				displayPropertiesContent.tooltip = "Toggle properties panel display.";
+				previewToggleContent = EditorGUIUtility.IconContent("ViewToolOrbit@2x");
+				previewToggleContent.tooltip = "Toggle preview mode.";
 
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
+				previewButtonStyle = new GUIStyle(EditorStyles.miniButton);
+				previewButtonStyle.padding = new RectOffset(8, 8, 2, 2);
 			}
 		}
 
@@ -410,6 +417,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
+				//Left hand side
 				if (GUILayout.Button(styles.moreOptionsContent, EditorStyles.toolbarButton))
 				{
 					PopupWindow.Show(new Rect(Event.current.mousePosition.x, Event.current.mousePosition.y, 0, 0), new MoreOptionsPopup(this));
@@ -431,7 +439,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 					EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
 				}
+
+				//Middle space
 				GUILayout.FlexibleSpace();
+
+				//Right hand side
 				if(data.currentAsset != null)
 				{
 					GUILayout.BeginVertical();
@@ -445,6 +457,13 @@ namespace RobProductions.VisualTerrain.Editor
 					{
 						//Tell all managers with this asset to generate the terrain
 						VTEditorSceneInterface.GenerateTerrainsWithAsset(data.currentAsset);
+					}
+					var previewValue = GUILayout.Toggle(data.currentAsset.IsPreviewMode(), styles.previewToggleContent, styles.previewButtonStyle);
+					if(previewValue != data.currentAsset.IsPreviewMode())
+					{
+						RegisterAssetStructureUndo("Toggled Preview Mode");
+						data.currentAsset.SetPreviewMode(previewValue);
+						EditedAsset();
 					}
 				}
 

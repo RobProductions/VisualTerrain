@@ -79,16 +79,25 @@ namespace RobProductions.VisualTerrain.Runtime
 			serializedAssetVersion = ASSET_API_VERSION;
 		}
 
-		void ValidateNewVersionFormat(int oldVersionNum)
-		{
-			VTLog.Log("Validating new version format from VERSION: " + oldVersionNum);
-		}
-
 		//GETTERS
 
 		public bool IsPreviewMode()
 		{
 			return setupData.previewMode;
+		}
+
+		//SETTERS
+
+		public void SetPreviewMode(bool v)
+		{
+			setupData.previewMode = v;
+		}
+
+		//VALIDATION
+
+		void ValidateNewVersionFormat(int oldVersionNum)
+		{
+			VTLog.Log("Validating new version format from VERSION: " + oldVersionNum);
 		}
 	}
 }

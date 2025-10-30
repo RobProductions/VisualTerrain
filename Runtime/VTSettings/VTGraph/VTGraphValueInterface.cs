@@ -12,13 +12,21 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// </summary>
 		/// <param name="graph"></param>
 		/// <returns></returns>
-		public static Texture2D GetAssetHeightmapTexture(VTSettingsAsset asset)
+		public static Texture2D GetAssetHeightmapTexture(VTSettingsAsset asset, bool previewMode)
 		{
-			var processingSettings = new VTGraphProcessingSettings(
-				textureGenResolution: VTGraphProcessingSettings.TextureGenerationResolution.Full,
-				textureOutputResolution: VTGraphProcessingSettings.TextureOutputResolution.Full,
-				textureGenResolutionNumber: 1024
-			);
+			VTGraphProcessingSettings processingSettings;
+			if(previewMode)
+			{
+				processingSettings = new VTGraphProcessingSettings(
+					textureGenResolutionNumber: asset.setupData.processingSetup.preview.previewTextureGenResolution
+				);
+			}
+			else
+			{
+				processingSettings = new VTGraphProcessingSettings(
+					textureGenResolutionNumber: asset.setupData.processingSetup.texture.textureGenResolution
+				);
+			}
 			return GetGraphHeightmapTexture(asset.generationData.heightmapGraph, processingSettings);
 		}
 

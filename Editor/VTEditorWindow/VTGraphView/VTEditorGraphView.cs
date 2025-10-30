@@ -14,10 +14,10 @@ namespace RobProductions.VisualTerrain.Editor
 		/// The amount of view scaling that can happen
 		/// before the value gets clamped.
 		/// </summary>
-		public readonly Vector2 viewScaleRange = new Vector2(0.2f, 1.4f);
-		public readonly float stopSmallGridAtScale = 0.4f;
-		public readonly float viewScaleButtonChangeAmount = 0.05f;
-		public readonly float viewScaleScrollChangeAmount = 0.02f;
+		private readonly Vector2 viewScaleRange = new Vector2(0.2f, 1.4f);
+		private readonly float stopSmallGridAtScale = 0.4f;
+		private readonly float viewScaleButtonChangeAmount = 0.05f;
+		private readonly float viewScaleScrollChangeAmount = 0.02f;
 
 		public class GraphViewStyles
 		{
@@ -112,9 +112,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public Dictionary<VTGraphNode, Texture2D> nodePreviewImageMap = new Dictionary<VTGraphNode, Texture2D>();
 
-			public VTGraphProcessingSettings previewThumbProcessingSettings = new VTGraphProcessingSettings(
-				VTGraphProcessingSettings.TextureGenerationResolution.RestrictToSize,
-				VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize,
+			public VTGraphProcessingSettings nodeThumbProcessingSettings = new VTGraphProcessingSettings(
 				textureGenResolutionNumber: 256
 			);
 		}
@@ -203,6 +201,14 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
+			var currentAsset = parentWindow.GetCurrentAsset();
+			if(currentAsset != null)
+			{
+				//TODO: Maybe update processing settings based on user setting?
+
+				//data.previewThumbProcessingSettings.textureGenResolutionNumber =
+			}
+
 			//Clear the preview to make a new one
 			RemoveNodePreviewImage(node);
 
@@ -210,7 +216,7 @@ namespace RobProductions.VisualTerrain.Editor
 			if (output != null)
 			{
 				//If we have an output node, process it and get the output texture
-				data.currentGraph.ProcessNode(node, data.previewThumbProcessingSettings);
+				data.currentGraph.ProcessNode(node, data.nodeThumbProcessingSettings);
 				var textureValue = output.GetTextureValue();
 				if(textureValue != null)
 				{

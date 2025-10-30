@@ -16,7 +16,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			outputConnections[0].connectionSlotName = "Output Slot";
 		}
 
-
 		public override void ProcessNode(VTGraphProcessingSettings settings)
 		{
 			base.ProcessNode(settings);
@@ -24,6 +23,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			var output = GetOutputConnection();
 			if (output != null)
 			{
+				output.SetTextureValue(GetInputConnection().textureValue);
+
+				/*
 				if(settings.textureOutputResolution == VTGraphProcessingSettings.TextureOutputResolution.Full)
 				{
 					output.SetTextureValue(GetInputConnection().textureValue);
@@ -31,14 +33,13 @@ namespace RobProductions.VisualTerrain.Runtime
 				else if (settings.textureOutputResolution == VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize)
 				{
 					output.SetTextureValue(GetInputConnection().textureValue);
-					/*
 					var inputTex = GetInputConnection().textureValue;
 					if (inputTex != null)
 					{
 						Texture2D newTex = new Texture2D(inputTex.width, inputTex.height);
 						var pixels = inputTex.GetPixels32();
 						newTex.SetPixels32(pixels);
-						
+
 						//TODO: Use if UNITY_6000_ OR NEWER to reinitialize instead of resize
 						//newTex.Resize(4096, 4096);
 
@@ -50,8 +51,8 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						output.SetTextureValue(null);
 					}
-					*/
 				}
+				*/
 			}
 		}
 	}

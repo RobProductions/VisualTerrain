@@ -78,7 +78,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
 
 			//Set the terrain height values
-			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset);
+			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
 			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
 		}
 
@@ -147,6 +147,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisRefData = thisRef.terrainData;
+				var thisRefComponent = thisRef.terrainComponent;
 
 				//Enforce object name
 				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
@@ -177,6 +178,13 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefData.size = new Vector3(terrainSize.meshWidthLength.x,
 					terrainSize.meshHeight, 
 					terrainSize.meshWidthLength.y);
+
+				//Set properties
+
+#if UNITY_2022_2_OR_NEWER
+				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;
+#endif
+
 			}
 		}
 
@@ -198,15 +206,21 @@ namespace RobProductions.VisualTerrain.Runtime
 				if(thisRef.terrainData == null)
 				{
 					thisRef.terrainData = new TerrainData();
-
 				}
-
 				//Now create terrain object if needed
 				if(thisRef.terrainComponent == null)
 				{
 					thisRef.terrainComponent = CreateTerrainObject(thisRef.terrainData);
 				}
 				thisRef.terrainObject = thisRef.terrainComponent.gameObject;
+				//Ensure that the terrain component has the right data
+				if(thisRef.terrainComponent.terrainData != thisRef.terrainData)
+				{
+					thisRef.terrainComponent.terrainData = thisRef.terrainData;
+				}
+
+				//Ensure that any subsequent placements will link these terrains
+				thisRef.terrainComponent.allowAutoConnect = true;
 
 				//TODO: Enforce terrain position?
 			}
@@ -243,7 +257,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				{
 					if(GetReferenceWithTerrainComponent(thisTerrainComponent) == null)
 					{
-						GameObject.DestroyImmediate(thisTerrain.gameObject);
+						GameObject.Destroy(thisTerrain.gameObject);
 					}
 				}
 			}
@@ -275,7 +289,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			if(terrainRef != null)
 			{
-				GameObject.DestroyImmediate(terrainRef.terrainObject);
+				GameObject.Destroy(terrainRef.terrainObject);
 			}
 		}
 
