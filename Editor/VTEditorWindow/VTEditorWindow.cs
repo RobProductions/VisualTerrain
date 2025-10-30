@@ -65,6 +65,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private const string storeAssetKey = "RobProductions.VisualTerrain.VTSettingsAsset";
 		private const string storeDisplayPropertiesKey = "RobProductions.VisualTerrain.DisplayProperties";
+		private const string storeGraphScreenKey = "RobProductions.VisualTerrain.CurrentGraphScreen";
 
 		//LIFECYCLE
 
@@ -106,10 +107,11 @@ namespace RobProductions.VisualTerrain.Editor
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
 			CheckLoadStoredAsset();
-			//Then set it to refresh all associated data
-			SetVTSettingsAsset(data.currentAsset);
-			//Load stored EditorWindow data
+			//Preload stored EditorWindow data
 			CheckStoredDisplayProperties();
+			CheckStoredCurrentGraphScreen();
+			//Then set the asset to refresh all associated data based on EditorWindow data
+			SetVTSettingsAsset(data.currentAsset);
 
 			data.windowActive = true;
 			data.windowActive = true;
@@ -194,6 +196,22 @@ namespace RobProductions.VisualTerrain.Editor
 			EditorPrefs.SetBool(storeDisplayPropertiesKey, v);
 		}
 
+		void CheckStoredCurrentGraphScreen()
+		{
+			if(EditorPrefs.HasKey(storeGraphScreenKey))
+			{
+				if(data.currentAsset != null)
+				{
+					data.currentGraphScreen = (VTGraphScreen)EditorPrefs.GetInt(storeGraphScreenKey, 0);
+				}
+			}
+		}
+
+		void SetStoredCurrentGraphScreen(VTGraphScreen screen)
+		{
+			EditorPrefs.SetInt(storeGraphScreenKey, (int)screen);
+		}
+
 		/// <summary>
 		/// Called before editing the scriptableobject data so that
 		/// the Undo handler can be used if undoing the next change.
@@ -260,7 +278,10 @@ namespace RobProductions.VisualTerrain.Editor
 				{
 					finalDisplayGraph = data.currentAsset.generationData.heightmapGraph;
 				}
-				
+				else if (data.currentGraphScreen == VTGraphScreen.Texture)
+				{
+					finalDisplayGraph = data.currentAsset.generationData.textureGraph;
+				}
 			}
 
 			data.graphView.SetTargetGraph(finalDisplayGraph);
@@ -426,18 +447,23 @@ namespace RobProductions.VisualTerrain.Editor
 				if (data.currentAsset != null)
 				{
 					var propertiesStyle = styles.propertiesButtonStyle;
-					bool lastPropertiesSetting = data.displayPropertiesPanel;
 
-					data.displayPropertiesPanel = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
-
-					if(lastPropertiesSetting != data.displayPropertiesPanel)
+					var newDisplayPropertiesBool = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
+					if(newDisplayPropertiesBool != data.displayPropertiesPanel)
 					{
+						data.displayPropertiesPanel = newDisplayPropertiesBool;
 						SetStoredDisplayProperties(data.displayPropertiesPanel);
 					}
 
 					GUILayout.Space(6f);
 
-					EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
+					var newGraphScreen = (VTGraphScreen)EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
+					if(newGraphScreen != data.currentGraphScreen)
+					{
+						data.currentGraphScreen = newGraphScreen;
+						SetStoredCurrentGraphScreen(data.currentGraphScreen);
+						RefreshGraphScreen();
+					}
 				}
 
 				//Middle space

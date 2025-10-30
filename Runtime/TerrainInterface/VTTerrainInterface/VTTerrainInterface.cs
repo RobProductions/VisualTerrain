@@ -218,6 +218,12 @@ namespace RobProductions.VisualTerrain.Runtime
 				{
 					thisRef.terrainComponent.terrainData = thisRef.terrainData;
 				}
+				//Ensure the collider has the same data if it exists
+				var terrainCollider = thisRef.terrainObject.GetComponent<TerrainCollider>();
+				if(terrainCollider != null)
+				{
+					terrainCollider.terrainData = thisRef.terrainData;
+				}
 
 				//Ensure that any subsequent placements will link these terrains
 				thisRef.terrainComponent.allowAutoConnect = true;

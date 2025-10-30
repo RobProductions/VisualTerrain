@@ -184,15 +184,27 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			foreach(VTGraphNode node in data.currentGraph.nodeList)
-			{
-				TryUpdateNodePreviewImage(node);
-			}
+			VTEditorCoroutine.Start(CoroutineRegeneratePreviewImages(data.currentGraph.nodeList));
 
 			if(markEditAsset)
 			{
 				parentWindow.EditedAsset();
 			}
+		}
+
+		IEnumerator CoroutineRegeneratePreviewImages(List<VTGraphNode> nodeList)
+		{
+			foreach (VTGraphNode node in nodeList)
+			{
+				if(node != null)
+				{
+					TryUpdateNodePreviewImage(node);
+					//Wait a frame before continuing so that the preview update is time spliced
+					yield return null;
+				}
+			}
+
+			yield return null;
 		}
 
 		public void TryUpdateNodePreviewImage(VTGraphNode node)
@@ -730,10 +742,7 @@ namespace RobProductions.VisualTerrain.Editor
 			GenericMenu genericMenu = new GenericMenu();
 			if (data.currentGraph != null)
 			{
-				genericMenu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
+				GenericMenuAddNodeCreationItems(genericMenu, mousePosition);
 
 				genericMenu.AddSeparator("");
 				if(overNode != null)
@@ -761,6 +770,14 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				genericMenu.ShowAsContext();
 			}
+		}
+
+		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
+		{
+			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
+			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
+			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
 		}
 
 		void ClearSelectedGraphNodes()

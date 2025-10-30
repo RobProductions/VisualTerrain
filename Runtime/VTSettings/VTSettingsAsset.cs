@@ -34,6 +34,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		public class GenerationData
 		{
 			public VTGraph heightmapGraph = new VTGraph();
+			public VTGraph textureGraph = new VTGraph();
 		}
 
 		[SerializeField]
