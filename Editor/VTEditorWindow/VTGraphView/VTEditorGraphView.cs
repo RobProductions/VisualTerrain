@@ -232,7 +232,14 @@ namespace RobProductions.VisualTerrain.Editor
 				var textureValue = output.GetTextureValue();
 				if(textureValue != null)
 				{
+					//We have a preview texture
 					data.nodePreviewImageMap[node] = textureValue;
+				}
+				else
+				{
+					//We just have a float value,
+					//so create a 1x1 preview image representing that value as a color
+					data.nodePreviewImageMap[node] = VTImageProcessingUtils.GenerateBlankTextureWithValue(1, output.GetFloatValue());
 				}
 			}
 		}
@@ -778,6 +785,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
 			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
+			menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
 		}
 
 		void ClearSelectedGraphNodes()
@@ -950,9 +958,14 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				scaledOffset = styles.nodeTitleOffset * 1.2f;
 			}
-
 			titleRect.position -= new Vector2(0.0f, scaledOffset);
-			GUI.Label(titleRect, node.NodeTitle, styles.nodeTitleStyle);
+
+			string finalTitle = node.NodeTitle;
+			if(node.CustomName != "")
+			{
+				finalTitle = node.CustomName;
+			}
+			GUI.Label(titleRect, finalTitle, styles.nodeTitleStyle);
 
 			if(node.IsExpanded)
 			{

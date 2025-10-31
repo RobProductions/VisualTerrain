@@ -10,11 +10,14 @@ namespace RobProductions.VisualTerrain.Editor
 {
 	public class VTEditorSetupView
 	{
+		private const int maxCustomNameLength = 25;
+
 		public class SetupViewStyles
 		{
 			public readonly float propertiesHoriziontalPadding = 2f;
 			public readonly float labelSeparatorPreSpace = 10f;
 			public readonly float tabButtonWidth = 40f;
+			public readonly float nodePropertyLabelWidth = 110f;
 
 			public Texture2D terrainPropertiesIcon;
 			public Texture2D terrainObjectPropertiesIcon;
@@ -288,6 +291,18 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
+			var defaultLabelWidth = EditorGUIUtility.labelWidth;
+			EditorGUIUtility.labelWidth = styles.nodePropertyLabelWidth;
+
+			DrawLabelSeparator(node.NodeTitle);
+			GUILayout.Space(styles.labelSeparatorPreSpace * 0.5f);
+
+			node.CustomName = DrawSetupStringField("Display Name", node.CustomName, false);
+			if(node.CustomName.Length > maxCustomNameLength)
+			{
+				node.CustomName = node.CustomName.Substring(0, maxCustomNameLength);
+			}
+
 			if(node.inputConnections.Length > 0)
 			{
 				//Render input settings
@@ -347,6 +362,8 @@ namespace RobProductions.VisualTerrain.Editor
 				node.beginEditNodePropertyEvent -= BeginEditNodeProperty;
 				node.endEditNodePropertyEvent -= EndEditNodeProperty;
 			}
+
+			EditorGUIUtility.labelWidth = defaultLabelWidth;
 		}
 
 		void BeginEditNodeProperty(string desc)
@@ -367,6 +384,16 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		//UTILITY
+
+		string DrawSetupStringField(string labelName, string value, bool emptyLabel)
+		{
+			var changedString = EditorGUILayout.TextField(emptyLabel ? "" : labelName, value);
+			if(changedString != value)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return changedString;
+		}
 
 		int DrawSetupIntField(string labelName, int value)
 		{

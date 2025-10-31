@@ -1,0 +1,60 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace RobProductions.VisualTerrain.Runtime
+{
+	public class VTGraphNodeSplatLayerOutput : VTGraphNode
+	{
+		public override string NodeTitle => "Splat Layer Output";
+		public override bool HasNodeProperties => true;
+
+		//TODO: Create dropdown for terrain layer creation
+		//So you can just input a texture and tiling settings
+		[SerializeField]
+		public int layerOrder = 0;
+		[SerializeField]
+		public TerrainLayer terrainLayer = null;
+
+		public VTGraphNodeSplatLayerOutput()
+		{
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			inputConnections[0].connectionSlotName = "Splatmap";
+
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			outputConnections[0].slotHidden = true;
+		}
+
+		public override void ProcessNode(VTGraphProcessingSettings settings)
+		{
+			base.ProcessNode(settings);
+
+			var output = GetOutputConnection();
+			if (output != null)
+			{
+				output.SetTextureValue(GetInputConnection().textureValue);
+			}
+		}
+
+		public TerrainLayer GetNodeTerrainLayer()
+		{
+			return terrainLayer;
+		}
+
+		//RENDERING
+
+		public override void RenderNodeProperties()
+		{
+			base.RenderNodeProperties();
+
+			var layerValue = (TerrainLayer)EditorGUILayout.ObjectField("Terrain Layer", terrainLayer, typeof(TerrainLayer), true);
+			if (layerValue != terrainLayer)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				terrainLayer = layerValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+	}
+}

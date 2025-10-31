@@ -16,6 +16,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		public VTGraphConnectionSlot[] outputConnections;
 
 		[field: SerializeField]
+		public string CustomName { get; set; } = "";
+		[field: SerializeField]
 		public Vector2 NodePosition { get; set; } = Vector2.zero;
 		[field: SerializeField]
 		public bool IsExpanded { get; set; } = true;

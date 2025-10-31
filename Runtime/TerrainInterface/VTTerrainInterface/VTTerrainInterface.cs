@@ -80,6 +80,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Set the terrain height values
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
 			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
+
+			//Set the terrain splat textures
+			var splatContainers = VTGraphValueInterface.GetGraphSplatmapLayers(settingsAsset, manager.IsPreviewMode());
+			SetTerrainSplatTextures(splatContainers);
 		}
 
 		//TERRAIN HEIGHT
@@ -104,11 +108,11 @@ namespace RobProductions.VisualTerrain.Runtime
 					}
 					float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
 
-					if(heightmap != null)
+					if (heightmap != null)
 					{
-						for (int x = 0; x < finalHeightmapRes; x++)
+						for (int y = 0; y < finalHeightmapRes; y++)
 						{
-							for (int y = 0; y < finalHeightmapRes; y++)
+							for (int x = 0; x < finalHeightmapRes; x++)
 							{
 								float percentX = (float)x / finalHeightmapRes;
 								float percentY = (float)y / finalHeightmapRes;
@@ -116,9 +120,14 @@ namespace RobProductions.VisualTerrain.Runtime
 								int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.height);
 								Color pixelValue = heightmap.GetPixel(pixelX, pixelY);
 
+								//TODO: Could do heightmap sampling to clean edges and smooth a bit
+
+								//Heights are indexed as y,x
 								terrainHeights[y, x] = GetGrayscaleValueFromColor(pixelValue);
 							}
 						}
+
+						//TODO: Do post-smoothing based on sampling heightmap values
 					}
 
 					thisData.SetHeights(0, 0, terrainHeights);
@@ -131,10 +140,75 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
-		float GetGrayscaleValueFromColor(Color col)
+		//TERRAIN TEXTURE
+
+		void SetTerrainSplatTextures(List<VTGraphValueInterface.SplatmapLayerContainer> splatLayers)
 		{
-			return (col.r + col.g + col.b) / 3f;
-			//return col.r;
+			//Create TerrainLayer array in the correct format
+			TerrainLayer[] setTerrainLayers = new TerrainLayer[splatLayers.Count];
+			for(int i = 0; i < splatLayers.Count; i++)
+			{
+				setTerrainLayers[i] = splatLayers[i].layerData;
+			}
+
+			//Set the terrain layers to terrains and
+			//apply the splatmap data
+			try
+			{
+				for (int i = 0; i < data.terrainRefs.Count; i++)
+				{
+					var thisRef = data.terrainRefs[i];
+					var thisData = thisRef.terrainData;
+
+					//Set terrain layers
+					thisData.terrainLayers = setTerrainLayers;
+
+					//Set layer alphamap values
+					var splatmaps = new float[thisData.alphamapHeight, thisData.alphamapWidth, splatLayers.Count];
+					for(int splatLayerIndex = 0; splatLayerIndex < splatLayers.Count; splatLayerIndex++)
+					{
+						var thisSplatLayer = splatLayers[splatLayerIndex];
+
+						if(splatLayerIndex == 0)
+						{
+							//For first layer, just set splatmap to 1 everywhere
+							for (int y = 0; y < thisData.alphamapHeight; y++)
+							{
+								for (int x = 0; x < thisData.alphamapWidth; x++)
+								{
+									//Alphamaps are indexed as y,x,index
+									splatmaps[y, x, splatLayerIndex] = 1.0f;
+								}
+							}
+						}
+						else if(thisSplatLayer.layerSplatmap != null)
+						{
+							//Sample the splat layer alphamap texture
+							for (int y = 0; y < thisData.alphamapHeight; y++)
+							{
+								for (int x = 0; x < thisData.alphamapWidth; x++)
+								{
+									float percentX = (float)x / thisData.alphamapWidth;
+									float percentY = (float)y / thisData.alphamapHeight;
+									int pixelX = Mathf.RoundToInt(percentX * (float)thisSplatLayer.layerSplatmap.width);
+									int pixelY = Mathf.RoundToInt(percentY * (float)thisSplatLayer.layerSplatmap.height);
+									Color pixelValue = thisSplatLayer.layerSplatmap.GetPixel(pixelX, pixelY);
+
+									//Alphamaps are indexed as y,x,index
+									splatmaps[y, x, splatLayerIndex] = GetGrayscaleValueFromColor(pixelValue);
+								}
+							}
+						}
+					}
+
+					thisData.SetAlphamaps(0, 0, splatmaps);
+				}
+			}
+			catch (UnityException e)
+			{
+				//We might have an unreadable texture
+				VTLog.LogWarning(e.Message);
+			}
 		}
 
 		//TERRAIN PROPERTIES
@@ -376,6 +450,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			return finalSplatmapRes;
+		}
+
+		//UTILITY
+
+		float GetGrayscaleValueFromColor(Color col)
+		{
+			//return (col.r + col.g + col.b) / 3f;
+
+			//It is more efficient to retrieve one color value than to calculate the brightness
+			return col.r;
 		}
 	}
 }

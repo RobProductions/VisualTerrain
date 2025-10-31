@@ -24,7 +24,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			if (output != null)
 			{
 				output.SetTextureValue(GetInputConnection().textureValue);
-
+				output.SetFloatValue(GetInputConnection().floatValue);
 				/*
 				if(settings.textureOutputResolution == VTGraphProcessingSettings.TextureOutputResolution.Full)
 				{
