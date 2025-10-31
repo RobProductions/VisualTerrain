@@ -7,7 +7,7 @@ namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTGraphValueInterface
 	{
-		//HEIGHTMAP 
+		//HEIGHTMAP
 
 		/// <summary>
 		/// Get the heightmap output value from a graph
@@ -17,6 +17,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <returns></returns>
 		public static Texture2D GetAssetHeightmapTexture(VTSettingsAsset asset, bool previewMode)
 		{
+			if(asset == null)
+			{
+				return null;
+			}
+
 			VTGraphProcessingSettings processingSettings = GenerateAssetProcessingSettings(asset, previewMode);
 			return GetGraphHeightmapTexture(asset.generationData.heightmapGraph, processingSettings);
 		}
@@ -49,7 +54,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			graph.ProcessNode(outputNode, settings);
 
 			//Return the final heightmap texture
-			return outputNode.GetOutputConnection().GetTextureValue();
+			var finalHeightmap = outputNode.GetOutputConnection().GetTextureValue();
+			if(settings.contextAsset)
+			{
+				//Cache the heightmap for later use, it can either cache to
+				//thumbnail or real texture value. In a real texture cache,
+				//we know that this is always updated before calculating
+				//graphs which can use the sampler, so it won't be outdated.
+				settings.contextAsset.SetCachedHeightmap(finalHeightmap, settings);
+			}
+			return finalHeightmap;
 		}
 
 		//TEXTURE
@@ -108,14 +122,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				processingSettings = new VTGraphProcessingSettings(
 					textureGenResolutionNumber: asset.setupData.processingSetup.preview.previewTextureGenResolution,
-					thumbnailMode: false
+					thumbnailMode: false,
+					contextAsset: asset
 				);
 			}
 			else
 			{
 				processingSettings = new VTGraphProcessingSettings(
 					textureGenResolutionNumber: asset.setupData.processingSetup.texture.textureGenResolution,
-					thumbnailMode: false
+					thumbnailMode: false,
+					contextAsset: asset
 				);
 			}
 

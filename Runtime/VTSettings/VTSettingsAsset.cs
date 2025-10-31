@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -97,19 +98,41 @@ namespace RobProductions.VisualTerrain.Runtime
 			setupData.previewMode = v;
 		}
 
-		public void RefreshCachedThumbnailHeightmap(VTGraphProcessingSettings processingSettings)
+		/// <summary>
+		/// Set the cache of an arbitrary thumbnail or real heightmap value,
+		/// based on the processingSettings.
+		/// </summary>
+		/// <param name="heightmap"></param>
+		/// <param name="processingSettings"></param>
+		public void SetCachedHeightmap(Texture2D heightmap, VTGraphProcessingSettings processingSettings)
 		{
 			if(processingSettings.thumbnailMode)
 			{
-				SetCachedThumbnailHeightmapTexture(VTGraphValueInterface.GetGraphHeightmapTexture(generationData.heightmapGraph, processingSettings));
+				SetCachedThumbnailHeightmapTexture(heightmap);
+			}
+			else
+			{
+				SetCachedHeightmapTexture(heightmap);
 			}
 		}
 
+		/// <summary>
+		/// Set the cached thumbnail heightmap texture for sampling.
+		/// This must also be called whenever the height output changes
+		/// so that later sampling is up to date.
+		/// </summary>
+		/// <param name="thumbHeightmap"></param>
 		public void SetCachedThumbnailHeightmapTexture(Texture2D thumbHeightmap)
 		{
 			generationData.cachedThumbHeightmapTexture = thumbHeightmap;
 		}
 
+		/// <summary>
+		/// Set the cached heightmap texture for use in heightmap sampling.
+		/// The cache value should only be utilized after generating the heightmap
+		/// and ensuring that no changes to height can happen before use.
+		/// </summary>
+		/// <param name="heightmap"></param>
 		public void SetCachedHeightmapTexture(Texture2D heightmap)
 		{
 			generationData.cachedHeightmapTexture = heightmap;

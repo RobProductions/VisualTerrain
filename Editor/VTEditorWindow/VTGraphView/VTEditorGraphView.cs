@@ -222,6 +222,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 				//data.previewThumbProcessingSettings.textureGenResolutionNumber =
 			}
+			data.nodeThumbProcessingSettings.contextAsset = currentAsset;
 
 			//Clear the preview to make a new one
 			RemoveNodePreviewImage(node);
@@ -240,6 +241,7 @@ namespace RobProductions.VisualTerrain.Editor
 					if(node is VTGraphNodeHeightOutput && currentAsset != null)
 					{
 						currentAsset.SetCachedThumbnailHeightmapTexture(textureValue);
+						parentWindow.EditedAsset();
 					}
 				}
 				else
@@ -309,12 +311,6 @@ namespace RobProductions.VisualTerrain.Editor
 
 			parentWindow.RegisterAssetDataUndo("Created New Node");
 			var newNode = data.currentGraph.CreateNode<T>(positionMinusOffset);
-			if(newNode is VTGraphNodeSampleHeight && parentWindow.GetCurrentAsset() != null)
-			{
-				var sampleHeight = newNode as VTGraphNodeSampleHeight;
-				sampleHeight.generationDataReference = parentWindow.GetCurrentAsset().generationData;
-			}
-
 			TryUpdateNodePreviewImage(newNode);
 			parentWindow.EditedAsset();
 		}

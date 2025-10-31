@@ -78,11 +78,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
 
 			//Set the terrain height values
+			//This will set the cachedHeightmap for later use
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
-			settingsAsset.SetCachedHeightmapTexture(heightmapValue);
 			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
 
 			//Set the terrain splat textures
+			//Texture graph may use the cachedHeightmap generated above
 			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
 			SetTerrainSplatTextures(splatContainers);
 		}
