@@ -801,6 +801,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Math
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
+			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
 
 			//Output
 			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
