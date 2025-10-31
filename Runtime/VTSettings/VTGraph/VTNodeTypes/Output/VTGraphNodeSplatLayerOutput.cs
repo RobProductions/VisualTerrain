@@ -48,6 +48,14 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
+			var orderValue = EditorGUILayout.IntField("Layer Order", layerOrder);
+			if (orderValue != layerOrder)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				layerOrder = orderValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+
 			var layerValue = (TerrainLayer)EditorGUILayout.ObjectField("Terrain Layer", terrainLayer, typeof(TerrainLayer), true);
 			if (layerValue != terrainLayer)
 			{
@@ -55,6 +63,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				terrainLayer = layerValue;
 				endEditNodePropertyEvent?.Invoke(this);
 			}
+
 		}
 	}
 }

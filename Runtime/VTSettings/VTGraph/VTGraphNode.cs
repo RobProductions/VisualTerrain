@@ -22,12 +22,19 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public bool IsExpanded { get; set; } = true;
 
+		protected VTGraph parentGraph = null;
+
 		public delegate void BeginEditNodeProperty(string description);
 		public BeginEditNodeProperty beginEditNodePropertyEvent;
 		public delegate void EndEditNodeProperty(VTGraphNode editedOnNode);
 		public EndEditNodeProperty endEditNodePropertyEvent;
 
 		//SETUP
+
+		public void SetParentGraph(VTGraph v)
+		{
+			parentGraph = v;
+		}
 
 		public void SetupEmptyInputConnections(int inputCount, VTGraphConnectionSlot.SlotValueType defaultValueType)
 		{

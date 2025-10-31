@@ -35,7 +35,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
-				previewButtonStyle = new GUIStyle(EditorStyles.miniButton);
+				previewButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				previewButtonStyle.padding = new RectOffset(8, 8, 2, 2);
 			}
 		}
@@ -472,24 +472,23 @@ namespace RobProductions.VisualTerrain.Editor
 				//Right hand side
 				if(data.currentAsset != null)
 				{
-					GUILayout.BeginVertical();
-					GUILayout.Space(3.2f);
-					if (GUILayout.Toggle(false, "Auto", EditorStyles.toggle))
-					{
-
-					}
-					GUILayout.EndVertical();
-					if (GUILayout.Button("Generate", EditorStyles.miniButton))
-					{
-						//Tell all managers with this asset to generate the terrain
-						VTEditorSceneInterface.GenerateTerrainsWithAsset(data.currentAsset);
-					}
 					var previewValue = GUILayout.Toggle(data.currentAsset.IsPreviewMode(), styles.previewToggleContent, styles.previewButtonStyle);
-					if(previewValue != data.currentAsset.IsPreviewMode())
+					if (previewValue != data.currentAsset.IsPreviewMode())
 					{
 						RegisterAssetStructureUndo("Toggled Preview Mode");
 						data.currentAsset.SetPreviewMode(previewValue);
 						EditedAsset();
+					}
+
+					if (GUILayout.Toggle(false, "Auto", styles.previewButtonStyle))
+					{
+
+					}
+
+					if (GUILayout.Button("Generate", EditorStyles.miniButton))
+					{
+						//Tell all managers with this asset to generate the terrain
+						VTEditorSceneInterface.GenerateTerrainsWithAsset(data.currentAsset);
 					}
 				}
 

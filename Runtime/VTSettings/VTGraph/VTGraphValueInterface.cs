@@ -60,7 +60,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public Texture2D layerSplatmap;
 		}
 
-		public static List<SplatmapLayerContainer> GetGraphSplatmapLayers(VTSettingsAsset asset, bool previewMode)
+		public static List<SplatmapLayerContainer> GetAssetSplatmapLayers(VTSettingsAsset asset, bool previewMode)
 		{
 			var processingSettings = GenerateAssetProcessingSettings(asset, previewMode);
 			return GetGraphSplatmapLayers(asset.generationData.textureGraph, processingSettings);
@@ -78,8 +78,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 			}
 
-			//Order the splat output nodes by user value
-			splatOutputNodes = splatOutputNodes.OrderBy(item => item.layerOrder).ToList();
+			//Order the splat output nodes by y position and then by user value
+			splatOutputNodes = splatOutputNodes.OrderBy(item => item.NodePosition.y).OrderBy(item => item.layerOrder).ToList();
 
 			for(int i = 0; i < splatOutputNodes.Count; i++)
 			{
@@ -107,13 +107,15 @@ namespace RobProductions.VisualTerrain.Runtime
 			if (previewMode)
 			{
 				processingSettings = new VTGraphProcessingSettings(
-					textureGenResolutionNumber: asset.setupData.processingSetup.preview.previewTextureGenResolution
+					textureGenResolutionNumber: asset.setupData.processingSetup.preview.previewTextureGenResolution,
+					thumbnailMode: false
 				);
 			}
 			else
 			{
 				processingSettings = new VTGraphProcessingSettings(
-					textureGenResolutionNumber: asset.setupData.processingSetup.texture.textureGenResolution
+					textureGenResolutionNumber: asset.setupData.processingSetup.texture.textureGenResolution,
+					thumbnailMode: false
 				);
 			}
 

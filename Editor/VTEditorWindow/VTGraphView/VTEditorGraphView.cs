@@ -113,7 +113,8 @@ namespace RobProductions.VisualTerrain.Editor
 			public Dictionary<VTGraphNode, Texture2D> nodePreviewImageMap = new Dictionary<VTGraphNode, Texture2D>();
 
 			public VTGraphProcessingSettings nodeThumbProcessingSettings = new VTGraphProcessingSettings(
-				textureGenResolutionNumber: 256
+				textureGenResolutionNumber: 256,
+				thumbnailMode: true
 			);
 		}
 
@@ -184,7 +185,8 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			VTEditorCoroutine.Start(CoroutineRegeneratePreviewImages(data.currentGraph.nodeList));
+			var nodesAsArray = data.currentGraph.nodeList.ToArray();
+			VTEditorCoroutine.Start(CoroutineRegeneratePreviewImages(nodesAsArray));
 
 			if(markEditAsset)
 			{
@@ -192,7 +194,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
-		IEnumerator CoroutineRegeneratePreviewImages(List<VTGraphNode> nodeList)
+		IEnumerator CoroutineRegeneratePreviewImages(VTGraphNode[] nodeList)
 		{
 			foreach (VTGraphNode node in nodeList)
 			{
@@ -234,6 +236,11 @@ namespace RobProductions.VisualTerrain.Editor
 				{
 					//We have a preview texture
 					data.nodePreviewImageMap[node] = textureValue;
+
+					if(node is VTGraphNodeHeightOutput && currentAsset != null)
+					{
+						currentAsset.SetCachedThumbnailHeightmapTexture(textureValue);
+					}
 				}
 				else
 				{
@@ -298,10 +305,16 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
-			var positionMinusOffset = position - GetCurrentViewOffset();
+			var positionMinusOffset = (position - GetCurrentViewOffset()) / GetCurrentViewScale();
 
 			parentWindow.RegisterAssetDataUndo("Created New Node");
 			var newNode = data.currentGraph.CreateNode<T>(positionMinusOffset);
+			if(newNode is VTGraphNodeSampleHeight && parentWindow.GetCurrentAsset() != null)
+			{
+				var sampleHeight = newNode as VTGraphNodeSampleHeight;
+				sampleHeight.generationDataReference = parentWindow.GetCurrentAsset().generationData;
+			}
+
 			TryUpdateNodePreviewImage(newNode);
 			parentWindow.EditedAsset();
 		}
@@ -781,9 +794,19 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
 		{
+			//TODO: Restrict node types by graph type
+
+			//Test
 			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+
+			//Input
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+
+			//Math
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
+
+			//Output
 			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
 			menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
 		}

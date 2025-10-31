@@ -35,6 +35,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			public VTGraph heightmapGraph = new VTGraph();
 			public VTGraph textureGraph = new VTGraph();
+
+			public Texture2D cachedThumbHeightmapTexture;
+			public Texture2D cachedHeightmapTexture;
 		}
 
 		[SerializeField]
@@ -92,6 +95,24 @@ namespace RobProductions.VisualTerrain.Runtime
 		public void SetPreviewMode(bool v)
 		{
 			setupData.previewMode = v;
+		}
+
+		public void RefreshCachedThumbnailHeightmap(VTGraphProcessingSettings processingSettings)
+		{
+			if(processingSettings.thumbnailMode)
+			{
+				SetCachedThumbnailHeightmapTexture(VTGraphValueInterface.GetGraphHeightmapTexture(generationData.heightmapGraph, processingSettings));
+			}
+		}
+
+		public void SetCachedThumbnailHeightmapTexture(Texture2D thumbHeightmap)
+		{
+			generationData.cachedThumbHeightmapTexture = thumbHeightmap;
+		}
+
+		public void SetCachedHeightmapTexture(Texture2D heightmap)
+		{
+			generationData.cachedHeightmapTexture = heightmap;
 		}
 
 		//VALIDATION

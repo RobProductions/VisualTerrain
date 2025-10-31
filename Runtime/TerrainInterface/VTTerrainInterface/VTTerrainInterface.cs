@@ -79,10 +79,11 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			//Set the terrain height values
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
+			settingsAsset.SetCachedHeightmapTexture(heightmapValue);
 			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
 
 			//Set the terrain splat textures
-			var splatContainers = VTGraphValueInterface.GetGraphSplatmapLayers(settingsAsset, manager.IsPreviewMode());
+			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
 			SetTerrainSplatTextures(splatContainers);
 		}
 
@@ -194,8 +195,21 @@ namespace RobProductions.VisualTerrain.Runtime
 									int pixelY = Mathf.RoundToInt(percentY * (float)thisSplatLayer.layerSplatmap.height);
 									Color pixelValue = thisSplatLayer.layerSplatmap.GetPixel(pixelX, pixelY);
 
-									//Alphamaps are indexed as y,x,index
-									splatmaps[y, x, splatLayerIndex] = GetGrayscaleValueFromColor(pixelValue);
+									//Get the value at this splatmap location
+									float grayscaleValue = GetGrayscaleValueFromColor(pixelValue);
+									if(grayscaleValue > 0f)
+									{
+										//Only do work if we register above 0
+										//Alphamaps are indexed as y,x,index
+										splatmaps[y, x, splatLayerIndex] = grayscaleValue;
+										for (int checkLowerLayerIndex = splatLayerIndex - 1; checkLowerLayerIndex >= 0; checkLowerLayerIndex--)
+										{
+											//For every lower layer, we start to override the splat value,
+											//So subtract our current value from it there is always a max val of 1
+											//across all layers on this pixel
+											splatmaps[y, x, checkLowerLayerIndex] = Mathf.Clamp01(splatmaps[y, x, checkLowerLayerIndex] - grayscaleValue);
+										}
+									}
 								}
 							}
 						}
