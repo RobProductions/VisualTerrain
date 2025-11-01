@@ -803,6 +803,9 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
 
+			//Mask
+			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
+
 			//Output
 			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
 			menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
