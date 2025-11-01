@@ -10,10 +10,23 @@ namespace RobProductions.VisualTerrain.Runtime
 		public override string NodeTitle => "Remap";
 		public override bool HasNodeProperties => true;
 
+		public enum RemapType
+		{
+			FromTo = 0,
+			To = 1,
+			From = 2,
+			Invert = 3,
+		}
+
+		[SerializeField]
+		public RemapType remapType = RemapType.FromTo;
 		[SerializeField]
 		public Vector2 fromRange = new Vector2(0f, 1f);
 		[SerializeField]
 		public Vector2 toRange = new Vector2(0f, 1f);
+
+		private readonly Vector2 zeroToOne = new Vector2(0f, 1f);
+		private readonly Vector2 oneToZero = new Vector2(1f, 0f);
 
 		public VTGraphNodeRemap()
 		{
@@ -39,7 +52,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				for(int i = 0; i < workingPixels.Length; i++)
 				{
 					var grayscaleValue = workingPixels[i].r;
-					var remapValue = RemapValue(grayscaleValue, fromRange, toRange);
+					var remapValue = PerformRemap(grayscaleValue);
 					var newColor = new Color(remapValue, remapValue, remapValue, workingPixels[i].a);
 
 					workingPixels[i] = newColor;
@@ -54,6 +67,23 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetFloatValue(RemapValue(inputFloat, fromRange, toRange));
 		}
 
+		float PerformRemap(float value)
+		{
+			if(remapType == RemapType.Invert)
+			{
+				return RemapValue(value, zeroToOne, oneToZero);
+			}
+			else if (remapType == RemapType.To)
+			{
+				return RemapValue(value, zeroToOne, toRange);
+			}
+			else if (remapType == RemapType.From)
+			{
+				return RemapValue(value, fromRange, zeroToOne);
+			}
+			return RemapValue(value, fromRange, toRange);
+		}
+
 		float RemapValue(float value, Vector2 from, Vector2 to)
 		{
 			var percentInFrom = Mathf.InverseLerp(from.x, from.y, value);
@@ -65,20 +95,34 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			var fromRangeValue = EditorGUILayout.Vector2Field("From Range", fromRange);
-			if (fromRangeValue != fromRange)
+			var newType = (RemapType)EditorGUILayout.EnumPopup("Remap Type", remapType);
+			if(newType != remapType)
 			{
 				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				fromRange = fromRangeValue;
+				remapType = newType;
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 
-			var toRangeValue = EditorGUILayout.Vector2Field("To Range", toRange);
-			if (toRangeValue != toRange)
+			if(remapType == RemapType.FromTo || remapType == RemapType.From)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				toRange = toRangeValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				var fromRangeValue = EditorGUILayout.Vector2Field("From Range", fromRange);
+				if (fromRangeValue != fromRange)
+				{
+					beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+					fromRange = fromRangeValue;
+					endEditNodePropertyEvent?.Invoke(this);
+				}
+			}
+
+			if(remapType == RemapType.FromTo || remapType == RemapType.To)
+			{
+				var toRangeValue = EditorGUILayout.Vector2Field("To Range", toRange);
+				if (toRangeValue != toRange)
+				{
+					beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+					toRange = toRangeValue;
+					endEditNodePropertyEvent?.Invoke(this);
+				}
 			}
 		}
 	}

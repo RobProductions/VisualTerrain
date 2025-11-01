@@ -123,7 +123,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float strengthFloat = (float)EditorGUILayout.FloatField("Mask Strength", maskStrength);
+			float strengthFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Mask Strength", maskStrength), 0.0f, Mathf.Infinity);
 			if (strengthFloat != maskStrength)
 			{
 				beginEditNodePropertyEvent?.Invoke("Edited Node Property");

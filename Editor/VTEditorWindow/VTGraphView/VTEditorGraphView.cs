@@ -201,6 +201,7 @@ namespace RobProductions.VisualTerrain.Editor
 				if(node != null)
 				{
 					TryUpdateNodePreviewImage(node);
+					GUI.changed = true;
 					//Wait a frame before continuing so that the preview update is time spliced
 					yield return null;
 				}
