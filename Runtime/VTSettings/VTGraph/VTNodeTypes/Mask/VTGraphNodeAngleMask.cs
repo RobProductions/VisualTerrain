@@ -57,9 +57,6 @@ namespace RobProductions.VisualTerrain.Runtime
 						else
 						{
 							//Jank edge case
-
-							//TODO: Border is jank
-
 							var thisValue = inputTexture.GetPixel(x, y).r;
 							
 							var verticalCount = 0;
@@ -81,12 +78,12 @@ namespace RobProductions.VisualTerrain.Runtime
 							}
 							if(y > 0)
 							{
-								top = inputTexture.GetPixel(x, y + 1).r;
+								top = inputTexture.GetPixel(x, y - 1).r;
 								verticalCount++;
 							}
 							if (y < inputTexture.height - 1)
 							{
-								bottom = inputTexture.GetPixel(x, y - 1).r;
+								bottom = inputTexture.GetPixel(x, y + 1).r;
 								verticalCount++;
 							}
 
