@@ -9,6 +9,7 @@ namespace RobProductions.VisualTerrain.Runtime
 	{
 		public virtual string NodeTitle { get => "Unnamed Node"; }
 		public virtual bool HasNodeProperties { get => false; }
+		public virtual bool HasDisableButton { get => false; }
 
 		[SerializeField, SerializeReference]
 		public VTGraphConnectionSlot[] inputConnections;
@@ -16,9 +17,15 @@ namespace RobProductions.VisualTerrain.Runtime
 		public VTGraphConnectionSlot[] outputConnections;
 
 		[field: SerializeField]
+		public string CustomName { get; set; } = "";
+		[field: SerializeField]
 		public Vector2 NodePosition { get; set; } = Vector2.zero;
 		[field: SerializeField]
 		public bool IsExpanded { get; set; } = true;
+		[field: SerializeField]
+		public bool IsDisabled { get; set; } = false;
+
+		protected VTGraph parentGraph = null;
 
 		public delegate void BeginEditNodeProperty(string description);
 		public BeginEditNodeProperty beginEditNodePropertyEvent;
@@ -26,6 +33,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		public EndEditNodeProperty endEditNodePropertyEvent;
 
 		//SETUP
+
+		public void SetParentGraph(VTGraph v)
+		{
+			parentGraph = v;
+		}
 
 		public void SetupEmptyInputConnections(int inputCount, VTGraphConnectionSlot.SlotValueType defaultValueType)
 		{

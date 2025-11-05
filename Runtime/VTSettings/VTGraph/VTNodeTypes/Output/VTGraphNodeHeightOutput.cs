@@ -8,13 +8,14 @@ namespace RobProductions.VisualTerrain.Runtime
 	public class VTGraphNodeHeightOutput : VTGraphNode
 	{
 		public override string NodeTitle => "Height Output";
+		public override bool HasDisableButton => true;
 
 		public VTGraphNodeHeightOutput()
 		{
-			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			inputConnections[0].connectionSlotName = "Heightmap";
 
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			outputConnections[0].slotHidden = true;
 		}
 
@@ -25,7 +26,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			var output = GetOutputConnection();
 			if(output != null)
 			{
-				output.SetTextureValue(GetInputConnection().textureValue);
+				output.SetRangeGridValue(GetInputConnection().rangeGridValue);
 			}
 		}
 	}

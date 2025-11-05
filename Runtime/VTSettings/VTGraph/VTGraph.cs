@@ -195,13 +195,13 @@ namespace RobProductions.VisualTerrain.Runtime
 				//Process the value of the connected node
 				TraverseInputsProcessNode(connection.outputSlot.parentNode, handledNodes, settings);
 				//Now we can set this value from that
-				slot.SetTextureValue(connection.outputSlot.textureValue);
+				slot.SetRangeGridValue(connection.outputSlot.rangeGridValue);
 				slot.SetFloatValue(connection.outputSlot.floatValue);
 			}
 			else
 			{
 				//Just set the default value
-				slot.SetTextureValue(slot.defaultTextureValue);
+				slot.SetRangeGridValue(slot.defaultRangeGridValue);
 				slot.SetFloatValue(slot.defaultFloatValue);
 			}
 		}

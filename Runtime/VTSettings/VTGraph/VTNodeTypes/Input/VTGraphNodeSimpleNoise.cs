@@ -29,7 +29,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			SetupEmptyInputConnections(0, VTGraphConnectionSlot.SlotValueType.Float);
 
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 		}
 
 		public override void ProcessNode(VTGraphProcessingSettings settings)
@@ -41,10 +41,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				int resolution = settings.textureGenResolutionNumber;
 
-				var noiseMap = VTNoiseGenUtils.GeneratePerlinNoiseMap(
+				var noiseMap = VTNoiseGenUtils.GeneratePerlinRangeGrid(
 					resolution, resolution, noiseOffsetX, noiseOffsetY, noiseScale, noiseStrength);
 
-				output.SetTextureValue(noiseMap);
+				output.SetRangeGridValue(noiseMap);
 			}
 		}
 

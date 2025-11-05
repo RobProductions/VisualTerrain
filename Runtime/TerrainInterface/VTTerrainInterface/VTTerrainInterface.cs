@@ -75,17 +75,78 @@ namespace RobProductions.VisualTerrain.Runtime
 			DeleteExtraTerrainReferences(requiredTerrainReferences);
 
 			//Set the terrain properties
-			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup);
+			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
 
 			//Set the terrain height values
-			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset);
-			SetTerrainHeight(settingsAsset.setupData.terrainSetup, heightmapValue);
+			//This will set the cachedHeightmap for later use
+			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
+			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
+
+			//Set the terrain splat textures
+			//Texture graph may use the cachedHeightmap generated above
+			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
+			SetTerrainSplatTextures(splatContainers);
 		}
 
 		//TERRAIN HEIGHT
 
-		void SetTerrainHeight(VTSetupTerrain setupProperties, Texture2D heightmap)
+		void SetTerrainHeight(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, VTRangeGrid heightmap)
 		{
+			for (int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				int finalHeightmapRes;
+				if (manager.IsPreviewMode())
+				{
+					finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+				}
+				else
+				{
+					finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+				}
+				float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
+
+				if (!heightmap.IsNullOrEmpty())
+				{
+					for (int y = 0; y < finalHeightmapRes; y++)
+					{
+						for (int x = 0; x < finalHeightmapRes; x++)
+						{
+							float percentX = (float)x / finalHeightmapRes;
+							float percentY = (float)y / finalHeightmapRes;
+							int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.Width);
+							int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.Height);
+							float setValue = heightmap.GetRangeValue(pixelX, pixelY);
+
+							//TODO: Could do heightmap sampling to clean edges and smooth a bit
+
+							//Heights are indexed as y,x
+							terrainHeights[y, x] = setValue;
+						}
+					}
+
+					//TODO: Do post-smoothing based on sampling heightmap values
+				}
+
+				thisData.SetHeights(0, 0, terrainHeights);
+			}
+		}
+
+		//TERRAIN TEXTURE
+
+		void SetTerrainSplatTextures(List<VTGraphValueInterface.SplatmapLayerContainer> splatLayers)
+		{
+			//Create TerrainLayer array in the correct format
+			TerrainLayer[] setTerrainLayers = new TerrainLayer[splatLayers.Count];
+			for(int i = 0; i < splatLayers.Count; i++)
+			{
+				setTerrainLayers[i] = splatLayers[i].layerData;
+			}
+
+			//Set the terrain layers to terrains and
+			//apply the splatmap data
 			try
 			{
 				for (int i = 0; i < data.terrainRefs.Count; i++)
@@ -93,27 +154,60 @@ namespace RobProductions.VisualTerrain.Runtime
 					var thisRef = data.terrainRefs[i];
 					var thisData = thisRef.terrainData;
 
-					var resValue = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
-					float[,] terrainHeights = new float[resValue, resValue];
+					//Set terrain layers
+					thisData.terrainLayers = setTerrainLayers;
 
-					if(heightmap != null)
+					//Set layer alphamap values
+					var splatmaps = new float[thisData.alphamapHeight, thisData.alphamapWidth, splatLayers.Count];
+					for(int splatLayerIndex = 0; splatLayerIndex < splatLayers.Count; splatLayerIndex++)
 					{
-						for (int x = 0; x < resValue; x++)
-						{
-							for (int y = 0; y < resValue; y++)
-							{
-								float percentX = (float)x / resValue;
-								float percentY = (float)y / resValue;
-								int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.width);
-								int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.height);
-								Color pixelValue = heightmap.GetPixel(pixelX, pixelY);
+						var thisSplatLayer = splatLayers[splatLayerIndex];
 
-								terrainHeights[y, x] = GetGrayscaleValueFromColor(pixelValue);
+						if(splatLayerIndex == 0)
+						{
+							//For first layer, just set splatmap to 1 everywhere
+							for (int y = 0; y < thisData.alphamapHeight; y++)
+							{
+								for (int x = 0; x < thisData.alphamapWidth; x++)
+								{
+									//Alphamaps are indexed as y,x,index
+									splatmaps[y, x, splatLayerIndex] = 1.0f;
+								}
+							}
+						}
+						else if(!thisSplatLayer.layerSplatmap.IsNullOrEmpty())
+						{
+							//Sample the splat layer alphamap texture
+							for (int y = 0; y < thisData.alphamapHeight; y++)
+							{
+								for (int x = 0; x < thisData.alphamapWidth; x++)
+								{
+									//Get the value at this splatmap location
+									float percentX = (float)x / thisData.alphamapWidth;
+									float percentY = (float)y / thisData.alphamapHeight;
+									int pixelX = Mathf.RoundToInt(percentX * (float)thisSplatLayer.layerSplatmap.Width);
+									int pixelY = Mathf.RoundToInt(percentY * (float)thisSplatLayer.layerSplatmap.Height);
+									float setValue = thisSplatLayer.layerSplatmap.GetRangeValue(pixelX, pixelY);
+
+									if(setValue > 0f)
+									{
+										//Only do work if we register above 0
+										//Alphamaps are indexed as y,x,index
+										splatmaps[y, x, splatLayerIndex] = setValue;
+										for (int checkLowerLayerIndex = splatLayerIndex - 1; checkLowerLayerIndex >= 0; checkLowerLayerIndex--)
+										{
+											//For every lower layer, we start to override the splat value,
+											//So subtract our current value from it there is always a max val of 1
+											//across all layers on this pixel
+											splatmaps[y, x, checkLowerLayerIndex] = Mathf.Clamp01(splatmaps[y, x, checkLowerLayerIndex] - setValue);
+										}
+									}
+								}
 							}
 						}
 					}
 
-					thisData.SetHeights(0, 0, terrainHeights);
+					thisData.SetAlphamaps(0, 0, splatmaps);
 				}
 			}
 			catch (UnityException e)
@@ -123,15 +217,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
-		float GetGrayscaleValueFromColor(Color col)
-		{
-			return (col.r + col.g + col.b) / 3f;
-			//return col.r;
-		}
-
 		//TERRAIN PROPERTIES
 
-		void ConfigureTerrainProperties(VTSetupTerrain setupProperties)
+		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties)
 		{
 			var terrainSize = setupProperties.terrainSize;
 
@@ -139,39 +227,44 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisRefData = thisRef.terrainData;
+				var thisRefComponent = thisRef.terrainComponent;
 
 				//Enforce object name
 				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
 
 				//Set resolutions
-				thisRefData.heightmapResolution = GetFinalHeightmapRes(setupProperties.terrainResolution.heightmapResolution);
-
+				int finalHeightmapRes;
 				int finalSplatmapRes;
-				if(manager.IsPreviewMode())
-				{
-					finalSplatmapRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
-				}
-				else
-				{
-					finalSplatmapRes = SplatmapResToNumber(setupProperties.terrainResolution.splatmapResolution);
-				}
-				thisRefData.alphamapResolution = finalSplatmapRes;
-
 				int finalCompositeRes;
-				if(manager.IsPreviewMode())
+
+				if (manager.IsPreviewMode())
 				{
-					finalCompositeRes = SplatmapResToNumber(VTSetupTerrain.SplatmapResolution.x32);
+					finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+					finalSplatmapRes = SplatmapResToNumber(processingProperties.preview.previewSplatmapResolution);
+					finalCompositeRes = SplatmapResToNumber(processingProperties.preview.previewSplatmapResolution);
 				}
 				else
 				{
+					finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+					finalSplatmapRes = SplatmapResToNumber(setupProperties.terrainResolution.splatmapResolution);
 					finalCompositeRes = SplatmapResToNumber(setupProperties.terrainResolution.compositeSplatmapResolution);
 				}
+
+				thisRefData.heightmapResolution = finalHeightmapRes;
+				thisRefData.alphamapResolution = finalSplatmapRes;
 				thisRefData.baseMapResolution = finalCompositeRes;
 
 				//Set size
 				thisRefData.size = new Vector3(terrainSize.meshWidthLength.x,
 					terrainSize.meshHeight, 
 					terrainSize.meshWidthLength.y);
+
+				//Set properties
+
+#if UNITY_2022_2_OR_NEWER
+				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;
+#endif
+
 			}
 		}
 
@@ -193,15 +286,27 @@ namespace RobProductions.VisualTerrain.Runtime
 				if(thisRef.terrainData == null)
 				{
 					thisRef.terrainData = new TerrainData();
-
 				}
-
 				//Now create terrain object if needed
 				if(thisRef.terrainComponent == null)
 				{
 					thisRef.terrainComponent = CreateTerrainObject(thisRef.terrainData);
 				}
 				thisRef.terrainObject = thisRef.terrainComponent.gameObject;
+				//Ensure that the terrain component has the right data
+				if(thisRef.terrainComponent.terrainData != thisRef.terrainData)
+				{
+					thisRef.terrainComponent.terrainData = thisRef.terrainData;
+				}
+				//Ensure the collider has the same data if it exists
+				var terrainCollider = thisRef.terrainObject.GetComponent<TerrainCollider>();
+				if(terrainCollider != null)
+				{
+					terrainCollider.terrainData = thisRef.terrainData;
+				}
+
+				//Ensure that any subsequent placements will link these terrains
+				thisRef.terrainComponent.allowAutoConnect = true;
 
 				//TODO: Enforce terrain position?
 			}
@@ -238,7 +343,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				{
 					if(GetReferenceWithTerrainComponent(thisTerrainComponent) == null)
 					{
-						GameObject.DestroyImmediate(thisTerrain.gameObject);
+						GameObject.Destroy(thisTerrain.gameObject);
 					}
 				}
 			}
@@ -270,7 +375,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			if(terrainRef != null)
 			{
-				GameObject.DestroyImmediate(terrainRef.terrainObject);
+				GameObject.Destroy(terrainRef.terrainObject);
 			}
 		}
 
@@ -288,21 +393,6 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		//VALUES
-
-		int GetFinalHeightmapRes(VTSetupTerrain.HeightmapResolution standardResolution)
-		{
-			if(manager == null)
-			{
-				return 0;
-			}
-
-			if (manager.IsPreviewMode())
-			{
-				return HeightmapResToNumber(VTSetupTerrain.HeightmapResolution.x65);
-			}
-
-			return HeightmapResToNumber(standardResolution);
-		}
 
 		int HeightmapResToNumber(VTSetupTerrain.HeightmapResolution res)
 		{
@@ -366,6 +456,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 
 			return finalSplatmapRes;
+		}
+
+		//UTILITY
+
+		float GetGrayscaleValueFromColor(Color col)
+		{
+			//return (col.r + col.g + col.b) / 3f;
+
+			//It is more efficient to retrieve one color value than to calculate the brightness
+			return col.r;
 		}
 	}
 }

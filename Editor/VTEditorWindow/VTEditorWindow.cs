@@ -18,8 +18,11 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			public GUIStyle propertiesButtonStyle;
 			public GUIStyle moreOptionsButtonStyle;
+			public GUIStyle previewButtonStyle;
+
 			public GUIContent moreOptionsContent;
 			public GUIContent displayPropertiesContent;
+			public GUIContent previewToggleContent;
 
 			public EditorWindowStyles()
 			{
@@ -27,9 +30,13 @@ namespace RobProductions.VisualTerrain.Editor
 				moreOptionsContent.tooltip = "Show additional window options.";
 				displayPropertiesContent = new GUIContent("Properties");
 				displayPropertiesContent.tooltip = "Toggle properties panel display.";
+				previewToggleContent = EditorGUIUtility.IconContent("ViewToolOrbit@2x");
+				previewToggleContent.tooltip = "Toggle preview mode.";
 
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
+				previewButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
+				previewButtonStyle.padding = new RectOffset(8, 8, 2, 2);
 			}
 		}
 
@@ -58,6 +65,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private const string storeAssetKey = "RobProductions.VisualTerrain.VTSettingsAsset";
 		private const string storeDisplayPropertiesKey = "RobProductions.VisualTerrain.DisplayProperties";
+		private const string storeGraphScreenKey = "RobProductions.VisualTerrain.CurrentGraphScreen";
 
 		//LIFECYCLE
 
@@ -99,10 +107,11 @@ namespace RobProductions.VisualTerrain.Editor
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
 			CheckLoadStoredAsset();
-			//Then set it to refresh all associated data
-			SetVTSettingsAsset(data.currentAsset);
-			//Load stored EditorWindow data
+			//Preload stored EditorWindow data
 			CheckStoredDisplayProperties();
+			CheckStoredCurrentGraphScreen();
+			//Then set the asset to refresh all associated data based on EditorWindow data
+			SetVTSettingsAsset(data.currentAsset);
 
 			data.windowActive = true;
 			data.windowActive = true;
@@ -187,6 +196,22 @@ namespace RobProductions.VisualTerrain.Editor
 			EditorPrefs.SetBool(storeDisplayPropertiesKey, v);
 		}
 
+		void CheckStoredCurrentGraphScreen()
+		{
+			if(EditorPrefs.HasKey(storeGraphScreenKey))
+			{
+				if(data.currentAsset != null)
+				{
+					data.currentGraphScreen = (VTGraphScreen)EditorPrefs.GetInt(storeGraphScreenKey, 0);
+				}
+			}
+		}
+
+		void SetStoredCurrentGraphScreen(VTGraphScreen screen)
+		{
+			EditorPrefs.SetInt(storeGraphScreenKey, (int)screen);
+		}
+
 		/// <summary>
 		/// Called before editing the scriptableobject data so that
 		/// the Undo handler can be used if undoing the next change.
@@ -253,7 +278,10 @@ namespace RobProductions.VisualTerrain.Editor
 				{
 					finalDisplayGraph = data.currentAsset.generationData.heightmapGraph;
 				}
-				
+				else if (data.currentGraphScreen == VTGraphScreen.Texture)
+				{
+					finalDisplayGraph = data.currentAsset.generationData.textureGraph;
+				}
 			}
 
 			data.graphView.SetTargetGraph(finalDisplayGraph);
@@ -297,7 +325,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
 			if (data.displayPropertiesPanel)
 			{
-				var setupMode = VTEditorSetupView.SetupViewMode.TerrainProperties;
+				var setupMode = VTEditorSetupView.SetupViewMode.AssetSettings;
 				var currentSelectedNodes = data.graphView.GetSelectedGraphNodes();
 				if(currentSelectedNodes.Count > 1)
 				{
@@ -410,6 +438,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
+				//Left hand side
 				if (GUILayout.Button(styles.moreOptionsContent, EditorStyles.toolbarButton))
 				{
 					PopupWindow.Show(new Rect(Event.current.mousePosition.x, Event.current.mousePosition.y, 0, 0), new MoreOptionsPopup(this));
@@ -418,29 +447,44 @@ namespace RobProductions.VisualTerrain.Editor
 				if (data.currentAsset != null)
 				{
 					var propertiesStyle = styles.propertiesButtonStyle;
-					bool lastPropertiesSetting = data.displayPropertiesPanel;
 
-					data.displayPropertiesPanel = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
-
-					if(lastPropertiesSetting != data.displayPropertiesPanel)
+					var newDisplayPropertiesBool = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
+					if(newDisplayPropertiesBool != data.displayPropertiesPanel)
 					{
+						data.displayPropertiesPanel = newDisplayPropertiesBool;
 						SetStoredDisplayProperties(data.displayPropertiesPanel);
 					}
 
 					GUILayout.Space(6f);
 
-					EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
+					var newGraphScreen = (VTGraphScreen)EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
+					if(newGraphScreen != data.currentGraphScreen)
+					{
+						data.currentGraphScreen = newGraphScreen;
+						SetStoredCurrentGraphScreen(data.currentGraphScreen);
+						RefreshGraphScreen();
+					}
 				}
+
+				//Middle space
 				GUILayout.FlexibleSpace();
+
+				//Right hand side
 				if(data.currentAsset != null)
 				{
-					GUILayout.BeginVertical();
-					GUILayout.Space(3.2f);
-					if (GUILayout.Toggle(false, "Auto", EditorStyles.toggle))
+					var previewValue = GUILayout.Toggle(data.currentAsset.IsPreviewMode(), styles.previewToggleContent, styles.previewButtonStyle);
+					if (previewValue != data.currentAsset.IsPreviewMode())
+					{
+						RegisterAssetStructureUndo("Toggled Preview Mode");
+						data.currentAsset.SetPreviewMode(previewValue);
+						EditedAsset();
+					}
+
+					if (GUILayout.Toggle(false, "Auto", styles.previewButtonStyle))
 					{
 
 					}
-					GUILayout.EndVertical();
+
 					if (GUILayout.Button("Generate", EditorStyles.miniButton))
 					{
 						//Tell all managers with this asset to generate the terrain

@@ -2,23 +2,34 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 using RobProductions.VisualTerrain.Runtime;
-using System;
 
 namespace RobProductions.VisualTerrain.Editor
 {
 	public class VTEditorSetupView
 	{
+		private const int maxCustomNameLength = 25;
+
 		public class SetupViewStyles
 		{
 			public readonly float propertiesHoriziontalPadding = 2f;
 			public readonly float labelSeparatorPreSpace = 10f;
+			public readonly float tabButtonWidth = 40f;
+			public readonly float nodePropertyLabelWidth = 110f;
+
+			public Texture2D terrainPropertiesIcon;
+			public Texture2D terrainObjectPropertiesIcon;
+			public Texture2D customObjectPropertiesIcon;
+			public Texture2D processingPropertiesIcon;
 
 			public SetupViewStyles()
 			{
-
+				terrainPropertiesIcon = EditorGUIUtility.Load("TerrainInspector.TerrainToolAdd") as Texture2D;
+				terrainObjectPropertiesIcon = EditorGUIUtility.Load("TerrainInspector.TerrainToolPlants") as Texture2D;
+				customObjectPropertiesIcon = EditorGUIUtility.Load("GameObject Icon") as Texture2D;
+				processingPropertiesIcon = EditorGUIUtility.Load("TerrainInspector.TerrainToolSettings") as Texture2D;
 			}
 		}
 
@@ -26,13 +37,23 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public enum SetupViewMode
 		{
-			TerrainProperties = 0,
+			AssetSettings = 0,
 			NodeProperties = 1,
 			MultiNodeProperties = 2,
 		}
 
-		private SetupViewMode setupViewMode = SetupViewMode.TerrainProperties;
+		private SetupViewMode setupViewMode = SetupViewMode.AssetSettings;
 		private VTGraphNode editingNode = null;
+
+		public enum AssetSettingsTab
+		{
+			TerrainSetup,
+			TerrainObjectSetup,
+			CustomObjectSetup,
+			ProcessingSetup
+		}
+
+		public AssetSettingsTab assetSettingsTab = AssetSettingsTab.TerrainSetup;
 
 		private Vector2 scrollPosition = Vector2.zero;
 
@@ -80,6 +101,16 @@ namespace RobProductions.VisualTerrain.Editor
 			editingNode = node;
 		}
 
+		public void SetAssetSettingsTab(AssetSettingsTab tab)
+		{
+			if(assetSettingsTab == tab)
+			{
+				return;
+			}
+
+			assetSettingsTab = tab;
+		}
+
 		//PROCESSING
 
 		public bool ProcessEvents(Event e)
@@ -125,9 +156,9 @@ namespace RobProductions.VisualTerrain.Editor
 			var currentAsset = parentWindow.GetCurrentAsset();
 			if(currentAsset != null)
 			{
-				if(setupViewMode == SetupViewMode.TerrainProperties)
+				if(setupViewMode == SetupViewMode.AssetSettings)
 				{
-					LayoutDrawTerrainProperties(currentAsset.setupData.terrainSetup);
+					LayoutDrawAssetSettings(currentAsset.setupData);
 				}
 				else if (setupViewMode == SetupViewMode.NodeProperties)
 				{
@@ -154,19 +185,50 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//TERRAIN MODE
 
-		void LayoutDrawTerrainProperties(VTSetupTerrain terrainSetup)
+		void LayoutDrawAssetSettings(VTSettingsAsset.SetupData setupData)
+		{
+			GUILayout.Space(styles.labelSeparatorPreSpace);
+
+			//Render the tab selector buttons
+			GUILayout.BeginHorizontal();
+
+			GUILayout.FlexibleSpace();
+
+			DrawTabButton(styles.terrainPropertiesIcon, AssetSettingsTab.TerrainSetup, EditorStyles.miniButtonLeft);
+			DrawTabButton(styles.terrainObjectPropertiesIcon, AssetSettingsTab.TerrainObjectSetup, EditorStyles.miniButtonMid);
+			DrawTabButton(styles.customObjectPropertiesIcon, AssetSettingsTab.CustomObjectSetup, EditorStyles.miniButtonMid);
+			DrawTabButton(styles.processingPropertiesIcon, AssetSettingsTab.ProcessingSetup, EditorStyles.miniButtonRight);
+
+			GUILayout.FlexibleSpace();
+
+			GUILayout.EndHorizontal();
+
+			GUILayout.Space(1f);
+
+			//Render the actual properties in this tab
+			if (assetSettingsTab == AssetSettingsTab.TerrainSetup)
+			{
+				LayoutDrawTerrainSetup(setupData.terrainSetup);
+			}
+			else if (assetSettingsTab == AssetSettingsTab.ProcessingSetup)
+			{
+				LayoutDrawProcessingSetup(setupData.processingSetup);
+			}
+		}
+
+		void LayoutDrawTerrainSetup(VTSetupTerrain terrainSetup)
 		{
 			DrawLabelSeparator("Terrain Size");
 			//EditorGUILayout.HelpBox("Hi", MessageType.Info);
 
 			var meshWidthLength = EditorGUILayout.Vector2Field("Total Mesh Size", terrainSetup.terrainSize.meshWidthLength);
-			if(meshWidthLength != terrainSetup.terrainSize.meshWidthLength)
+			if (meshWidthLength != terrainSetup.terrainSize.meshWidthLength)
 			{
 				parentWindow.RegisterAssetStructureUndo("Edited Mesh Width Length");
 				terrainSetup.terrainSize.meshWidthLength = meshWidthLength;
 			}
 			var meshHeight = EditorGUILayout.FloatField("Mesh Height", terrainSetup.terrainSize.meshHeight);
-			if(meshHeight != terrainSetup.terrainSize.meshHeight)
+			if (meshHeight != terrainSetup.terrainSize.meshHeight)
 			{
 				parentWindow.RegisterAssetStructureUndo("Edited Mesh Height");
 				terrainSetup.terrainSize.meshHeight = meshHeight;
@@ -175,7 +237,7 @@ namespace RobProductions.VisualTerrain.Editor
 			DrawLabelSeparator("Terrain Resolution");
 
 			var heightmapRes = (VTSetupTerrain.HeightmapResolution)EditorGUILayout.EnumPopup("Heightmap Resolution", terrainSetup.terrainResolution.heightmapResolution);
-			if(heightmapRes != terrainSetup.terrainResolution.heightmapResolution)
+			if (heightmapRes != terrainSetup.terrainResolution.heightmapResolution)
 			{
 				parentWindow.RegisterAssetStructureUndo("Edited Heightmap Resolution");
 				terrainSetup.terrainResolution.heightmapResolution = heightmapRes;
@@ -194,7 +256,30 @@ namespace RobProductions.VisualTerrain.Editor
 				parentWindow.RegisterAssetStructureUndo("Edited Composite Splatmap Resolution");
 				terrainSetup.terrainResolution.compositeSplatmapResolution = compositeRes;
 			}
+
+			DrawLabelSeparator("Terrain Properties");
+
+			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
+			if(raytracingBool != terrainSetup.terrainProperties.raytracingSupport)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Raytracing Support");
+				terrainSetup.terrainProperties.raytracingSupport = raytracingBool;
+			}
+
 		}
+
+		void LayoutDrawProcessingSetup(VTSetupProcessing processing)
+		{
+			DrawLabelSeparator("Texture Settings");
+
+			processing.texture.textureGenResolution = DrawSetupIntField("Texture Resolution", processing.texture.textureGenResolution);
+
+			DrawLabelSeparator("Preview Settings");
+
+			processing.preview.previewTextureGenResolution = DrawSetupIntField("Preview Texture Resolution", processing.preview.previewTextureGenResolution);
+
+		}
+
 
 		//NODE SELECTED MODE
 
@@ -204,6 +289,18 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				GUILayout.Label("No node available");
 				return;
+			}
+
+			var defaultLabelWidth = EditorGUIUtility.labelWidth;
+			EditorGUIUtility.labelWidth = styles.nodePropertyLabelWidth;
+
+			DrawLabelSeparator(node.NodeTitle);
+			GUILayout.Space(styles.labelSeparatorPreSpace * 0.5f);
+
+			node.CustomName = DrawSetupStringField("Display Name", node.CustomName, false);
+			if(node.CustomName.Length > maxCustomNameLength)
+			{
+				node.CustomName = node.CustomName.Substring(0, maxCustomNameLength);
 			}
 
 			if(node.inputConnections.Length > 0)
@@ -224,30 +321,35 @@ namespace RobProductions.VisualTerrain.Editor
 						parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
 					}
 
-					EditorGUILayout.BeginHorizontal();
-					GUILayout.Label("Default");
+					if(thisSlot.valueType != VTGraphConnectionSlot.SlotValueType.RangeGrid)
+					{
+						EditorGUILayout.BeginHorizontal();
+						//GUILayout.Label("Default");
 
-					if(thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
-					{
-						Texture2D newTexture = (Texture2D)EditorGUILayout.ObjectField(thisSlot.defaultTextureValue, typeof(Texture2D), allowSceneObjects: false);
-						if(newTexture != thisSlot.defaultTextureValue)
+						if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.RangeGrid)
 						{
-							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
-							thisSlot.defaultTextureValue = newTexture;
-							parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							/*
+							Texture2D newTexture = (Texture2D)EditorGUILayout.ObjectField(thisSlot.defaultRangeGridValue, typeof(Texture2D), allowSceneObjects: false);
+							if(newTexture != thisSlot.defaultRangeGridValue)
+							{
+								parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+								thisSlot.defaultRangeGridValue = newTexture;
+								parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							}
+							*/
 						}
-					}
-					else if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Float)
-					{
-						float newFloat = (float)EditorGUILayout.FloatField(thisSlot.defaultFloatValue);
-						if(newFloat != thisSlot.defaultFloatValue)
+						else if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Float)
 						{
-							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
-							thisSlot.defaultFloatValue = newFloat;
-							parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							float newFloat = (float)EditorGUILayout.FloatField("Default", thisSlot.defaultFloatValue);
+							if (newFloat != thisSlot.defaultFloatValue)
+							{
+								parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+								thisSlot.defaultFloatValue = newFloat;
+								parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							}
 						}
+						EditorGUILayout.EndHorizontal();
 					}
-					EditorGUILayout.EndHorizontal();
 				}
 			}
 
@@ -265,6 +367,8 @@ namespace RobProductions.VisualTerrain.Editor
 				node.beginEditNodePropertyEvent -= BeginEditNodeProperty;
 				node.endEditNodePropertyEvent -= EndEditNodeProperty;
 			}
+
+			EditorGUIUtility.labelWidth = defaultLabelWidth;
 		}
 
 		void BeginEditNodeProperty(string desc)
@@ -285,6 +389,42 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		//UTILITY
+
+		string DrawSetupStringField(string labelName, string value, bool emptyLabel)
+		{
+			var changedString = EditorGUILayout.TextField(emptyLabel ? "" : labelName, value);
+			if(changedString != value)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return changedString;
+		}
+
+		int DrawSetupIntField(string labelName, int value)
+		{
+			var changedInt = EditorGUILayout.IntField(labelName, value);
+			if (changedInt != value)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return changedInt;
+		}
+
+		void DrawTabButton(Texture2D icon, AssetSettingsTab tabType, GUIStyle baseStyle)
+		{
+
+			bool buttonSelected = assetSettingsTab == tabType;
+			var content = new GUIContent(icon, tabType.ToString());
+
+			var style = new GUIStyle(baseStyle);
+			style.padding = new RectOffset(0, 0, 2, 2);
+
+			bool newToggleValue = GUILayout.Toggle(buttonSelected, content, style, GUILayout.Width(styles.tabButtonWidth));
+			if (newToggleValue)
+			{
+				SetAssetSettingsTab(tabType);
+			}
+		}
 
 		void DrawLabelSeparator(string labelText)
 		{

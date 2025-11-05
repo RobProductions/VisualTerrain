@@ -14,10 +14,10 @@ namespace RobProductions.VisualTerrain.Editor
 		/// The amount of view scaling that can happen
 		/// before the value gets clamped.
 		/// </summary>
-		public readonly Vector2 viewScaleRange = new Vector2(0.2f, 1.4f);
-		public readonly float stopSmallGridAtScale = 0.4f;
-		public readonly float viewScaleButtonChangeAmount = 0.05f;
-		public readonly float viewScaleScrollChangeAmount = 0.02f;
+		private readonly Vector2 viewScaleRange = new Vector2(0.2f, 1.4f);
+		private readonly float stopSmallGridAtScale = 0.4f;
+		private readonly float viewScaleButtonChangeAmount = 0.05f;
+		private readonly float viewScaleScrollChangeAmount = 0.02f;
 
 		public class GraphViewStyles
 		{
@@ -35,7 +35,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public readonly float halfConnectionPointSize = 7f;
 			public readonly float connectionLineWidth = 3f;
 			public readonly float connectionPointExtraClickHeight = 5f;
-			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -7f);
+			public readonly Vector2 connectionLabelInputOffset = new Vector2(15f, -6.5f);
 
 			public readonly float grid1Spacing = 20f;
 			public readonly float grid2Spacing = 80f;
@@ -46,6 +46,8 @@ namespace RobProductions.VisualTerrain.Editor
 			public readonly Color connectionLineDragColor = new Color(0.7f, 0.72f, 1.0f);
 			public readonly Color windowBGColor = new Color(0.4f, 0.4f, 0.4f);
 			public readonly Color nodeLabelColor = new Color(1.0f, 1.0f, 1.0f, 0.4f);
+			public readonly Color disableButtonBGEnabledColor = new Color(1.0f, 1.0f, 1.0f, 0.5f);
+			public readonly Color disableButtonBGDisabledColor = new Color(0.5f, 0.5f, 0.5f, 0.6f);
 
 			//UI Styles
 
@@ -55,6 +57,9 @@ namespace RobProductions.VisualTerrain.Editor
 			public GUIStyle selectedNodeStyle;
 			public GUIStyle nodeTitleStyle;
 			public GUIStyle nodeTextStyle;
+
+			public Texture2D nodeDisabledTexture;
+			public Texture2D nodeEnabledTexture;
 
 			public GraphViewStyles()
 			{
@@ -80,6 +85,10 @@ namespace RobProductions.VisualTerrain.Editor
 				windowBgStyle = new GUIStyle(GUI.skin.box);
 
 				//windowBgStyle.normal.background = EditorGUIUtility.Load("transparent") as Texture2D;
+
+				//Disable button
+				nodeEnabledTexture = EditorGUIUtility.Load("scenevis_visible_hover@2x") as Texture2D;
+				nodeDisabledTexture = EditorGUIUtility.Load("scenevis_hidden_hover@2x") as Texture2D;
 			}
 		}
 
@@ -112,15 +121,13 @@ namespace RobProductions.VisualTerrain.Editor
 
 			public Dictionary<VTGraphNode, Texture2D> nodePreviewImageMap = new Dictionary<VTGraphNode, Texture2D>();
 
-			public VTGraphProcessingSettings previewProcessingSettings = new VTGraphProcessingSettings(
-				VTGraphProcessingSettings.TextureGenerationResolution.RestrictToSize,
-				VTGraphProcessingSettings.TextureOutputResolution.RestrictToSize,
-				textureGenResolutionNumber: 256
+			public VTGraphProcessingSettings nodeThumbProcessingSettings = new VTGraphProcessingSettings(
+				textureGenResolutionNumber: 256,
+				thumbnailMode: true
 			);
 		}
 
 		private GraphViewData data = new GraphViewData();
-
 
 		private VTEditorWindow parentWindow;
 
@@ -187,15 +194,29 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			foreach(VTGraphNode node in data.currentGraph.nodeList)
-			{
-				TryUpdateNodePreviewImage(node);
-			}
+			var nodesAsArray = data.currentGraph.nodeList.ToArray();
+			VTEditorCoroutine.Start(CoroutineRegeneratePreviewImages(nodesAsArray));
 
 			if(markEditAsset)
 			{
 				parentWindow.EditedAsset();
 			}
+		}
+
+		IEnumerator CoroutineRegeneratePreviewImages(VTGraphNode[] nodeList)
+		{
+			foreach (VTGraphNode node in nodeList)
+			{
+				if(node != null)
+				{
+					TryUpdateNodePreviewImage(node);
+					GUI.changed = true;
+					//Wait a frame before continuing so that the preview update is time spliced
+					yield return null;
+				}
+			}
+
+			yield return null;
 		}
 
 		public void TryUpdateNodePreviewImage(VTGraphNode node)
@@ -204,6 +225,15 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
+			var currentAsset = parentWindow.GetCurrentAsset();
+			if(currentAsset != null)
+			{
+				//TODO: Maybe update processing settings based on user setting?
+
+				//data.previewThumbProcessingSettings.textureGenResolutionNumber =
+			}
+			data.nodeThumbProcessingSettings.contextAsset = currentAsset;
+
 			//Clear the preview to make a new one
 			RemoveNodePreviewImage(node);
 
@@ -211,11 +241,24 @@ namespace RobProductions.VisualTerrain.Editor
 			if (output != null)
 			{
 				//If we have an output node, process it and get the output texture
-				data.currentGraph.ProcessNode(node, data.previewProcessingSettings);
-				var textureValue = output.GetTextureValue();
-				if(textureValue != null)
+				data.currentGraph.ProcessNode(node, data.nodeThumbProcessingSettings);
+				var gridValue = output.GetRangeGridValue();
+				if(!gridValue.IsNullOrEmpty())
 				{
-					data.nodePreviewImageMap[node] = textureValue;
+					//We have a valid RangeGrid, so convert it to Texture
+					data.nodePreviewImageMap[node] = gridValue.ToGrayscale();
+
+					if(node is VTGraphNodeHeightOutput && currentAsset != null)
+					{
+						currentAsset.SetCachedThumbnailHeightmapTexture(gridValue);
+						parentWindow.EditedAsset();
+					}
+				}
+				else
+				{
+					//We just have a float value,
+					//so create a 1x1 preview image representing that value as a color
+					data.nodePreviewImageMap[node] = VTImageProcessingUtils.GenerateBlankTextureWithValue(1, output.GetFloatValue());
 				}
 			}
 		}
@@ -274,7 +317,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
-			var positionMinusOffset = position - GetCurrentViewOffset();
+			var positionMinusOffset = (position - GetCurrentViewOffset()) / GetCurrentViewScale();
 
 			parentWindow.RegisterAssetDataUndo("Created New Node");
 			var newNode = data.currentGraph.CreateNode<T>(positionMinusOffset);
@@ -725,10 +768,7 @@ namespace RobProductions.VisualTerrain.Editor
 			GenericMenu genericMenu = new GenericMenu();
 			if (data.currentGraph != null)
 			{
-				genericMenu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
-				genericMenu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
+				GenericMenuAddNodeCreationItems(genericMenu, mousePosition);
 
 				genericMenu.AddSeparator("");
 				if(overNode != null)
@@ -756,6 +796,30 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				genericMenu.ShowAsContext();
 			}
+		}
+
+		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
+		{
+			//TODO: Restrict node types by graph type
+
+			//Test
+			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+
+			//Input
+			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+
+			//Math
+			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
+			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
+
+			//Mask
+			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
+			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
+
+			//Output
+			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
+			menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
 		}
 
 		void ClearSelectedGraphNodes()
@@ -928,9 +992,36 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				scaledOffset = styles.nodeTitleOffset * 1.2f;
 			}
-
 			titleRect.position -= new Vector2(0.0f, scaledOffset);
-			GUI.Label(titleRect, node.NodeTitle, styles.nodeTitleStyle);
+
+			string finalTitle = node.NodeTitle;
+			if(node.CustomName != "")
+			{
+				finalTitle = node.CustomName;
+			}
+			GUI.Label(titleRect, finalTitle, styles.nodeTitleStyle);
+
+			//Draw disable button
+			if(node.HasDisableButton)
+			{
+				var content = new GUIContent(node.IsDisabled ? styles.nodeDisabledTexture : styles.nodeEnabledTexture);
+
+				var disableButtonDefaultBGColor = GUI.backgroundColor;
+				GUI.backgroundColor = node.IsDisabled ? styles.disableButtonBGDisabledColor : styles.disableButtonBGEnabledColor;
+
+				var disableButtonRect = GetNodeDisableButtonRenderRect(nodeRect);
+				//GUI.DrawTexture(disableButtonRect, node.IsDisabled ? styles.nodeDisabledTexture : styles.nodeEnabledTexture);
+				if(GUI.Button(disableButtonRect, content))
+				{
+					parentWindow.RegisterAssetStructureUndo("Toggled Node Disabled");
+					node.IsDisabled = !node.IsDisabled;
+					parentWindow.EditedAsset();
+				}
+
+				GUI.backgroundColor = disableButtonDefaultBGColor;
+			}
+
+			//Draw output value preview
 
 			if(node.IsExpanded)
 			{
@@ -1002,8 +1093,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void DrawGraphConnectionLine(Vector3 startPosition, Vector3 endPosition, bool inProgressLine, VTGraphConnection optionalConnection = null)
 		{
-			Vector3 startTangent = startPosition + (Vector3.left * 40f);
-			Vector3 endTangent = endPosition - (Vector3.left * 40f);
+			var viewScale = GetCurrentViewScale();
+			Vector3 startTangent = startPosition + ((Vector3.left * 40f) * viewScale);
+			Vector3 endTangent = endPosition - ((Vector3.left * 40f) * viewScale);
 
 			Handles.DrawBezier(
 				startPosition,
@@ -1202,6 +1294,18 @@ namespace RobProductions.VisualTerrain.Editor
 			return nodeRect;
 		}
 
+		Rect GetNodeDisableButtonRenderRect(Rect nodeRect)
+		{
+			var viewScale = GetCurrentViewScale();
+
+			return new Rect(
+				nodeRect.position.x + nodeRect.width * 0.7f,
+				nodeRect.position.y + (21 * viewScale),
+				nodeRect.width * 0.272f,
+				(18 * viewScale)
+			);
+		}
+
 		float GetCurrentConnectionPointSize()
 		{
 			return styles.connectionPointSize * GetCurrentViewScale();
@@ -1263,22 +1367,24 @@ namespace RobProductions.VisualTerrain.Editor
 			var viewScaleAmount = GetCurrentViewScale();
 			float finalSpacingAmount = gridSpacing * viewScaleAmount;
 
-			float extraDivsMultiplier = 1.6f;
-			int widthDivs = Mathf.CeilToInt((graphViewRect.width / finalSpacingAmount) * extraDivsMultiplier);
-			int heightDivs = Mathf.CeilToInt((graphViewRect.height / finalSpacingAmount) * extraDivsMultiplier);
+			//Number of divisions is based on width/height of parent window
+			//since we're drawing outside of the graphview bounds (underneath setup view)
+			float extraDivsMultiplier = 1.1f;
+			int widthDivs = Mathf.CeilToInt((parentWindow.position.width / finalSpacingAmount) * extraDivsMultiplier);
+			int heightDivs = Mathf.CeilToInt((parentWindow.position.height / finalSpacingAmount) * extraDivsMultiplier);
 
 			var viewOffsetPos = GetCurrentViewOffset();
 			float gridStartOffsetX = viewOffsetPos.x % finalSpacingAmount;
 			float gridStartOffsetY = viewOffsetPos.y % finalSpacingAmount;
 
-			float extraLengthMultiplier = 1.5f;
+			float extraLengthMultiplier = 1.1f;
 
 			for (int i = 0; i < widthDivs; i++)
 			{
 				//Draw lines on every finalSpacingAmount from top to bottom of the rect
 				float xPos = gridStartOffsetX + (finalSpacingAmount * i);
 				var startPos = new Vector3(xPos, 0f, 0f);
-				var endPos = new Vector3(xPos, graphViewRect.height * extraLengthMultiplier, 0f);
+				var endPos = new Vector3(xPos, parentWindow.position.height * extraLengthMultiplier, 0f);
 
 				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
@@ -1288,7 +1394,7 @@ namespace RobProductions.VisualTerrain.Editor
 				//Draw lines on every finalSpacingAmount from left to right of the rect
 				float yPos = gridStartOffsetY + (finalSpacingAmount * j);
 				var startPos = new Vector3(0, yPos, 0);
-				var endPos = new Vector3(graphViewRect.width * extraLengthMultiplier, yPos, 0f);
+				var endPos = new Vector3(parentWindow.position.width * extraLengthMultiplier, yPos, 0f);
 
 				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
