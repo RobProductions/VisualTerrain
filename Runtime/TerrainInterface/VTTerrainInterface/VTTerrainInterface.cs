@@ -90,55 +90,47 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//TERRAIN HEIGHT
 
-		void SetTerrainHeight(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, Texture2D heightmap)
+		void SetTerrainHeight(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, VTRangeGrid heightmap)
 		{
-			try
+			for (int i = 0; i < data.terrainRefs.Count; i++)
 			{
-				for (int i = 0; i < data.terrainRefs.Count; i++)
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				int finalHeightmapRes;
+				if (manager.IsPreviewMode())
 				{
-					var thisRef = data.terrainRefs[i];
-					var thisData = thisRef.terrainData;
-
-					int finalHeightmapRes;
-					if (manager.IsPreviewMode())
-					{
-						finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
-					}
-					else
-					{
-						finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
-					}
-					float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
-
-					if (heightmap != null)
-					{
-						for (int y = 0; y < finalHeightmapRes; y++)
-						{
-							for (int x = 0; x < finalHeightmapRes; x++)
-							{
-								float percentX = (float)x / finalHeightmapRes;
-								float percentY = (float)y / finalHeightmapRes;
-								int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.width);
-								int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.height);
-								Color pixelValue = heightmap.GetPixel(pixelX, pixelY);
-
-								//TODO: Could do heightmap sampling to clean edges and smooth a bit
-
-								//Heights are indexed as y,x
-								terrainHeights[y, x] = GetGrayscaleValueFromColor(pixelValue);
-							}
-						}
-
-						//TODO: Do post-smoothing based on sampling heightmap values
-					}
-
-					thisData.SetHeights(0, 0, terrainHeights);
+					finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
 				}
-			}
-			catch (UnityException e)
-			{
-				//We might have an unreadable texture
-				VTLog.LogWarning(e.Message);
+				else
+				{
+					finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+				}
+				float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
+
+				if (!heightmap.IsNullOrEmpty())
+				{
+					for (int y = 0; y < finalHeightmapRes; y++)
+					{
+						for (int x = 0; x < finalHeightmapRes; x++)
+						{
+							float percentX = (float)x / finalHeightmapRes;
+							float percentY = (float)y / finalHeightmapRes;
+							int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.Width);
+							int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.Height);
+							float setValue = heightmap.GetRangeValue(pixelX, pixelY);
+
+							//TODO: Could do heightmap sampling to clean edges and smooth a bit
+
+							//Heights are indexed as y,x
+							terrainHeights[y, x] = setValue;
+						}
+					}
+
+					//TODO: Do post-smoothing based on sampling heightmap values
+				}
+
+				thisData.SetHeights(0, 0, terrainHeights);
 			}
 		}
 
@@ -183,32 +175,31 @@ namespace RobProductions.VisualTerrain.Runtime
 								}
 							}
 						}
-						else if(thisSplatLayer.layerSplatmap != null)
+						else if(!thisSplatLayer.layerSplatmap.IsNullOrEmpty())
 						{
 							//Sample the splat layer alphamap texture
 							for (int y = 0; y < thisData.alphamapHeight; y++)
 							{
 								for (int x = 0; x < thisData.alphamapWidth; x++)
 								{
+									//Get the value at this splatmap location
 									float percentX = (float)x / thisData.alphamapWidth;
 									float percentY = (float)y / thisData.alphamapHeight;
-									int pixelX = Mathf.RoundToInt(percentX * (float)thisSplatLayer.layerSplatmap.width);
-									int pixelY = Mathf.RoundToInt(percentY * (float)thisSplatLayer.layerSplatmap.height);
-									Color pixelValue = thisSplatLayer.layerSplatmap.GetPixel(pixelX, pixelY);
+									int pixelX = Mathf.RoundToInt(percentX * (float)thisSplatLayer.layerSplatmap.Width);
+									int pixelY = Mathf.RoundToInt(percentY * (float)thisSplatLayer.layerSplatmap.Height);
+									float setValue = thisSplatLayer.layerSplatmap.GetRangeValue(pixelX, pixelY);
 
-									//Get the value at this splatmap location
-									float grayscaleValue = GetGrayscaleValueFromColor(pixelValue);
-									if(grayscaleValue > 0f)
+									if(setValue > 0f)
 									{
 										//Only do work if we register above 0
 										//Alphamaps are indexed as y,x,index
-										splatmaps[y, x, splatLayerIndex] = grayscaleValue;
+										splatmaps[y, x, splatLayerIndex] = setValue;
 										for (int checkLowerLayerIndex = splatLayerIndex - 1; checkLowerLayerIndex >= 0; checkLowerLayerIndex--)
 										{
 											//For every lower layer, we start to override the splat value,
 											//So subtract our current value from it there is always a max val of 1
 											//across all layers on this pixel
-											splatmaps[y, x, checkLowerLayerIndex] = Mathf.Clamp01(splatmaps[y, x, checkLowerLayerIndex] - grayscaleValue);
+											splatmaps[y, x, checkLowerLayerIndex] = Mathf.Clamp01(splatmaps[y, x, checkLowerLayerIndex] - setValue);
 										}
 									}
 								}

@@ -30,22 +30,22 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public enum SlotValueType
 		{
-			Texture = 0,
+			RangeGrid = 0,
 			Float = 1,
 		}
 
 		[field: SerializeField]
-		public SlotValueType valueType { get; set; } = SlotValueType.Texture;
+		public SlotValueType valueType { get; set; } = SlotValueType.RangeGrid;
 
-		[SerializeField]
-		public Texture2D defaultTextureValue = null;
+		[NonSerialized]
+		public VTRangeGrid defaultRangeGridValue = VTRangeGrid.Empty;
 		[SerializeField]
 		public float defaultFloatValue = 0.0f;
 
-		[SerializeField]
-		public Texture2D textureValue;
-		[SerializeField]
-		public float floatValue;
+		[NonSerialized]
+		public VTRangeGrid rangeGridValue = VTRangeGrid.Empty;
+		[NonSerialized]
+		public float floatValue = 0.0f;
 
 		public VTGraphConnectionSlot(NodeConnectionSlotType slotType, VTGraphNode createdOnNode, SlotValueType slotValueType, int indexOnCreatedNode)
 		{
@@ -118,14 +118,14 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//VALUE
 
-		public void SetTextureValue(Texture2D setTexture)
+		public void SetRangeGridValue(VTRangeGrid setGrid)
 		{
-			textureValue = setTexture;
+			rangeGridValue = setGrid;
 		}
 
-		public Texture2D GetTextureValue()
+		public VTRangeGrid GetRangeGridValue()
 		{
-			return textureValue;
+			return rangeGridValue;
 		}
 
 		public void SetFloatValue(float setFloat)

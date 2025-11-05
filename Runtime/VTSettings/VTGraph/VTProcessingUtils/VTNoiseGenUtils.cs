@@ -7,6 +7,35 @@ namespace RobProductions.VisualTerrain.Runtime
 	public class VTNoiseGenUtils
 	{
 		/// <summary>
+		/// Generate a PerlinNoiseMap in VTRangeGrid format (0 to 1 float grid)
+		/// with the desired params including resolution,
+		/// offset, scale, and strength (multiplier).
+		/// </summary>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		/// <param name="xOffset"></param>
+		/// <param name="yOffset"></param>
+		/// <param name="noiseScale"></param>
+		/// <param name="noiseStrength"></param>
+		/// <returns></returns>
+		public static VTRangeGrid GeneratePerlinRangeGrid(int width, int height, float xOffset, float yOffset, float noiseScale, float noiseStrength)
+		{
+			var ret = new VTRangeGrid(width, height);
+			for (int x = 0; x < width; x++)
+			{
+				for (int y = 0; y < height; y++)
+				{
+					float xIndex = (float)x / width * noiseScale + xOffset;
+					float yIndex = (float)y / height * noiseScale + yOffset;
+
+					var sampleNoiseValue = Mathf.PerlinNoise(xIndex, yIndex) * noiseStrength;
+					ret.SetRangeValue(x, y, sampleNoiseValue);
+				}
+			}
+			return ret;
+		}
+
+		/// <summary>
 		/// Generate a PerlinNoiseMap with the desired resolution,
 		/// offset, scale, and strength (multiplier).
 		/// </summary>

@@ -321,30 +321,35 @@ namespace RobProductions.VisualTerrain.Editor
 						parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
 					}
 
-					EditorGUILayout.BeginHorizontal();
-					GUILayout.Label("Default");
+					if(thisSlot.valueType != VTGraphConnectionSlot.SlotValueType.RangeGrid)
+					{
+						EditorGUILayout.BeginHorizontal();
+						//GUILayout.Label("Default");
 
-					if(thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
-					{
-						Texture2D newTexture = (Texture2D)EditorGUILayout.ObjectField(thisSlot.defaultTextureValue, typeof(Texture2D), allowSceneObjects: false);
-						if(newTexture != thisSlot.defaultTextureValue)
+						if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.RangeGrid)
 						{
-							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
-							thisSlot.defaultTextureValue = newTexture;
-							parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							/*
+							Texture2D newTexture = (Texture2D)EditorGUILayout.ObjectField(thisSlot.defaultRangeGridValue, typeof(Texture2D), allowSceneObjects: false);
+							if(newTexture != thisSlot.defaultRangeGridValue)
+							{
+								parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+								thisSlot.defaultRangeGridValue = newTexture;
+								parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							}
+							*/
 						}
-					}
-					else if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Float)
-					{
-						float newFloat = (float)EditorGUILayout.FloatField(thisSlot.defaultFloatValue);
-						if(newFloat != thisSlot.defaultFloatValue)
+						else if (thisSlot.valueType == VTGraphConnectionSlot.SlotValueType.Float)
 						{
-							parentWindow.RegisterAssetStructureUndo("Edited Default Input");
-							thisSlot.defaultFloatValue = newFloat;
-							parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							float newFloat = (float)EditorGUILayout.FloatField("Default", thisSlot.defaultFloatValue);
+							if (newFloat != thisSlot.defaultFloatValue)
+							{
+								parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+								thisSlot.defaultFloatValue = newFloat;
+								parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+							}
 						}
+						EditorGUILayout.EndHorizontal();
 					}
-					EditorGUILayout.EndHorizontal();
 				}
 			}
 

@@ -10,9 +10,9 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public VTGraphNodeSampleHeight()
 		{
-			SetupEmptyInputConnections(0, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyInputConnections(0, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 		}
 
 		public override void ProcessNode(VTGraphProcessingSettings settings)
@@ -25,20 +25,20 @@ namespace RobProductions.VisualTerrain.Runtime
 				if(settings.contextAsset != null)
 				{
 					//Attempt to pull from existing cache texture
-					if(settings.thumbnailMode && settings.contextAsset.generationData.cachedThumbHeightmapTexture != null)
+					if(settings.thumbnailMode && !settings.contextAsset.generationData.cachedThumbHeightmapGrid.IsNullOrEmpty())
 					{
-						output.SetTextureValue(settings.contextAsset.generationData.cachedThumbHeightmapTexture);
+						output.SetRangeGridValue(settings.contextAsset.generationData.cachedThumbHeightmapGrid);
 					}
-					else if (!settings.thumbnailMode && settings.contextAsset.generationData.cachedHeightmapTexture != null)
+					else if (!settings.thumbnailMode && !settings.contextAsset.generationData.cachedHeightmapGrid.IsNullOrEmpty())
 					{
-						output.SetTextureValue(settings.contextAsset.generationData.cachedHeightmapTexture);
+						output.SetRangeGridValue(settings.contextAsset.generationData.cachedHeightmapGrid);
 					}
 					else
 					{
 						//If there was no cache, let's fully calculate the heightmap
 						//This will also set the asset cache so future process calls will be able to use the cached value
 						var heightmap = VTGraphValueInterface.GetGraphHeightmapTexture(settings.contextAsset.generationData.heightmapGraph, settings);
-						output.SetTextureValue(heightmap);
+						output.SetRangeGridValue(heightmap);
 					}
 				}
 			}

@@ -30,10 +30,10 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public VTGraphNodeRemap()
 		{
-			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			inputConnections[0].connectionSlotName = "Remap Input";
 
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 		}
 
 		public override void ProcessNode(VTGraphProcessingSettings settings)
@@ -42,28 +42,22 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			var output = GetOutputConnection();
 			var input = GetInputConnection();
-			var inputTexture = input.GetTextureValue();
+			var inputGrid = input.GetRangeGridValue();
 			var inputFloat = input.GetFloatValue();
-			if(inputTexture != null)
+
+			//Handle RangeGrid remap
+			var resultGrid = new VTRangeGrid(inputGrid.Width, inputGrid.Height);
+			for (int x = 0; x < inputGrid.Width; x++)
 			{
-				//If we have a texture to work with, create a new one
-				var result = new Texture2D(inputTexture.width, inputTexture.height);
-				var workingPixels = inputTexture.GetPixels();
-				for(int i = 0; i < workingPixels.Length; i++)
+				for(int y = 0; y < inputGrid.Height; y++)
 				{
-					var grayscaleValue = workingPixels[i].r;
-					var remapValue = PerformRemap(grayscaleValue);
-					var newColor = new Color(remapValue, remapValue, remapValue, workingPixels[i].a);
-
-					workingPixels[i] = newColor;
+					var remapValue = PerformRemap(inputGrid.GetRangeValue(x,y));
+					resultGrid.SetRangeValue(x, y, remapValue);
 				}
-				result.SetPixels(workingPixels);
-				result.Apply();
-
-				output.SetTextureValue(result);
 			}
+			output.SetRangeGridValue(resultGrid);
 
-			//Set float value
+			//Handle float remap
 			output.SetFloatValue(RemapValue(inputFloat, fromRange, toRange));
 		}
 

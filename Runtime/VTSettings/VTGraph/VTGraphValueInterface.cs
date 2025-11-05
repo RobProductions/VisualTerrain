@@ -15,11 +15,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// </summary>
 		/// <param name="graph"></param>
 		/// <returns></returns>
-		public static Texture2D GetAssetHeightmapTexture(VTSettingsAsset asset, bool previewMode)
+		public static VTRangeGrid GetAssetHeightmapTexture(VTSettingsAsset asset, bool previewMode)
 		{
 			if(asset == null)
 			{
-				return null;
+				return VTRangeGrid.Empty;
 			}
 
 			VTGraphProcessingSettings processingSettings = GenerateAssetProcessingSettings(asset, previewMode);
@@ -33,13 +33,13 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <param name="graph"></param>
 		/// <param name="settings"></param>
 		/// <returns></returns>
-		public static Texture2D GetGraphHeightmapTexture(VTGraph graph, VTGraphProcessingSettings settings)
+		public static VTRangeGrid GetGraphHeightmapTexture(VTGraph graph, VTGraphProcessingSettings settings)
 		{
 			var allNodes = graph.nodeList;
 			VTGraphNodeHeightOutput outputNode = null;
 			foreach(VTGraphNode node in allNodes)
 			{
-				if(node is VTGraphNodeHeightOutput)
+				if(node is VTGraphNodeHeightOutput && !node.IsDisabled)
 				{
 					outputNode = node as VTGraphNodeHeightOutput;
 				}
@@ -47,14 +47,14 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			if(outputNode == null)
 			{
-				return null;
+				return VTRangeGrid.Empty;
 			}
 
 			//Calculate the final value to use from this node
 			graph.ProcessNode(outputNode, settings);
 
 			//Return the final heightmap texture
-			var finalHeightmap = outputNode.GetOutputConnection().GetTextureValue();
+			var finalHeightmap = outputNode.GetOutputConnection().GetRangeGridValue();
 			if(settings.contextAsset)
 			{
 				//Cache the heightmap for later use, it can either cache to
@@ -71,7 +71,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		public struct SplatmapLayerContainer
 		{
 			public TerrainLayer layerData;
-			public Texture2D layerSplatmap;
+			public VTRangeGrid layerSplatmap;
 		}
 
 		public static List<SplatmapLayerContainer> GetAssetSplatmapLayers(VTSettingsAsset asset, bool previewMode)
@@ -98,13 +98,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			for(int i = 0; i < splatOutputNodes.Count; i++)
 			{
 				var thisSplatNode = splatOutputNodes[i];
-				if(thisSplatNode.terrainLayer != null)
+				if(thisSplatNode.terrainLayer != null && !thisSplatNode.IsDisabled)
 				{
 					var splatLayer = new SplatmapLayerContainer();
 					splatLayer.layerData = thisSplatNode.GetNodeTerrainLayer();
 
 					graph.ProcessNode(thisSplatNode, settings);
-					splatLayer.layerSplatmap = thisSplatNode.GetOutputConnection().GetTextureValue();
+					splatLayer.layerSplatmap = thisSplatNode.GetOutputConnection().GetRangeGridValue();
 
 					ret.Add(splatLayer);
 				}

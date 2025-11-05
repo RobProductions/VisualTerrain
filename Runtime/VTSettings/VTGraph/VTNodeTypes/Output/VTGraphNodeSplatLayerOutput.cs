@@ -9,6 +9,7 @@ namespace RobProductions.VisualTerrain.Runtime
 	{
 		public override string NodeTitle => "Splat Layer Output";
 		public override bool HasNodeProperties => true;
+		public override bool HasDisableButton => true;
 
 		//TODO: Create dropdown for terrain layer creation
 		//So you can just input a texture and tiling settings
@@ -19,10 +20,10 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public VTGraphNodeSplatLayerOutput()
 		{
-			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			inputConnections[0].connectionSlotName = "Splatmap";
 
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			outputConnections[0].slotHidden = true;
 		}
 
@@ -33,7 +34,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			var output = GetOutputConnection();
 			if (output != null)
 			{
-				output.SetTextureValue(GetInputConnection().textureValue);
+				output.SetRangeGridValue(GetInputConnection().rangeGridValue);
 			}
 		}
 

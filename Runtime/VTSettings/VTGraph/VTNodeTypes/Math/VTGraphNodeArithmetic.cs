@@ -46,65 +46,42 @@ namespace RobProductions.VisualTerrain.Runtime
 			var input1 = GetInputConnection(0);
 			var input2 = GetInputConnection(1);
 
-			//Handle texture combos
-			var input1Texture = input1.GetTextureValue();
-			var input2Texture = input2.GetTextureValue();
+			//Handle RangeGrid combos
+			var input1Grid = input1.GetRangeGridValue();
+			var input2Grid = input2.GetRangeGridValue();
 			var input1Float = input1.GetFloatValue();
 			var input2Float = input2.GetFloatValue();
-			if (input1Texture != null)
+
+			var newGrid = new VTRangeGrid(input1Grid.Width, input1Grid.Height);
+
+			if (input2.valueType == VTGraphConnectionSlot.SlotValueType.Float)
 			{
-				try
+				for (int x = 0; x < input1Grid.Width; x++)
 				{
-					var outputTex = new Texture2D(input1Texture.width, input1Texture.height);
-					Color32[] workingPixels = input1Texture.GetPixels32();
-
-					if (input2.valueType == VTGraphConnectionSlot.SlotValueType.Float)
+					for (int y = 0; y < input1Grid.Height; y++)
 					{
-						for (int i = 0; i < workingPixels.Length; i++)
-						{
-							Color col = workingPixels[i];
-							col.r = PerformOperation(col.r, input2Float);
-							col.g = PerformOperation(col.g, input2Float);
-							col.b = PerformOperation(col.b, input2Float);
-
-							workingPixels[i] = col;
-						}
+						var operatedValue = PerformOperation(input1Grid.GetRangeValue(x, y), input2Float);
+						newGrid.SetRangeValue(x, y, operatedValue);
 					}
-					else if (input2.valueType == VTGraphConnectionSlot.SlotValueType.Texture)
-					{
-						if(input2Texture != null)
-						{
-							var input2Pixels = input2Texture.GetPixels32();
-							for (int i = 0; i < workingPixels.Length; i++)
-							{
-								Color col = workingPixels[i];
-								if (i < input2Pixels.Length)
-								{
-									Color input2Col = input2Pixels[i];
-									col.r = PerformOperation(col.r, input2Col.r);
-									col.g = PerformOperation(col.g, input2Col.g);
-									col.b = PerformOperation(col.b, input2Col.b);
-								}
-
-								workingPixels[i] = col;
-							}
-						}
-					}
-
-					outputTex.SetPixels32(workingPixels);
-					outputTex.Apply();
-					output.SetTextureValue(outputTex);
-				}
-				catch
-				{
-					//If the texture is not readable, just set to null
-					output.SetTextureValue(null);
 				}
 			}
-			else
+			else if (input2.valueType == VTGraphConnectionSlot.SlotValueType.RangeGrid)
 			{
-				output.SetTextureValue(null);
+				for (int x = 0; x < input1Grid.Width; x++)
+				{
+					for (int y = 0; y < input1Grid.Height; y++)
+					{
+						var setValue = input1Grid.GetRangeValue(x, y);
+
+						if(x < input2Grid.Width && y < input2Grid.Height)
+						{
+							setValue = PerformOperation(setValue, input2Grid.GetRangeValue(x, y));
+						}
+						newGrid.SetRangeValue(x, y, setValue);
+					}
+				}
 			}
+			output.SetRangeGridValue(newGrid);
 
 			//Handle float combos
 			output.SetFloatValue(PerformOperation(input1Float, input2Float));

@@ -37,8 +37,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			public VTGraph heightmapGraph = new VTGraph();
 			public VTGraph textureGraph = new VTGraph();
 
-			public Texture2D cachedThumbHeightmapTexture;
-			public Texture2D cachedHeightmapTexture;
+			[NonSerialized]
+			public VTRangeGrid cachedThumbHeightmapGrid = VTRangeGrid.Empty;
+			[NonSerialized]
+			public VTRangeGrid cachedHeightmapGrid = VTRangeGrid.Empty;
 		}
 
 		[SerializeField]
@@ -104,7 +106,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// </summary>
 		/// <param name="heightmap"></param>
 		/// <param name="processingSettings"></param>
-		public void SetCachedHeightmap(Texture2D heightmap, VTGraphProcessingSettings processingSettings)
+		public void SetCachedHeightmap(VTRangeGrid heightmap, VTGraphProcessingSettings processingSettings)
 		{
 			if(processingSettings.thumbnailMode)
 			{
@@ -122,9 +124,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// so that later sampling is up to date.
 		/// </summary>
 		/// <param name="thumbHeightmap"></param>
-		public void SetCachedThumbnailHeightmapTexture(Texture2D thumbHeightmap)
+		public void SetCachedThumbnailHeightmapTexture(VTRangeGrid thumbHeightmap)
 		{
-			generationData.cachedThumbHeightmapTexture = thumbHeightmap;
+			generationData.cachedThumbHeightmapGrid = thumbHeightmap;
 		}
 
 		/// <summary>
@@ -133,9 +135,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// and ensuring that no changes to height can happen before use.
 		/// </summary>
 		/// <param name="heightmap"></param>
-		public void SetCachedHeightmapTexture(Texture2D heightmap)
+		public void SetCachedHeightmapTexture(VTRangeGrid heightmap)
 		{
-			generationData.cachedHeightmapTexture = heightmap;
+			generationData.cachedHeightmapGrid = heightmap;
 		}
 
 		//VALIDATION

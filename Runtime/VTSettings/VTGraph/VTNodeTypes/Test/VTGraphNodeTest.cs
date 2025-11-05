@@ -10,9 +10,9 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public VTGraphNodeTest()
 		{
-			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			inputConnections[0].connectionSlotName = "Input Slot";
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Texture);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			outputConnections[0].connectionSlotName = "Output Slot";
 		}
 
@@ -23,7 +23,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			var output = GetOutputConnection();
 			if (output != null)
 			{
-				output.SetTextureValue(GetInputConnection().textureValue);
+				output.SetRangeGridValue(GetInputConnection().rangeGridValue);
 				output.SetFloatValue(GetInputConnection().floatValue);
 				/*
 				if(settings.textureOutputResolution == VTGraphProcessingSettings.TextureOutputResolution.Full)
