@@ -815,6 +815,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Mask
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
+			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
 			//Output
 			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
