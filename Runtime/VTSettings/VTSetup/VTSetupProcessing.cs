@@ -7,10 +7,17 @@ namespace RobProductions.VisualTerrain.Runtime
 	[System.Serializable]
 	public class VTSetupProcessing
 	{
+		public enum MultipleTerrainTextureType
+		{
+			CoverSurface = 0,
+			TileEachTerrain = 1,
+		}
+
 		[System.Serializable]
 		public class SetupTextureSettings
 		{
 			public int textureGenResolution = 2048;
+			public MultipleTerrainTextureType textureMultipleTerrainHandling = MultipleTerrainTextureType.CoverSurface;
 		}
 
 		[SerializeField]

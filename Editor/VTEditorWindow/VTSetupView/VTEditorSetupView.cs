@@ -233,6 +233,18 @@ namespace RobProductions.VisualTerrain.Editor
 				parentWindow.RegisterAssetStructureUndo("Edited Mesh Height");
 				terrainSetup.terrainSize.meshHeight = meshHeight;
 			}
+			var meshTerrainCountX = (VTSetupTerrain.TerrainCountType)EditorGUILayout.EnumPopup("Terrain Count X", terrainSetup.terrainSize.meshTerrainCountX);
+			if (meshTerrainCountX != terrainSetup.terrainSize.meshTerrainCountX)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Mesh Terrain Count X");
+				terrainSetup.terrainSize.meshTerrainCountX = meshTerrainCountX;
+			}
+			var meshTerrainCountY = (VTSetupTerrain.TerrainCountType)EditorGUILayout.EnumPopup("Terrain Count Y", terrainSetup.terrainSize.meshTerrainCountY);
+			if (meshTerrainCountY != terrainSetup.terrainSize.meshTerrainCountY)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Mesh Terrain Count Y");
+				terrainSetup.terrainSize.meshTerrainCountY = meshTerrainCountY;
+			}
 
 			DrawLabelSeparator("Terrain Resolution");
 
@@ -274,9 +286,18 @@ namespace RobProductions.VisualTerrain.Editor
 
 			processing.texture.textureGenResolution = DrawSetupIntField("Texture Resolution", processing.texture.textureGenResolution);
 
+			var multipleTerrainType = (VTSetupProcessing.MultipleTerrainTextureType)EditorGUILayout.EnumPopup("Multiple Terrains", processing.texture.textureMultipleTerrainHandling);
+			if (multipleTerrainType != processing.texture.textureMultipleTerrainHandling)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Splatmap Resolution");
+				processing.texture.textureMultipleTerrainHandling = multipleTerrainType;
+			}
+
 			DrawLabelSeparator("Preview Settings");
 
 			processing.preview.previewTextureGenResolution = DrawSetupIntField("Preview Texture Resolution", processing.preview.previewTextureGenResolution);
+
+
 
 		}
 
