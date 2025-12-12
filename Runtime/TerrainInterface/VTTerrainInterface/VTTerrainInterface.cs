@@ -281,6 +281,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			//apply the splatmap data
 			try
 			{
+				List<float[,,]> splatmapsList = new List<float[,,]>();
+				int splatLayersCount = splatLayers.Count;
+
 				for (int i = 0; i < data.terrainRefs.Count; i++)
 				{
 					var thisRef = data.terrainRefs[i];
@@ -293,8 +296,8 @@ namespace RobProductions.VisualTerrain.Runtime
 					thisData.terrainLayers = setTerrainLayers;
 
 					//Set layer alphamap values
-					var splatmaps = new float[thisData.alphamapHeight, thisData.alphamapWidth, splatLayers.Count];
-					for(int splatLayerIndex = 0; splatLayerIndex < splatLayers.Count; splatLayerIndex++)
+					var splatmaps = new float[thisData.alphamapHeight, thisData.alphamapWidth, splatLayersCount];
+					for(int splatLayerIndex = 0; splatLayerIndex < splatLayersCount; splatLayerIndex++)
 					{
 						var thisSplatLayer = splatLayers[splatLayerIndex];
 
@@ -370,7 +373,70 @@ namespace RobProductions.VisualTerrain.Runtime
 						}
 					}
 
-					thisData.SetAlphamaps(0, 0, splatmaps);
+					//Add the splatmaps to a list for later so we can do passes on it
+					splatmapsList.Add(splatmaps);
+				}
+
+				//Do a pass to stitch terrain splatmaps together
+				for (int i = 0; i < data.terrainRefs.Count; i++)
+				{
+					var thisRef = data.terrainRefs[i];
+					var thisData = thisRef.terrainData;
+
+					//Rows = index climbing north, cols = index climbing east
+					int thisTerrainRow = i % numberOfVerticalTerrains;
+					int thisTerrainCol = i / numberOfVerticalTerrains;
+
+					int splatmapWidth = splatmapsList[i].GetLength(1);
+					int splatmapHeight = splatmapsList[i].GetLength(0);
+
+					//Stitch right edge
+					if (thisTerrainCol < numberOfHorizontalTerrains - 1)
+					{
+						//The terrain to the right is (number of vertical terrains) over to get to next column + i
+						int rightIndex = i + numberOfVerticalTerrains;
+
+						for (int y = 0; y < splatmapHeight; y++)
+						{
+							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
+							{
+								//Terrain splatmaps are indexed as y,x
+								float averageValue = (
+									splatmapsList[i][y, splatmapWidth - 1, splatIndex]
+									+ splatmapsList[rightIndex][y, 0, splatIndex]
+								) * 0.5f;
+
+								splatmapsList[i][y, splatmapWidth - 1, splatIndex] = averageValue;
+								splatmapsList[rightIndex][y, 0, splatIndex] = averageValue;
+							}
+						}
+					}
+
+					//TODO: Fix corner seam getting affected by both stitching?
+
+					//Stitch the top edge
+					if (thisTerrainRow < numberOfVerticalTerrains - 1)
+					{
+						//The terrain above is just i + 1
+						int topIndex = i + 1;
+
+						for (int x = 0; x < splatmapWidth; x++)
+						{
+							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
+							{
+								//Terrain heights are indexed as y,x
+								float averageValue = (
+									splatmapsList[i][splatmapHeight - 1, x, splatIndex]
+									+ splatmapsList[topIndex][0, x, splatIndex]
+								) * 0.5f;
+
+								splatmapsList[i][splatmapHeight - 1, x, splatIndex] = averageValue;
+								splatmapsList[topIndex][0, x, splatIndex] = averageValue;
+							}
+						}
+					}
+
+					thisData.SetAlphamaps(0, 0, splatmapsList[i]);
 				}
 			}
 			catch (UnityException e)
