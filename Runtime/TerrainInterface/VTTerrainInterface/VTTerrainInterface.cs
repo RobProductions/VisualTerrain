@@ -98,23 +98,27 @@ namespace RobProductions.VisualTerrain.Runtime
 			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
 			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
 
+			int finalHeightmapRes;
+			if (manager.IsPreviewMode())
+			{
+				finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+			}
+			else
+			{
+				finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+			}
+			List<float[,]> terrainHeightsList = new List<float[,]>();
+
+			//Set the initial heights based on sampled heightmap
 			for (int i = 0; i < data.terrainRefs.Count; i++)
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisData = thisRef.terrainData;
 
-				int thisTerrainRow = i / numberOfVerticalTerrains;
-				int thisTerrainCol = i % numberOfVerticalTerrains;
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
 
-				int finalHeightmapRes;
-				if (manager.IsPreviewMode())
-				{
-					finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
-				}
-				else
-				{
-					finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
-				}
 				float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
 
 				if (!heightmap.IsNullOrEmpty())
@@ -151,8 +155,8 @@ namespace RobProductions.VisualTerrain.Runtime
 							float amountIntoSliverY = percentY * sizeOfHeightmapSliverY;
 
 							//Get the position based on index * sliver + amount into sliver
-							float heightmapSamplePositionX = (thisTerrainRow * sizeOfHeightmapSliverX) + amountIntoSliverX;
-							float heightmapSamplePositionY = (thisTerrainCol * sizeOfHeightmapSliverY) + amountIntoSliverY;
+							float heightmapSamplePositionX = (thisTerrainCol * sizeOfHeightmapSliverX) + amountIntoSliverX;
+							float heightmapSamplePositionY = (thisTerrainRow * sizeOfHeightmapSliverY) + amountIntoSliverY;
 
 							//Get the pixel at the sample position
 							int pixelX = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionX), 0, heightmap.Width);
@@ -165,11 +169,97 @@ namespace RobProductions.VisualTerrain.Runtime
 							terrainHeights[y, x] = setValue;
 						}
 					}
+				}
+				terrainHeightsList.Add(terrainHeights);
+			}
 
-					//TODO: Do post-smoothing based on sampling heightmap values
+			//Do a pass to stitch terrain edges together
+			for (int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				int heightsXCount = terrainHeightsList[i].GetLength(1);
+				int heightsYCount = terrainHeightsList[i].GetLength(0);
+
+				//Stitch right edge
+				if (thisTerrainCol < numberOfHorizontalTerrains - 1)
+				{
+					//The terrain to the right is (number of vertical terrains) over to get to next column + i
+					int rightIndex = i + numberOfVerticalTerrains;
+
+					for (int y = 0; y < heightsYCount; y++)
+					{
+						//Terrain heights are indexed as y,x
+						float averageValue = (
+							terrainHeightsList[i][y, heightsXCount - 1]
+							+ terrainHeightsList[rightIndex][y, 0]
+						) * 0.5f;
+
+						terrainHeightsList[i][y, heightsXCount - 1] = averageValue;
+						terrainHeightsList[rightIndex][y, 0] = averageValue;
+					}
 				}
 
-				thisData.SetHeights(0, 0, terrainHeights);
+				//TODO: Fix corner seam getting affected by both stitching
+
+				//Stitch the top edge
+				if (thisTerrainRow < numberOfVerticalTerrains - 1)
+				{
+					//The terrain above is just i + 1
+					int topIndex = i + 1;
+
+					for (int x = 0; x < heightsXCount; x++)
+					{
+						//Terrain heights are indexed as y,x
+						float averageValue = (
+							terrainHeightsList[i][heightsYCount - 1, x] 
+							+ terrainHeightsList[topIndex][0, x]
+						) * 0.5f;
+
+						terrainHeightsList[i][heightsYCount - 1, x] = averageValue;
+						terrainHeightsList[topIndex][0, x] = averageValue;
+					}
+				}
+			}
+
+			//Do a pass to stitch corners, which need top and right edges to be set in place
+			//and also do post-smoothing now that the terrain heights are set
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				int heightsXCount = terrainHeightsList[i].GetLength(1);
+				int heightsYCount = terrainHeightsList[i].GetLength(0);
+
+				if (thisTerrainRow < numberOfVerticalTerrains - 1)
+				{
+					int topIndex = i + 1;
+
+					//We may have overriden right edge stitching, so assign the corner points
+					//of this and top terrain edge to the right terrain corner point
+					if (thisTerrainCol < numberOfHorizontalTerrains - 1)
+					{
+						int rightIndex = i + numberOfVerticalTerrains;
+						float rightCornerValue = terrainHeightsList[rightIndex][heightsYCount - 1, 0];
+
+						terrainHeightsList[i][heightsYCount - 1, heightsXCount - 1] = rightCornerValue;
+						terrainHeightsList[topIndex][0, heightsXCount - 1] = rightCornerValue;
+					}
+				}
+
+				//TODO: Do post-smoothing based on sampling heightmap values
+
+				thisData.SetHeights(0, 0, terrainHeightsList[i]);
 			}
 		}
 
@@ -196,8 +286,8 @@ namespace RobProductions.VisualTerrain.Runtime
 					var thisRef = data.terrainRefs[i];
 					var thisData = thisRef.terrainData;
 
-					int thisTerrainRow = i / numberOfVerticalTerrains;
-					int thisTerrainCol = i % numberOfVerticalTerrains;
+					int thisTerrainRow = i % numberOfVerticalTerrains;
+					int thisTerrainCol = i / numberOfVerticalTerrains;
 
 					//Set terrain layers
 					thisData.terrainLayers = setTerrainLayers;
@@ -254,8 +344,8 @@ namespace RobProductions.VisualTerrain.Runtime
 									float amountIntoSliverY = percentY * sizeOfSplatmapSliverY;
 
 									//Get the position based on index * sliver + amount into sliver
-									float splatmapSamplePositionX = (thisTerrainRow * sizeOfSplatmapSliverX) + amountIntoSliverX;
-									float splatmapSamplePositionY = (thisTerrainCol * sizeOfSplatmapSliverY) + amountIntoSliverY;
+									float splatmapSamplePositionX = (thisTerrainCol * sizeOfSplatmapSliverX) + amountIntoSliverX;
+									float splatmapSamplePositionY = (thisTerrainRow * sizeOfSplatmapSliverY) + amountIntoSliverY;
 
 									//Get the pixel at the sample position
 									int pixelX = Mathf.Clamp(Mathf.FloorToInt(splatmapSamplePositionX), 0, thisSplatLayer.layerSplatmap.Width);
@@ -304,8 +394,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				var thisRefData = thisRef.terrainData;
 				var thisRefComponent = thisRef.terrainComponent;
 
-				int thisTerrainRow = i / numberOfVerticalTerrains;
-				int thisTerrainCol = i % numberOfVerticalTerrains;
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
 
 				//Enforce object name
 				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
@@ -342,9 +432,9 @@ namespace RobProductions.VisualTerrain.Runtime
 
 				//Set position
 				thisRefComponent.transform.position = new Vector3(
-					individualTerrainSizeX * thisTerrainRow,
+					individualTerrainSizeX * thisTerrainCol,
 					0.0f,
-					individualTerrainSizeY * thisTerrainCol
+					individualTerrainSizeY * thisTerrainRow
 				);
 
 				//Set rotation
