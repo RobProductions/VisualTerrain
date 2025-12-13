@@ -7,11 +7,24 @@ namespace RobProductions.VisualTerrain.Runtime
 	[System.Serializable]
 	public class VTSetupTerrain
 	{
+		public enum TerrainCountType
+		{
+			x1 = 1,
+			x2 = 2,
+			x3 = 3,
+			x4 = 4,
+			x5 = 5,
+			x6 = 6,
+			x8 = 8,
+		}
+
 		[System.Serializable]
 		public class SetupTerrainSize
 		{
 			public Vector2 meshWidthLength = new Vector2(64f, 64f);
 			public float meshHeight = 5f;
+			public TerrainCountType meshTerrainCountX = TerrainCountType.x1;
+			public TerrainCountType meshTerrainCountY = TerrainCountType.x1;
 		}
 
 		[SerializeField]
@@ -42,12 +55,22 @@ namespace RobProductions.VisualTerrain.Runtime
 			x4096 = 8,
 		}
 
+		public enum PostSmoothingIterations
+		{
+			x0 = 0,
+			x1 = 1,
+			x2 = 2,
+			x3 = 3,
+		}
+
 		[System.Serializable]
 		public class SetupTerrainResolution
 		{
 			public HeightmapResolution heightmapResolution = HeightmapResolution.x65;
 			public SplatmapResolution splatmapResolution = SplatmapResolution.x256;
-			public SplatmapResolution compositeSplatmapResolution = SplatmapResolution.x256; 
+			public SplatmapResolution compositeSplatmapResolution = SplatmapResolution.x256;
+
+			public PostSmoothingIterations postSmoothingIterations = PostSmoothingIterations.x1;
 		}
 
 		[SerializeField]

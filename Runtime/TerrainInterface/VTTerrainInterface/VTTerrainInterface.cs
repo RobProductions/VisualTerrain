@@ -70,7 +70,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			DeleteUnreferencedTerrainObjects();
 
 			//Trim and create new terrain references to work with later
-			int requiredTerrainReferences = 1;
+			int terrainCountX = TerrainCountToNumber(settingsAsset.setupData.terrainSetup.terrainSize.meshTerrainCountX);
+			int terrainCountY = TerrainCountToNumber(settingsAsset.setupData.terrainSetup.terrainSize.meshTerrainCountY);
+
+			int requiredTerrainReferences = terrainCountX * terrainCountY;
 			EnforceTerrainReferenceObjects(requiredTerrainReferences);
 			DeleteExtraTerrainReferences(requiredTerrainReferences);
 
@@ -85,59 +88,307 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Set the terrain splat textures
 			//Texture graph may use the cachedHeightmap generated above
 			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
-			SetTerrainSplatTextures(splatContainers);
+			SetTerrainSplatTextures(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, splatContainers);
 		}
 
 		//TERRAIN HEIGHT
 
 		void SetTerrainHeight(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, VTRangeGrid heightmap)
 		{
+			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
+			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
+
+			int finalHeightmapRes;
+			int smoothingIterations = 0;
+			if (manager.IsPreviewMode())
+			{
+				finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+				smoothingIterations = PostSmoothingIterationsToNumber(processingProperties.preview.previewPostSmoothingIterations);
+			}
+			else
+			{
+				finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+				smoothingIterations = PostSmoothingIterationsToNumber(setupProperties.terrainResolution.postSmoothingIterations);
+			}
+			List<float[,]> terrainHeightsList = new List<float[,]>();
+
+			//Set the initial heights based on sampled heightmap
 			for (int i = 0; i < data.terrainRefs.Count; i++)
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisData = thisRef.terrainData;
 
-				int finalHeightmapRes;
-				if (manager.IsPreviewMode())
-				{
-					finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
-				}
-				else
-				{
-					finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
-				}
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
 				float[,] terrainHeights = new float[finalHeightmapRes, finalHeightmapRes];
 
 				if (!heightmap.IsNullOrEmpty())
 				{
+					//Heightmap may have a different resolution than terrain height
+
+					float sizeOfHeightmapSliverX = (float)heightmap.Width;
+					float sizeOfHeightmapSliverY = (float)heightmap.Height;
+
+					if(processingProperties.texture.textureMultipleTerrainHandling == VTSetupProcessing.MultipleTerrainTextureType.CoverSurface)
+					{
+						//In cover mode, only sample a sliver of the final heightmap
+						//correlating to the row/column
+						sizeOfHeightmapSliverX = (float)heightmap.Width / numberOfHorizontalTerrains;
+						sizeOfHeightmapSliverY = (float)heightmap.Height / numberOfVerticalTerrains;
+					}
+					else if (processingProperties.texture.textureMultipleTerrainHandling == VTSetupProcessing.MultipleTerrainTextureType.TileEachTerrain)
+					{
+						//Override row and col so they all appear to be the beginning
+						thisTerrainRow = 0;
+						thisTerrainCol = 0;
+					}
+
 					for (int y = 0; y < finalHeightmapRes; y++)
 					{
 						for (int x = 0; x < finalHeightmapRes; x++)
 						{
+							//Get the percent of sampling terrain data
 							float percentX = (float)x / finalHeightmapRes;
 							float percentY = (float)y / finalHeightmapRes;
-							int pixelX = Mathf.RoundToInt(percentX * (float)heightmap.Width);
-							int pixelY = Mathf.RoundToInt(percentY * (float)heightmap.Height);
-							float setValue = heightmap.GetRangeValue(pixelX, pixelY);
 
-							//TODO: Could do heightmap sampling to clean edges and smooth a bit
+							//Get the amount into our local sliver
+							float amountIntoSliverX = percentX * sizeOfHeightmapSliverX;
+							float amountIntoSliverY = percentY * sizeOfHeightmapSliverY;
+
+							//Get the position based on index * sliver + amount into sliver
+							float heightmapSamplePositionX = (thisTerrainCol * sizeOfHeightmapSliverX) + amountIntoSliverX;
+							float heightmapSamplePositionY = (thisTerrainRow * sizeOfHeightmapSliverY) + amountIntoSliverY;
+
+							//Get the pixel at the sample position
+							int pixelX = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionX), 0, heightmap.Width);
+							int pixelY = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionY), 0, heightmap.Height);
+							float setValue = heightmap.GetRangeValue(pixelX, pixelY);
+							
+							//TODO: Could do a pre-sample blur pass scaling heightmap up to heights resolution
+							//to clean edges and smooth a bit
 
 							//Heights are indexed as y,x
 							terrainHeights[y, x] = setValue;
 						}
 					}
+				}
+				terrainHeightsList.Add(terrainHeights);
+			}
 
-					//TODO: Do post-smoothing based on sampling heightmap values
+			//Do a pass to stitch terrain edges together
+			for (int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				int heightsXCount = terrainHeightsList[i].GetLength(1);
+				int heightsYCount = terrainHeightsList[i].GetLength(0);
+
+				//Stitch right edge
+				if (thisTerrainCol < numberOfHorizontalTerrains - 1)
+				{
+					//The terrain to the right is (number of vertical terrains) over to get to next column + i
+					int rightIndex = i + numberOfVerticalTerrains;
+
+					for (int y = 0; y < heightsYCount; y++)
+					{
+						//Terrain heights are indexed as y,x
+						float averageValue = (
+							terrainHeightsList[i][y, heightsXCount - 1]
+							+ terrainHeightsList[rightIndex][y, 0]
+						) * 0.5f;
+
+						terrainHeightsList[i][y, heightsXCount - 1] = averageValue;
+						terrainHeightsList[rightIndex][y, 0] = averageValue;
+					}
 				}
 
-				thisData.SetHeights(0, 0, terrainHeights);
+				//Stitch the top edge
+				if (thisTerrainRow < numberOfVerticalTerrains - 1)
+				{
+					//The terrain above is just i + 1
+					int topIndex = i + 1;
+
+					for (int x = 0; x < heightsXCount; x++)
+					{
+						//Terrain heights are indexed as y,x
+						float averageValue = (
+							terrainHeightsList[i][heightsYCount - 1, x] 
+							+ terrainHeightsList[topIndex][0, x]
+						) * 0.5f;
+
+						terrainHeightsList[i][heightsYCount - 1, x] = averageValue;
+						terrainHeightsList[topIndex][0, x] = averageValue;
+					}
+				}
+			}
+
+			//Do a pass to stitch corners, which need top and right edges to be set in place
+			//and also do post-smoothing now that the terrain heights are set
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				int heightsXCount = terrainHeightsList[i].GetLength(1);
+				int heightsYCount = terrainHeightsList[i].GetLength(0);
+
+				//Stitch the corners of each terrain now that other heights are set
+				if (thisTerrainRow < numberOfVerticalTerrains - 1)
+				{
+					int topIndex = i + 1;
+
+					//We may have overriden right edge stitching, so assign the corner points
+					//of this and top terrain edge to the right terrain corner point
+					if (thisTerrainCol < numberOfHorizontalTerrains - 1)
+					{
+						int rightIndex = i + numberOfVerticalTerrains;
+						float rightCornerValue = terrainHeightsList[rightIndex][heightsYCount - 1, 0];
+
+						terrainHeightsList[i][heightsYCount - 1, heightsXCount - 1] = rightCornerValue;
+						terrainHeightsList[topIndex][0, heightsXCount - 1] = rightCornerValue;
+					}
+				}
+
+				//Perform post smoothing on non-edge points
+				for(int smoothingIndex = 0; smoothingIndex < smoothingIterations; smoothingIndex++)
+				{
+					for(int y = 1; y < heightsYCount - 1; y++)
+					{
+						for(int x = 1; x < heightsXCount - 1; x++)
+						{
+							//Smooth this point
+							float averageValue = 0.0f;
+							int pointCount = 0;
+
+							//Check neighbor points
+							for (int checkY = -1; checkY <= 1; checkY++)
+							{
+								for (int checkX = -1; checkX <= 1; checkX++)
+								{
+									averageValue += terrainHeightsList[i][y + checkY, x + checkX];
+									pointCount++;
+								}
+							}
+							averageValue /= pointCount;
+
+							//Assign the averaged value
+							terrainHeightsList[i][y, x] = averageValue;
+						}
+					}
+				}
+			}
+
+			//Do a pass to smooth edges which need regular smoothed values first
+			for (int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				int heightsXCount = terrainHeightsList[i].GetLength(1);
+				int heightsYCount = terrainHeightsList[i].GetLength(0);
+
+				//Edge smoothing on right side
+				if(thisTerrainCol < numberOfHorizontalTerrains - 1)
+				{
+					int rightIndex = i + numberOfVerticalTerrains;
+
+					//Perform post smoothing on edge points
+					for (int smoothingIndex = 0; smoothingIndex < smoothingIterations; smoothingIndex++)
+					{
+						//Smooth right line
+						for (int y = 0; y < heightsYCount - 1; y++)
+						{
+							//Smooth this point by checking points left and right
+							float averageValue = (terrainHeightsList[i][y, heightsXCount - 2] + terrainHeightsList[rightIndex][y, 1]) * 0.5f;
+
+							//Assign the averaged value
+							terrainHeightsList[i][y, heightsXCount - 1] = averageValue;
+							terrainHeightsList[rightIndex][y, 0] = averageValue;
+							//Also check for bottom point neighbor assignment.
+							//We don't need to check top point since any terrain above us
+							//will assign our top point to its bottom point.
+							if(y == 0)
+							{
+								if(thisTerrainRow > 0)
+								{
+									int bottomIndex = i - 1;
+									terrainHeightsList[bottomIndex][heightsYCount - 1, heightsXCount - 1] = averageValue;
+								}
+							}
+						}
+					}
+				}
+
+				//Edge smoothing on top side
+				if(thisTerrainRow < numberOfVerticalTerrains - 1)
+				{
+					int topIndex = i + 1;
+
+					//Perform post smoothing on top edge
+					for (int smoothingIndex = 0; smoothingIndex < smoothingIterations; smoothingIndex++)
+					{
+						//Smooth top line
+						//We don't need to check corners as they are covered by right edge smoothing
+						for (int x = 1; x < heightsXCount - 1; x++)
+						{
+							//Smooth this point by checking points above and below
+							float averageValue = (terrainHeightsList[i][heightsYCount - 2, x] + terrainHeightsList[topIndex][1, x]) * 0.5f;
+
+							//Assign the averaged value
+							terrainHeightsList[i][heightsYCount - 1, x] = averageValue;
+							terrainHeightsList[topIndex][0, x] = averageValue;
+						}
+					}
+				}
+
+				//Restitch bottom right point
+				if(thisTerrainRow > 0)
+				{
+					int bottomIndex = i - 1;
+					terrainHeightsList[i][0, heightsXCount - 1] = terrainHeightsList[bottomIndex][heightsYCount - 1, heightsXCount - 1];
+				}
+				//Restitch bottom left point and top left point
+				if(thisTerrainCol > 0)
+				{
+					int leftIndex = i - numberOfVerticalTerrains;
+					terrainHeightsList[i][0, 0] = terrainHeightsList[leftIndex][0, heightsXCount - 1];
+					terrainHeightsList[i][heightsYCount - 1, 0] = terrainHeightsList[leftIndex][heightsYCount - 1, heightsXCount - 1];
+				}
+			}
+
+			//Do a pass to assign final terrain data
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Assign the final height data
+				thisData.SetHeights(0, 0, terrainHeightsList[i]);
 			}
 		}
 
 		//TERRAIN TEXTURE
 
-		void SetTerrainSplatTextures(List<VTGraphValueInterface.SplatmapLayerContainer> splatLayers)
+		void SetTerrainSplatTextures(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, List<VTGraphValueInterface.SplatmapLayerContainer> splatLayers)
 		{
+			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
+			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
+
 			//Create TerrainLayer array in the correct format
 			TerrainLayer[] setTerrainLayers = new TerrainLayer[splatLayers.Count];
 			for(int i = 0; i < splatLayers.Count; i++)
@@ -149,21 +400,45 @@ namespace RobProductions.VisualTerrain.Runtime
 			//apply the splatmap data
 			try
 			{
+				List<float[,,]> splatmapsList = new List<float[,,]>();
+				int splatLayersCount = splatLayers.Count;
+
 				for (int i = 0; i < data.terrainRefs.Count; i++)
 				{
 					var thisRef = data.terrainRefs[i];
 					var thisData = thisRef.terrainData;
 
+					int thisTerrainRow = i % numberOfVerticalTerrains;
+					int thisTerrainCol = i / numberOfVerticalTerrains;
+
 					//Set terrain layers
 					thisData.terrainLayers = setTerrainLayers;
 
 					//Set layer alphamap values
-					var splatmaps = new float[thisData.alphamapHeight, thisData.alphamapWidth, splatLayers.Count];
-					for(int splatLayerIndex = 0; splatLayerIndex < splatLayers.Count; splatLayerIndex++)
+					var splatmaps = new float[thisData.alphamapHeight, thisData.alphamapWidth, splatLayersCount];
+					for(int splatLayerIndex = 0; splatLayerIndex < splatLayersCount; splatLayerIndex++)
 					{
 						var thisSplatLayer = splatLayers[splatLayerIndex];
 
-						if(splatLayerIndex == 0)
+						//Splatmap may have different resolution than alphamap resolution
+						float sizeOfSplatmapSliverX = (float)thisSplatLayer.layerSplatmap.Width;
+						float sizeOfSplatmapSliverY = (float)thisSplatLayer.layerSplatmap.Height;
+
+						if (processingProperties.texture.textureMultipleTerrainHandling == VTSetupProcessing.MultipleTerrainTextureType.CoverSurface)
+						{
+							//In cover mode, only sample a sliver of the final heightmap
+							//correlating to the row/column
+							sizeOfSplatmapSliverX = (float)thisSplatLayer.layerSplatmap.Width / numberOfHorizontalTerrains;
+							sizeOfSplatmapSliverY = (float)thisSplatLayer.layerSplatmap.Height / numberOfVerticalTerrains;
+						}
+						else if (processingProperties.texture.textureMultipleTerrainHandling == VTSetupProcessing.MultipleTerrainTextureType.TileEachTerrain)
+						{
+							//In tile mode, make each row and col appear to be 0
+							thisTerrainRow = 0;
+							thisTerrainCol = 0;
+						}
+
+						if (splatLayerIndex == 0)
 						{
 							//For first layer, just set splatmap to 1 everywhere
 							for (int y = 0; y < thisData.alphamapHeight; y++)
@@ -175,21 +450,31 @@ namespace RobProductions.VisualTerrain.Runtime
 								}
 							}
 						}
-						else if(!thisSplatLayer.layerSplatmap.IsNullOrEmpty())
+						else if (!thisSplatLayer.layerSplatmap.IsNullOrEmpty())
 						{
 							//Sample the splat layer alphamap texture
 							for (int y = 0; y < thisData.alphamapHeight; y++)
 							{
 								for (int x = 0; x < thisData.alphamapWidth; x++)
 								{
-									//Get the value at this splatmap location
+									//Get the percent into the alphamap location
 									float percentX = (float)x / thisData.alphamapWidth;
 									float percentY = (float)y / thisData.alphamapHeight;
-									int pixelX = Mathf.RoundToInt(percentX * (float)thisSplatLayer.layerSplatmap.Width);
-									int pixelY = Mathf.RoundToInt(percentY * (float)thisSplatLayer.layerSplatmap.Height);
+
+									//Get the amount into our local sliver
+									float amountIntoSliverX = percentX * sizeOfSplatmapSliverX;
+									float amountIntoSliverY = percentY * sizeOfSplatmapSliverY;
+
+									//Get the position based on index * sliver + amount into sliver
+									float splatmapSamplePositionX = (thisTerrainCol * sizeOfSplatmapSliverX) + amountIntoSliverX;
+									float splatmapSamplePositionY = (thisTerrainRow * sizeOfSplatmapSliverY) + amountIntoSliverY;
+
+									//Get the pixel at the sample position
+									int pixelX = Mathf.Clamp(Mathf.FloorToInt(splatmapSamplePositionX), 0, thisSplatLayer.layerSplatmap.Width);
+									int pixelY = Mathf.Clamp(Mathf.FloorToInt(splatmapSamplePositionY), 0, thisSplatLayer.layerSplatmap.Height);
 									float setValue = thisSplatLayer.layerSplatmap.GetRangeValue(pixelX, pixelY);
 
-									if(setValue > 0f)
+									if (setValue > 0f)
 									{
 										//Only do work if we register above 0
 										//Alphamaps are indexed as y,x,index
@@ -207,7 +492,70 @@ namespace RobProductions.VisualTerrain.Runtime
 						}
 					}
 
-					thisData.SetAlphamaps(0, 0, splatmaps);
+					//Add the splatmaps to a list for later so we can do passes on it
+					splatmapsList.Add(splatmaps);
+				}
+
+				//Do a pass to stitch terrain splatmaps together
+				for (int i = 0; i < data.terrainRefs.Count; i++)
+				{
+					var thisRef = data.terrainRefs[i];
+					var thisData = thisRef.terrainData;
+
+					//Rows = index climbing north, cols = index climbing east
+					int thisTerrainRow = i % numberOfVerticalTerrains;
+					int thisTerrainCol = i / numberOfVerticalTerrains;
+
+					int splatmapWidth = splatmapsList[i].GetLength(1);
+					int splatmapHeight = splatmapsList[i].GetLength(0);
+
+					//Stitch right edge
+					if (thisTerrainCol < numberOfHorizontalTerrains - 1)
+					{
+						//The terrain to the right is (number of vertical terrains) over to get to next column + i
+						int rightIndex = i + numberOfVerticalTerrains;
+
+						for (int y = 0; y < splatmapHeight; y++)
+						{
+							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
+							{
+								//Terrain splatmaps are indexed as y,x
+								float averageValue = (
+									splatmapsList[i][y, splatmapWidth - 1, splatIndex]
+									+ splatmapsList[rightIndex][y, 0, splatIndex]
+								) * 0.5f;
+
+								splatmapsList[i][y, splatmapWidth - 1, splatIndex] = averageValue;
+								splatmapsList[rightIndex][y, 0, splatIndex] = averageValue;
+							}
+						}
+					}
+
+					//TODO: Fix corner seam getting affected by both stitching?
+
+					//Stitch the top edge
+					if (thisTerrainRow < numberOfVerticalTerrains - 1)
+					{
+						//The terrain above is just i + 1
+						int topIndex = i + 1;
+
+						for (int x = 0; x < splatmapWidth; x++)
+						{
+							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
+							{
+								//Terrain heights are indexed as y,x
+								float averageValue = (
+									splatmapsList[i][splatmapHeight - 1, x, splatIndex]
+									+ splatmapsList[topIndex][0, x, splatIndex]
+								) * 0.5f;
+
+								splatmapsList[i][splatmapHeight - 1, x, splatIndex] = averageValue;
+								splatmapsList[topIndex][0, x, splatIndex] = averageValue;
+							}
+						}
+					}
+
+					thisData.SetAlphamaps(0, 0, splatmapsList[i]);
 				}
 			}
 			catch (UnityException e)
@@ -222,12 +570,17 @@ namespace RobProductions.VisualTerrain.Runtime
 		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties)
 		{
 			var terrainSize = setupProperties.terrainSize;
+			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
+			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
 
 			for(int i = 0; i < data.terrainRefs.Count; i++)
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisRefData = thisRef.terrainData;
 				var thisRefComponent = thisRef.terrainComponent;
+
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
 
 				//Enforce object name
 				thisRef.terrainObject.name = manager.properties.terrainObjectName + i.ToString();
@@ -255,9 +608,22 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefData.baseMapResolution = finalCompositeRes;
 
 				//Set size
-				thisRefData.size = new Vector3(terrainSize.meshWidthLength.x,
+				float individualTerrainSizeX = terrainSize.meshWidthLength.x / numberOfHorizontalTerrains;
+				float individualTerrainSizeY = terrainSize.meshWidthLength.y / numberOfVerticalTerrains;
+
+				thisRefData.size = new Vector3(individualTerrainSizeX,
 					terrainSize.meshHeight, 
-					terrainSize.meshWidthLength.y);
+					individualTerrainSizeY);
+
+				//Set position
+				thisRefComponent.transform.position = new Vector3(
+					individualTerrainSizeX * thisTerrainCol,
+					0.0f,
+					individualTerrainSizeY * thisTerrainRow
+				);
+
+				//Set rotation
+				thisRefComponent.transform.localRotation = Quaternion.identity;
 
 				//Set properties
 
@@ -307,8 +673,6 @@ namespace RobProductions.VisualTerrain.Runtime
 
 				//Ensure that any subsequent placements will link these terrains
 				thisRef.terrainComponent.allowAutoConnect = true;
-
-				//TODO: Enforce terrain position?
 			}
 			
 		}
@@ -343,7 +707,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				{
 					if(GetReferenceWithTerrainComponent(thisTerrainComponent) == null)
 					{
-						GameObject.Destroy(thisTerrain.gameObject);
+						DestroyInAnyMode(thisTerrain.gameObject);
 					}
 				}
 			}
@@ -375,7 +739,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			if(terrainRef != null)
 			{
-				GameObject.Destroy(terrainRef.terrainObject);
+				DestroyInAnyMode(terrainRef.terrainObject);
 			}
 		}
 
@@ -393,6 +757,16 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		//VALUES
+
+		int TerrainCountToNumber(VTSetupTerrain.TerrainCountType countType)
+		{
+			return (int)countType;
+		}
+
+		int PostSmoothingIterationsToNumber(VTSetupTerrain.PostSmoothingIterations iterationType)
+		{
+			return (int)iterationType;
+		}
 
 		int HeightmapResToNumber(VTSetupTerrain.HeightmapResolution res)
 		{
@@ -459,6 +833,18 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		//UTILITY
+
+#if UNITY_EDITOR
+		public void DestroyInAnyMode(Object self)
+		{
+			if (Application.isPlaying == false)
+				Object.DestroyImmediate(self);
+			else
+				Object.Destroy(self);
+		}
+#else
+		public void DestroyInAnyMode(Object self) => Object.Destroy(self);
+#endif
 
 		float GetGrayscaleValueFromColor(Color col)
 		{
