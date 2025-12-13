@@ -28,6 +28,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			public VTSetupTerrain.HeightmapResolution previewHeightmapResolution = VTSetupTerrain.HeightmapResolution.x65;
 			public VTSetupTerrain.SplatmapResolution previewSplatmapResolution = VTSetupTerrain.SplatmapResolution.x64;
+
+			public VTSetupTerrain.PostSmoothingIterations previewPostSmoothingIterations = VTSetupTerrain.PostSmoothingIterations.x0;
+
 			public int previewTextureGenResolution = 256;
 		}
 

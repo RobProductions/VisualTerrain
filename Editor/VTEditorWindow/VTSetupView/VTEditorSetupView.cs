@@ -269,6 +269,13 @@ namespace RobProductions.VisualTerrain.Editor
 				terrainSetup.terrainResolution.compositeSplatmapResolution = compositeRes;
 			}
 
+			var smoothingIterations = (VTSetupTerrain.PostSmoothingIterations)EditorGUILayout.EnumPopup("Post Smoothing", terrainSetup.terrainResolution.postSmoothingIterations);
+			if (smoothingIterations != terrainSetup.terrainResolution.postSmoothingIterations)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Post Smoothing");
+				terrainSetup.terrainResolution.postSmoothingIterations = smoothingIterations;
+			}
+
 			DrawLabelSeparator("Terrain Properties");
 
 			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);

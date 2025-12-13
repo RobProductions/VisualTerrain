@@ -99,13 +99,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
 
 			int finalHeightmapRes;
+			int smoothingIterations = 0;
 			if (manager.IsPreviewMode())
 			{
 				finalHeightmapRes = HeightmapResToNumber(processingProperties.preview.previewHeightmapResolution);
+				smoothingIterations = PostSmoothingIterationsToNumber(processingProperties.preview.previewPostSmoothingIterations);
 			}
 			else
 			{
 				finalHeightmapRes = HeightmapResToNumber(setupProperties.terrainResolution.heightmapResolution);
+				smoothingIterations = PostSmoothingIterationsToNumber(setupProperties.terrainResolution.postSmoothingIterations);
 			}
 			List<float[,]> terrainHeightsList = new List<float[,]>();
 
@@ -162,8 +165,9 @@ namespace RobProductions.VisualTerrain.Runtime
 							int pixelX = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionX), 0, heightmap.Width);
 							int pixelY = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionY), 0, heightmap.Height);
 							float setValue = heightmap.GetRangeValue(pixelX, pixelY);
-
-							//TODO: Could do heightmap sampling to clean edges and smooth a bit
+							
+							//TODO: Could do a pre-sample blur pass scaling heightmap up to heights resolution
+							//to clean edges and smooth a bit
 
 							//Heights are indexed as y,x
 							terrainHeights[y, x] = setValue;
@@ -205,8 +209,6 @@ namespace RobProductions.VisualTerrain.Runtime
 					}
 				}
 
-				//TODO: Fix corner seam getting affected by both stitching
-
 				//Stitch the top edge
 				if (thisTerrainRow < numberOfVerticalTerrains - 1)
 				{
@@ -241,6 +243,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				int heightsXCount = terrainHeightsList[i].GetLength(1);
 				int heightsYCount = terrainHeightsList[i].GetLength(0);
 
+				//Stitch the corners of each terrain now that other heights are set
 				if (thisTerrainRow < numberOfVerticalTerrains - 1)
 				{
 					int topIndex = i + 1;
@@ -257,8 +260,124 @@ namespace RobProductions.VisualTerrain.Runtime
 					}
 				}
 
-				//TODO: Do post-smoothing based on sampling heightmap values
+				//Perform post smoothing on non-edge points
+				for(int smoothingIndex = 0; smoothingIndex < smoothingIterations; smoothingIndex++)
+				{
+					for(int y = 1; y < heightsYCount - 1; y++)
+					{
+						for(int x = 1; x < heightsXCount - 1; x++)
+						{
+							//Smooth this point
+							float averageValue = 0.0f;
+							int pointCount = 0;
 
+							//Check neighbor points
+							for (int checkY = -1; checkY <= 1; checkY++)
+							{
+								for (int checkX = -1; checkX <= 1; checkX++)
+								{
+									averageValue += terrainHeightsList[i][y + checkY, x + checkX];
+									pointCount++;
+								}
+							}
+							averageValue /= pointCount;
+
+							//Assign the averaged value
+							terrainHeightsList[i][y, x] = averageValue;
+						}
+					}
+				}
+			}
+
+			//Do a pass to smooth edges which need regular smoothed values first
+			for (int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Rows = index climbing north, cols = index climbing east
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				int heightsXCount = terrainHeightsList[i].GetLength(1);
+				int heightsYCount = terrainHeightsList[i].GetLength(0);
+
+				//Edge smoothing on right side
+				if(thisTerrainCol < numberOfHorizontalTerrains - 1)
+				{
+					int rightIndex = i + numberOfVerticalTerrains;
+
+					//Perform post smoothing on edge points
+					for (int smoothingIndex = 0; smoothingIndex < smoothingIterations; smoothingIndex++)
+					{
+						//Smooth right line
+						for (int y = 0; y < heightsYCount - 1; y++)
+						{
+							//Smooth this point by checking points left and right
+							float averageValue = (terrainHeightsList[i][y, heightsXCount - 2] + terrainHeightsList[rightIndex][y, 1]) * 0.5f;
+
+							//Assign the averaged value
+							terrainHeightsList[i][y, heightsXCount - 1] = averageValue;
+							terrainHeightsList[rightIndex][y, 0] = averageValue;
+							//Also check for bottom point neighbor assignment.
+							//We don't need to check top point since any terrain above us
+							//will assign our top point to its bottom point.
+							if(y == 0)
+							{
+								if(thisTerrainRow > 0)
+								{
+									int bottomIndex = i - 1;
+									terrainHeightsList[bottomIndex][heightsYCount - 1, heightsXCount - 1] = averageValue;
+								}
+							}
+						}
+					}
+				}
+
+				//Edge smoothing on top side
+				if(thisTerrainRow < numberOfVerticalTerrains - 1)
+				{
+					int topIndex = i + 1;
+
+					//Perform post smoothing on top edge
+					for (int smoothingIndex = 0; smoothingIndex < smoothingIterations; smoothingIndex++)
+					{
+						//Smooth top line
+						//We don't need to check corners as they are covered by right edge smoothing
+						for (int x = 1; x < heightsXCount - 1; x++)
+						{
+							//Smooth this point by checking points above and below
+							float averageValue = (terrainHeightsList[i][heightsYCount - 2, x] + terrainHeightsList[topIndex][1, x]) * 0.5f;
+
+							//Assign the averaged value
+							terrainHeightsList[i][heightsYCount - 1, x] = averageValue;
+							terrainHeightsList[topIndex][0, x] = averageValue;
+						}
+					}
+				}
+
+				//Restitch bottom right point
+				if(thisTerrainRow > 0)
+				{
+					int bottomIndex = i - 1;
+					terrainHeightsList[i][0, heightsXCount - 1] = terrainHeightsList[bottomIndex][heightsYCount - 1, heightsXCount - 1];
+				}
+				//Restitch bottom left point and top left point
+				if(thisTerrainCol > 0)
+				{
+					int leftIndex = i - numberOfVerticalTerrains;
+					terrainHeightsList[i][0, 0] = terrainHeightsList[leftIndex][0, heightsXCount - 1];
+					terrainHeightsList[i][heightsYCount - 1, 0] = terrainHeightsList[leftIndex][heightsYCount - 1, heightsXCount - 1];
+				}
+			}
+
+			//Do a pass to assign final terrain data
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				//Assign the final height data
 				thisData.SetHeights(0, 0, terrainHeightsList[i]);
 			}
 		}
@@ -642,6 +761,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		int TerrainCountToNumber(VTSetupTerrain.TerrainCountType countType)
 		{
 			return (int)countType;
+		}
+
+		int PostSmoothingIterationsToNumber(VTSetupTerrain.PostSmoothingIterations iterationType)
+		{
+			return (int)iterationType;
 		}
 
 		int HeightmapResToNumber(VTSetupTerrain.HeightmapResolution res)
