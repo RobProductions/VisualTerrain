@@ -263,6 +263,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void UndoPerformed()
 		{
+			RegenerateGraphPreviewImages();
 			Repaint();
 		}
 
@@ -285,6 +286,11 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			data.graphView.SetTargetGraph(finalDisplayGraph);
+		}
+
+		void RegenerateGraphPreviewImages()
+		{
+			data.graphView.RegenerateAllNodePreviewImages(true);
 		}
 
 		public VTEditorGraphView GetGraphView()

@@ -276,6 +276,16 @@ namespace RobProductions.VisualTerrain.Editor
 				terrainSetup.terrainResolution.postSmoothingIterations = smoothingIterations;
 			}
 
+			GUILayout.Space(4f);
+			GUILayout.Label("Splat Stitching Radius");
+
+			var splatStitchingRadius = EditorGUILayout.Slider("", terrainSetup.terrainResolution.splatStitchingPercentRadius, 0.0f, 0.1f);
+			if(splatStitchingRadius != terrainSetup.terrainResolution.splatStitchingPercentRadius)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited Splat Stitching Radius");
+				terrainSetup.terrainResolution.splatStitchingPercentRadius = splatStitchingRadius;
+			}
+
 			DrawLabelSeparator("Terrain Properties");
 
 			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);

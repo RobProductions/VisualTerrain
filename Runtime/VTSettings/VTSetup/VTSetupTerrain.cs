@@ -71,6 +71,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public SplatmapResolution compositeSplatmapResolution = SplatmapResolution.x256;
 
 			public PostSmoothingIterations postSmoothingIterations = PostSmoothingIterations.x1;
+			public float splatStitchingPercentRadius = 0.02f;
 		}
 
 		[SerializeField]
