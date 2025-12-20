@@ -642,6 +642,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefComponent.transform.localRotation = Quaternion.identity;
 
 				//Set properties
+				thisRefComponent.heightmapPixelError = (float)setupProperties.terrainProperties.lodPixelError;
+				thisRefComponent.basemapDistance = (float)setupProperties.terrainProperties.compositeStartDistance;
 
 #if UNITY_2022_2_OR_NEWER
 				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;

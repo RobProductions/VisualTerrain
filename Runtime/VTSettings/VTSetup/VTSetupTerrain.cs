@@ -80,6 +80,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class SetupTerrainProperties
 		{
+			public int lodPixelError = 5;
+			public int compositeStartDistance = 1000;
 			public bool raytracingSupport = false;
 		}
 

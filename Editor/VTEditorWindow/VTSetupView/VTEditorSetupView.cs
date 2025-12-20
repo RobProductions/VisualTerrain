@@ -276,17 +276,15 @@ namespace RobProductions.VisualTerrain.Editor
 				terrainSetup.terrainResolution.postSmoothingIterations = smoothingIterations;
 			}
 
-			GUILayout.Space(4f);
-			GUILayout.Label("Splat Stitching Radius");
-
-			var splatStitchingRadius = EditorGUILayout.Slider("", terrainSetup.terrainResolution.splatStitchingPercentRadius, 0.0f, 0.1f);
-			if(splatStitchingRadius != terrainSetup.terrainResolution.splatStitchingPercentRadius)
-			{
-				parentWindow.RegisterAssetStructureUndo("Edited Splat Stitching Radius");
-				terrainSetup.terrainResolution.splatStitchingPercentRadius = splatStitchingRadius;
-			}
+			terrainSetup.terrainResolution.splatStitchingPercentRadius = 
+				DrawSetupFloatSliderField("Splat Stitching Radius", terrainSetup.terrainResolution.splatStitchingPercentRadius, 0.0f, 0.1f);
 
 			DrawLabelSeparator("Terrain Properties");
+
+			terrainSetup.terrainProperties.lodPixelError = DrawSetupIntSliderField("LOD Pixel Error", terrainSetup.terrainProperties.lodPixelError, 1, 200);
+
+			terrainSetup.terrainProperties.compositeStartDistance =
+				DrawSetupIntSliderField("Composite Start Distance", terrainSetup.terrainProperties.compositeStartDistance, 0, 20000);
 
 			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
 			if(raytracingBool != terrainSetup.terrainProperties.raytracingSupport)
@@ -427,6 +425,32 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 
 		//UTILITY
+
+		float DrawSetupFloatSliderField(string labelName, float value, float startValue, float endValue)
+		{
+			GUILayout.Space(5f);
+			GUILayout.Label(labelName);
+
+			var sliderValue = EditorGUILayout.Slider("", value, startValue, endValue);
+			if (sliderValue != value)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return sliderValue;
+		}
+
+		int DrawSetupIntSliderField(string labelName, int value, int startValue, int endValue)
+		{
+			GUILayout.Space(5f);
+			GUILayout.Label(labelName);
+
+			var sliderValue = EditorGUILayout.IntSlider("", value, startValue, endValue);
+			if (sliderValue != value)
+			{
+				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return sliderValue;
+		}
 
 		string DrawSetupStringField(string labelName, string value, bool emptyLabel)
 		{
