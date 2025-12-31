@@ -35,6 +35,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <returns></returns>
 		public static VTRangeGrid GetGraphHeightmapTexture(VTGraph graph, VTGraphProcessingSettings settings)
 		{
+			//Init the graph
+			graph.OnGraphEnable();
+
+			//Get the height output
 			var allNodes = graph.nodeList;
 			VTGraphNodeHeightOutput outputNode = null;
 			foreach(VTGraphNode node in allNodes)
@@ -82,6 +86,10 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public static List<SplatmapLayerContainer> GetGraphSplatmapLayers(VTGraph graph, VTGraphProcessingSettings settings)
 		{
+			//Init the graph
+			graph.OnGraphEnable();
+
+			//Get the splat output nodes
 			var ret = new List<SplatmapLayerContainer>();
 			var splatOutputNodes = new List<VTGraphNodeSplatLayerOutput>();
 			foreach(VTGraphNode node in graph.nodeList)

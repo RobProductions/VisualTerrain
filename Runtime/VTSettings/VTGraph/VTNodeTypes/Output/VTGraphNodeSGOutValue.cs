@@ -1,0 +1,54 @@
+using RobProductions.VisualTerrain.Runtime;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace RobProductions.VisualTerrain.Runtime
+{
+	public class VTGraphNodeSGOutValue : VTGraphNode
+	{
+		public override string NodeTitle => "Sub Graph Output";
+		public override bool HasNodeProperties => true;
+
+		public VTGraphNodeSGOutValue()
+		{
+			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
+			inputConnections[0].connectionSlotName = "To Output";
+
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
+			outputConnections[0].connectionSlotName = "Output";
+			outputConnections[0].slotHidden = true;
+		}
+
+		public override void ProcessNode(VTGraphProcessingSettings settings)
+		{
+			base.ProcessNode(settings);
+			var output = GetOutputConnection();
+
+			if (output == null)
+			{
+				return;
+			}
+			output.SetRangeGridValue(GetInputConnection().GetRangeGridValue());
+			output.SetFloatValue(GetInputConnection().GetFloatValue());
+		}
+
+		//RENDERING
+
+		public override void RenderNodeProperties()
+		{
+			base.RenderNodeProperties();
+
+			/*
+			ArithmeticOperation operationValue = (ArithmeticOperation)EditorGUILayout.EnumPopup("Operation", operation);
+			if (operationValue != operation)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				operation = operationValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+			*/
+		}
+	}
+}

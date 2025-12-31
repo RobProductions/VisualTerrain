@@ -25,6 +25,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[field: SerializeField]
 		public bool IsDisabled { get; set; } = false;
 
+		[HideInInspector, System.NonSerialized]
 		protected VTGraph parentGraph = null;
 
 		public delegate void BeginEditNodeProperty(string description);
@@ -70,12 +71,26 @@ namespace RobProductions.VisualTerrain.Runtime
 			return;
 		}
 
+		/// <summary>
+		/// Render properties in the setup view for this node.
+		/// </summary>
 		public virtual void RenderNodeProperties()
 		{
 			return;
 		}
 
 		//GETTERS
+
+		public VTGraph GetParentGraph()
+		{
+			if(parentGraph == null)
+			{
+				VTLog.LogWarning("Parent Graph was null in GetParentGraph()...");
+				return null;
+			}
+
+			return parentGraph;
+		}
 
 		/// <summary>
 		/// Returns the first output connection.

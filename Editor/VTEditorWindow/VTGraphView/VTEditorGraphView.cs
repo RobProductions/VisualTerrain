@@ -140,12 +140,18 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public void OnEnable()
 		{
-
+			if(data.currentGraph != null)
+			{
+				data.currentGraph.OnGraphEnable();
+			}
 		}
 
 		public void OnDisable()
 		{
-
+			if(data.currentGraph != null)
+			{
+				data.currentGraph.OnGraphDisable();
+			}
 		}
 
 		/// <summary>
@@ -172,10 +178,17 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(data.currentGraph != null)
 			{
-
+				//Clear old graph
+				data.currentGraph.OnGraphDisable();
 			}
 
 			data.currentGraph = newGraph;
+
+			if(data.currentGraph != null)
+			{
+				//Enable lifecycle on new graph
+				data.currentGraph.OnGraphEnable();
+			}
 
 			data.draggingNode = null;
 			data.startClickOnNode = null;
@@ -800,14 +813,15 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
 		{
-			//TODO: Restrict node types by graph type
-
 			//Test
 			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
 
 			//Input
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
-			menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+			}
 
 			//Math
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
@@ -817,9 +831,25 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
+			//Processing
+			if(data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Processing Node/Sub Graph"), false, () => CreateNodeAtPosition<VTGraphNodeSubGraph>(mousePosition));
+			}
+
 			//Output
-			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
-			menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
+			if(data.currentGraph.graphType == VTGraph.GraphType.Height)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
+			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.Texture)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
+			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Sub Graph Output"), false, () => CreateNodeAtPosition<VTGraphNodeSGOutValue>(mousePosition));
+			}
 		}
 
 		void ClearSelectedGraphNodes()

@@ -127,11 +127,13 @@ namespace RobProductions.VisualTerrain.Editor
 			data.windowActive = false;
 		}
 
+		/*
 		// Update is called once per frame
 		void Update()
 		{
 
 		}
+		*/
 
 		//ASSET MANAGEMENT
 
@@ -275,6 +277,11 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(data.currentAsset != null)
 			{
+				//Ensure graph types are set
+				data.currentAsset.generationData.heightmapGraph.SetGraphType(VTGraph.GraphType.Height);
+				data.currentAsset.generationData.textureGraph.SetGraphType(VTGraph.GraphType.Texture);
+
+				//Get the final display graph
 				if (data.currentGraphScreen == VTGraphScreen.Heightmap)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.heightmapGraph;
