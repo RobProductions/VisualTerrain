@@ -52,16 +52,17 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			public VTGraphScreen currentGraphScreen = VTGraphScreen.Heightmap;
 
-			public VTEditorSetupView setupView;
-			public VTEditorGraphView graphView;
-
 			public bool displayPropertiesPanel = false;
+
+			public VTEditorMainPanel mainPanel;
 
 			public VTSettingsAsset currentAsset = null;
 			public bool windowActive = false;
 		}
 
 		private VTEditorWindowData data = new VTEditorWindowData();
+
+		private const float defaultSetupPanelWidth = 250.0f;
 
 		private const string storeAssetKey = "RobProductions.VisualTerrain.VTSettingsAsset";
 		private const string storeDisplayPropertiesKey = "RobProductions.VisualTerrain.DisplayProperties";
@@ -99,10 +100,12 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			Undo.undoRedoPerformed += UndoPerformed;
 
-			data.setupView = new VTEditorSetupView(this);
-			data.setupView.OnEnable();
-			data.graphView = new VTEditorGraphView(this);
-			data.graphView.OnEnable();
+			data.mainPanel = new VTEditorMainPanel();
+			data.mainPanel.OnEnable();
+
+			data.mainPanel.events.onEditedAssetEvent += EditedAsset;
+			data.mainPanel.events.onRegisterAssetStructureUndoEvent += RegisterAssetStructureUndo;
+			data.mainPanel.events.onRegisterAssetDataUndoEvent += RegisterAssetDataUndo;
 
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
@@ -114,26 +117,20 @@ namespace RobProductions.VisualTerrain.Editor
 			SetVTSettingsAsset(data.currentAsset);
 
 			data.windowActive = true;
-			data.windowActive = true;
 		}
 
 		private void OnDisable()
 		{
 			Undo.undoRedoPerformed -= UndoPerformed;
 
-			data.setupView.OnDisable();
-			data.graphView.OnDisable();
+			data.mainPanel.events.onEditedAssetEvent -= EditedAsset;
+			data.mainPanel.events.onRegisterAssetStructureUndoEvent -= RegisterAssetStructureUndo;
+			data.mainPanel.events.onRegisterAssetDataUndoEvent -= RegisterAssetDataUndo;
+
+			data.mainPanel.OnDisable();
 
 			data.windowActive = false;
 		}
-
-		/*
-		// Update is called once per frame
-		void Update()
-		{
-
-		}
-		*/
 
 		//ASSET MANAGEMENT
 
@@ -149,13 +146,21 @@ namespace RobProductions.VisualTerrain.Editor
 
 		public void SetVTSettingsAsset(VTSettingsAsset newAsset)
 		{
+			//Set our current stored asset so that it can be read later
 			SetStoredAsset(newAsset);
+
+			//Set the current settings asset
 			data.currentAsset = newAsset;
+			data.mainPanel.SetMainSettingsAsset(newAsset);
+			data.mainPanel.SetVTHasVTAsset(newAsset != null);
+
+			//Refresh the target graph
 			RefreshGraphScreen();
 
+			//Reset values and redraw the screen
 			if(newAsset == null)
 			{
-				data.displayPropertiesPanel = false;
+				SetDisplayProperties(false);
 			}
 			Repaint();
 		}
@@ -188,7 +193,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				if(data.currentAsset != null)
 				{
-					data.displayPropertiesPanel = EditorPrefs.GetBool(storeDisplayPropertiesKey, false);
+					SetDisplayProperties(EditorPrefs.GetBool(storeDisplayPropertiesKey, false));
 				}
 			}
 		}
@@ -263,6 +268,11 @@ namespace RobProductions.VisualTerrain.Editor
 			EditorUtility.SetDirty(data.currentAsset);
 		}
 
+		/// <summary>
+		/// Callback for when the user has performed an undo action
+		/// so that we can regenerate preview images and handle the
+		/// rendering correctly.
+		/// </summary>
 		void UndoPerformed()
 		{
 			RegenerateGraphPreviewImages();
@@ -292,17 +302,18 @@ namespace RobProductions.VisualTerrain.Editor
 				}
 			}
 
-			data.graphView.SetTargetGraph(finalDisplayGraph);
+			data.mainPanel.SetTargetGraph(finalDisplayGraph);
 		}
 
 		void RegenerateGraphPreviewImages()
 		{
-			data.graphView.RegenerateAllNodePreviewImages(true);
+			data.mainPanel.RegenerateGraphPreviewImages();
 		}
 
-		public VTEditorGraphView GetGraphView()
+		void SetDisplayProperties(bool v)
 		{
-			return data.graphView;
+			data.displayPropertiesPanel = v;
+			data.mainPanel.SetDisplayPropertiesPanel(v);
 		}
 
 		//RENDERING
@@ -317,42 +328,22 @@ namespace RobProductions.VisualTerrain.Editor
 
 			var toolbarHeight = EditorStyles.toolbar.CalcHeight(GUIContent.none, position.width);
 
-			var mainScreenRect = new Rect(0.0f, toolbarHeight, position.width, position.height - toolbarHeight);
-
-			//Draw the graph view underneath the main panel
-
-			var currentSetupWidth = 0.0f;
-			if(data.displayPropertiesPanel)
+			var mainPanelRect = new Rect(0.0f, toolbarHeight, position.width, position.height - toolbarHeight);
+			var setupPanelWidth = 0.0f;
+			if (data.displayPropertiesPanel)
 			{
-				currentSetupWidth = 250.0f;
+				setupPanelWidth = defaultSetupPanelWidth;
 			}
+			var setupPanelRect = new Rect(mainPanelRect.x, mainPanelRect.y, setupPanelWidth, mainPanelRect.height);
 
-			var graphViewRect = new Rect(
-				mainScreenRect.x + currentSetupWidth, mainScreenRect.y, mainScreenRect.width - currentSetupWidth, mainScreenRect.height);
-			data.graphView.DrawGraphView(graphViewRect);
+			//Tell main panel to draw graph view across whole screen
+			data.mainPanel.DrawGraphPanel(position, mainPanelRect, setupPanelRect);
 
 			//Draw the top toolbar
 			DrawToolbar();
 
 			//Then draw the setup view if needed
-			var setupViewRect = new Rect(mainScreenRect.x, mainScreenRect.y, currentSetupWidth, mainScreenRect.height);
-			if (data.displayPropertiesPanel)
-			{
-				var setupMode = VTEditorSetupView.SetupViewMode.AssetSettings;
-				var currentSelectedNodes = data.graphView.GetSelectedGraphNodes();
-				if(currentSelectedNodes.Count > 1)
-				{
-					setupMode = VTEditorSetupView.SetupViewMode.MultiNodeProperties;
-				}
-				else if (currentSelectedNodes.Count == 1)
-				{
-					setupMode = VTEditorSetupView.SetupViewMode.NodeProperties;
-
-					data.setupView.SetEditingNode(currentSelectedNodes[0]);
-				}
-				data.setupView.SetSetupViewMode(setupMode);
-				data.setupView.DrawSetupView(setupViewRect);
-			}
+			data.mainPanel.DrawPropertiesPanel(position, mainPanelRect, setupPanelRect);
 
 			//Expand window space to bottom
 			GUILayout.FlexibleSpace();
@@ -363,19 +354,19 @@ namespace RobProductions.VisualTerrain.Editor
 			//Process input
 			var currentEvent = Event.current;
 			bool doGraphEvent = false;
-			bool doPropertiesEvent = false;
+			bool doSetupEvent = false;
 			bool handledGraphEvent = false;
-			bool handledPropertiesEvent = false;
+			bool handledSetupEvent = false;
 
 			if(currentEvent.isMouse)
 			{
 				//For mouse events, we want to know if the pointer is
 				//inside the bounds of each view
-				if(mainScreenRect.Contains(currentEvent.mousePosition))
+				if(mainPanelRect.Contains(currentEvent.mousePosition))
 				{
-					if(setupViewRect.Contains(currentEvent.mousePosition))
+					if(setupPanelRect.Contains(currentEvent.mousePosition))
 					{
-						doPropertiesEvent = true;
+						doSetupEvent = true;
 					}
 					else
 					{
@@ -386,16 +377,16 @@ namespace RobProductions.VisualTerrain.Editor
 			else
 			{
 				doGraphEvent = true;
-				doPropertiesEvent = true;
+				doSetupEvent = true;
 			}
 
-			if (doPropertiesEvent)
+			if (doSetupEvent)
 			{
-				handledPropertiesEvent = data.setupView.ProcessEvents(currentEvent);
+				handledSetupEvent = data.mainPanel.ProcessSetupEvents(currentEvent);
 			}
 			if(doGraphEvent)
 			{
-				handledGraphEvent = data.graphView.ProcessEvents(currentEvent);
+				handledGraphEvent = data.mainPanel.ProcessGraphEvents(currentEvent);
 			}
 
 			//Check for GUI change
@@ -414,11 +405,6 @@ namespace RobProductions.VisualTerrain.Editor
 
 				Repaint();
 			}
-
-			/*
-			//Reset scale to draw non-scaled elements
-			//GUI.matrix = oldMatrix;
-			*/
 		}
 
 		private class MoreOptionsPopup : PopupWindowContent
@@ -464,7 +450,7 @@ namespace RobProductions.VisualTerrain.Editor
 					var newDisplayPropertiesBool = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
 					if(newDisplayPropertiesBool != data.displayPropertiesPanel)
 					{
-						data.displayPropertiesPanel = newDisplayPropertiesBool;
+						SetDisplayProperties(newDisplayPropertiesBool);
 						SetStoredDisplayProperties(data.displayPropertiesPanel);
 					}
 

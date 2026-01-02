@@ -10,6 +10,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		public virtual string NodeTitle { get => "Unnamed Node"; }
 		public virtual bool HasNodeProperties { get => false; }
 		public virtual bool HasDisableButton { get => false; }
+		public virtual bool SubGraphNode { get => false; }
 
 		[SerializeField, SerializeReference]
 		public VTGraphConnectionSlot[] inputConnections;

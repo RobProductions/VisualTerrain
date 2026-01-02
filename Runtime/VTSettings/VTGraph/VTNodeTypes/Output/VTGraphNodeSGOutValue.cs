@@ -1,4 +1,3 @@
-using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -10,6 +9,10 @@ namespace RobProductions.VisualTerrain.Runtime
 	{
 		public override string NodeTitle => "Sub Graph Output";
 		public override bool HasNodeProperties => true;
+		public override bool SubGraphNode => true;
+
+		[SerializeField]
+		public int outputSlotOrder = 0;
 
 		public VTGraphNodeSGOutValue()
 		{
@@ -40,15 +43,13 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			/*
-			ArithmeticOperation operationValue = (ArithmeticOperation)EditorGUILayout.EnumPopup("Operation", operation);
-			if (operationValue != operation)
+			var orderValue = EditorGUILayout.IntField("Output Slot Order", outputSlotOrder);
+			if (orderValue != outputSlotOrder)
 			{
 				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				operation = operationValue;
+				outputSlotOrder = orderValue;
 				endEditNodePropertyEvent?.Invoke(this);
 			}
-			*/
 		}
 	}
 }

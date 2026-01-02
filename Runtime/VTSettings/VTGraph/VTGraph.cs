@@ -237,8 +237,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			else
 			{
 				//Just set the default value
-				slot.SetRangeGridValue(slot.defaultRangeGridValue);
-				slot.SetFloatValue(slot.defaultFloatValue);
+				bool calculatingSubgraphNode = slot.parentNode.SubGraphNode && settings.calculatingSubgraph;
+				if(!calculatingSubgraphNode)
+				{
+					//But only if we're not calculating a node for an unseen subgraph 
+					slot.SetRangeGridValue(slot.defaultRangeGridValue);
+					slot.SetFloatValue(slot.defaultFloatValue);
+				}
 			}
 		}
 

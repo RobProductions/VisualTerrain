@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
@@ -46,15 +47,67 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public int GetSubGraphInputCount()
 		{
-			return 1;
+			return GetSubGraphInputNodeList().Count;
 		}
 
 		public int GetSubGraphOutputCount()
 		{
-			return 0;
+			return GetSubGraphOutputNodeList().Count;
 		}
 
-		//TODO: Get input and output node by index
+		public VTGraphNodeSGInValue GetSubGraphInputNode(int index)
+		{
+			var inputList = GetSubGraphInputNodeList();
+
+			if(index >= 0 && index < inputList.Count)
+			{
+				return inputList[index];
+			}
+
+			return null;
+		}
+
+		public VTGraphNodeSGOutValue GetSubGraphOutputNode(int index)
+		{
+			var outputList = GetSubGraphOutputNodeList();
+
+			if(index >= 0 && index < outputList.Count)
+			{
+				return outputList[index];
+			}
+
+			return null;
+		}
+
+		public List<VTGraphNodeSGInValue> GetSubGraphInputNodeList()
+		{
+			List<VTGraphNodeSGInValue> inputList = new List<VTGraphNodeSGInValue>();
+
+			foreach (VTGraphNode thisNode in subGraph.nodeList)
+			{
+				if (thisNode is VTGraphNodeSGInValue)
+				{
+					inputList.Add(thisNode as VTGraphNodeSGInValue);
+				}
+			}
+
+			return inputList.OrderBy(thisNode => thisNode.NodePosition.y).OrderBy(thisNode => thisNode.inputSlotOrder).ToList();
+		}
+
+		public List<VTGraphNodeSGOutValue> GetSubGraphOutputNodeList()
+		{
+			List<VTGraphNodeSGOutValue> outputList = new List<VTGraphNodeSGOutValue>();
+
+			foreach (VTGraphNode thisNode in subGraph.nodeList)
+			{
+				if (thisNode is VTGraphNodeSGOutValue)
+				{
+					outputList.Add(thisNode as VTGraphNodeSGOutValue);
+				}
+			}
+
+			return outputList.OrderBy(thisNode => thisNode.NodePosition.y).OrderBy(thisNode => thisNode.outputSlotOrder).ToList();
+		}
 
 		//VALIDATION
 
