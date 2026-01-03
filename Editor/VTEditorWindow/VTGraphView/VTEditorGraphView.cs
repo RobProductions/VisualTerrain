@@ -833,6 +833,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
 
 			//Mask
+			menu.AddItem(new GUIContent("Add Mask Node/Combine Mask"), false, () => CreateNodeAtPosition<VTGraphNodeCombineMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
