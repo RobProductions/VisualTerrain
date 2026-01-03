@@ -62,6 +62,16 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//NODES
 
+		public VTGraphNode CreateNode<T>(T existingNode) where T : VTGraphNode, new ()
+		{
+			return CreateNode<T>();
+		}
+
+		public VTGraphNode CreateNode<T>(T existingNode, Vector2 startingPosition) where T : VTGraphNode, new()
+		{
+			return CreateNode<T>(startingPosition);
+		}
+
 		public VTGraphNode CreateNode<T>() where T : VTGraphNode, new()
 		{
 			return CreateNode<T>(Vector2.zero);
@@ -77,12 +87,45 @@ namespace RobProductions.VisualTerrain.Runtime
 			return newNode;
 		}
 
+		/// <summary>
+		/// Create a node with the given runtime type.
+		/// If the type is not accepted, prints an error and returns null.
+		/// </summary>
+		/// <param name="nodeType"></param>
+		/// <param name="startingPosition"></param>
+		/// <returns></returns>
+		public VTGraphNode CreateNode(System.Type nodeType, Vector2 startingPosition)
+		{
+			if (!typeof(VTGraphNode).IsAssignableFrom(nodeType))
+			{
+				VTLog.LogError("NodeType " + nodeType.ToString() + " is not inherited from VTGraphNode in VTGraph.CreateNode()!");
+				return null;
+			}
+
+			VTGraphNode newNode = (VTGraphNode)Activator.CreateInstance(nodeType);
+			AddNode(newNode);
+
+			SetNodePosition(newNode, startingPosition);
+
+			return newNode;
+		}
+
+		/// <summary>
+		/// Add the node to this graph's nodelist and set the parent graph
+		/// of the node to this.
+		/// </summary>
+		/// <param name="node"></param>
 		public void AddNode(VTGraphNode node)
 		{
 			node.SetParentGraph(this);
 			nodeList.Add(node);
 		}
 
+		/// <summary>
+		/// Remove the node from the graph's nodelist and clear
+		/// the parent graph reference.
+		/// </summary>
+		/// <param name="node"></param>
 		public void RemoveNode(VTGraphNode node)
 		{
 			if(!nodeList.Contains(node))

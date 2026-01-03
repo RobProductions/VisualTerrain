@@ -129,6 +129,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private GraphViewData data = new GraphViewData();
 
+		private readonly Vector2 defaultDuplicateOffsetValue = new Vector2(60.0f, 80.0f);
+
 		private VTEditorMainPanel mainPanel;
 
 		public VTEditorGraphView(VTEditorMainPanel mainPanel)
@@ -324,6 +326,38 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//NODE/GRAPH INTERACTIONS
 
+		/// <summary>
+		/// Duplicate all nodes in the list and move them individually
+		/// by the offset value. Note that this does not yet
+		/// copy node properties... that's tough.
+		/// </summary>
+		/// <param name="nodeList"></param>
+		/// <param name="offsetPosition"></param>
+		void DuplicateNodesWithOffset(List<VTGraphNode> nodeList, Vector2 offsetPosition)
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			mainPanel.RegisterAssetDataUndo("Duplicated Nodes");
+			foreach(VTGraphNode thisNode in nodeList)
+			{
+				//For each node, create a new one of the same type
+				var newNodePosition = thisNode.NodePosition + offsetPosition;
+
+				data.currentGraph.CreateNode(thisNode.GetType(), newNodePosition);
+			}
+			RegenerateAllNodePreviewImages(true);
+			mainPanel.EditedAsset();
+		}
+
+		/// <summary>
+		/// Create a node at the given position and mark
+		/// the asset as edited with undo data.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="position"></param>
 		void CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
 		{
 			if(data.currentGraph == null)
@@ -338,6 +372,11 @@ namespace RobProductions.VisualTerrain.Editor
 			mainPanel.EditedAsset();
 		}
 
+		/// <summary>
+		/// Delete the given nodes from the graph and mark
+		/// the asset as edited with undo data.
+		/// </summary>
+		/// <param name="nodeList"></param>
 		void DeleteNodes(List<VTGraphNode> nodeList)
 		{
 			if(data.currentGraph == null)
@@ -771,6 +810,18 @@ namespace RobProductions.VisualTerrain.Editor
 						SetViewScale(1.0f, GetOffsetZoomCenterPoint());
 						GUI.changed = true;
 					}
+					else if (e.keyCode == KeyCode.D)
+					{
+						if(e.control || e.command)
+						{
+							//Duplicate selected nodes
+							if(data.selectedGraphNodes.Count > 0)
+							{
+								DuplicateNodesWithOffset(data.selectedGraphNodes, defaultDuplicateOffsetValue);
+								GUI.changed = true;
+							}
+						}
+					}
 					break;
 			}
 
@@ -831,8 +882,10 @@ namespace RobProductions.VisualTerrain.Editor
 			//Math
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
+			menu.AddItem(new GUIContent("Add Math Node/Translation"), false, () => CreateNodeAtPosition<VTGraphNodeTranslation>(mousePosition));
 
 			//Mask
+			menu.AddItem(new GUIContent("Add Mask Node/Combine Mask"), false, () => CreateNodeAtPosition<VTGraphNodeCombineMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
