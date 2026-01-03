@@ -21,10 +21,44 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public VTGraphDisplayData displayData = new VTGraphDisplayData();
 
+		public enum GraphType
+		{
+			Height = 0,
+			Texture = 1,
+			TerrainObject = 2,
+			CustomObject = 3,
+			SubGraph = 4
+		}
+
+		[SerializeField]
+		public GraphType graphType = GraphType.Height;
+
 		[SerializeField, SerializeReference]
 		public List<VTGraphNode> nodeList = new List<VTGraphNode>();
 		[SerializeField, SerializeReference]
 		public List<VTGraphConnection> connectionsList = new List<VTGraphConnection>();
+
+		//LIFECYCLE
+
+		public void OnGraphEnable()
+		{
+			foreach(VTGraphNode thisNode in nodeList)
+			{
+				thisNode.SetParentGraph(this);
+			}
+		}
+
+		public void OnGraphDisable()
+		{
+
+		}
+
+		//GRAPH
+
+		public void SetGraphType(GraphType v)
+		{
+			graphType = v;
+		}
 
 		//NODES
 
@@ -45,6 +79,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public void AddNode(VTGraphNode node)
 		{
+			node.SetParentGraph(this);
 			nodeList.Add(node);
 		}
 
@@ -62,6 +97,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				RemoveNodeConnection(thisNodeConnections[i]);
 			}
 
+			node.SetParentGraph(null);
 			nodeList.Remove(node);
 		}
 
@@ -201,8 +237,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			else
 			{
 				//Just set the default value
-				slot.SetRangeGridValue(slot.defaultRangeGridValue);
-				slot.SetFloatValue(slot.defaultFloatValue);
+				bool calculatingSubgraphNode = slot.parentNode.SubGraphNode && settings.calculatingSubgraph;
+				if(!calculatingSubgraphNode)
+				{
+					//But only if we're not calculating a node for an unseen subgraph 
+					slot.SetRangeGridValue(slot.defaultRangeGridValue);
+					slot.SetFloatValue(slot.defaultFloatValue);
+				}
 			}
 		}
 

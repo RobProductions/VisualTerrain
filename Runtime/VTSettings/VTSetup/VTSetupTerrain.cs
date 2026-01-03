@@ -71,6 +71,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public SplatmapResolution compositeSplatmapResolution = SplatmapResolution.x256;
 
 			public PostSmoothingIterations postSmoothingIterations = PostSmoothingIterations.x1;
+			public float splatStitchingPercentRadius = 0.02f;
 		}
 
 		[SerializeField]
@@ -79,6 +80,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class SetupTerrainProperties
 		{
+			public int lodPixelError = 5;
+			public int compositeStartDistance = 1000;
 			public bool raytracingSupport = false;
 		}
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,6 +36,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <returns></returns>
 		public static VTRangeGrid GetGraphHeightmapTexture(VTGraph graph, VTGraphProcessingSettings settings)
 		{
+			//Init the graph
+			graph.OnGraphEnable();
+
+			//Get the height output
 			var allNodes = graph.nodeList;
 			VTGraphNodeHeightOutput outputNode = null;
 			foreach(VTGraphNode node in allNodes)
@@ -82,6 +87,10 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public static List<SplatmapLayerContainer> GetGraphSplatmapLayers(VTGraph graph, VTGraphProcessingSettings settings)
 		{
+			//Init the graph
+			graph.OnGraphEnable();
+
+			//Get the splat output nodes
 			var ret = new List<SplatmapLayerContainer>();
 			var splatOutputNodes = new List<VTGraphNodeSplatLayerOutput>();
 			foreach(VTGraphNode node in graph.nodeList)
@@ -113,7 +122,48 @@ namespace RobProductions.VisualTerrain.Runtime
 			return ret;
 		}
 
+		public struct SubGraphOutputValue
+		{
+			public VTRangeGrid rangeGridValue;
+			public float floatValue;
+		}
+
+		/// <summary>
+		/// Retrieve the output value from a specific sub graph output node.
+		/// This will process all connected nodes in the subgraph.
+		/// </summary>
+		/// <param name="subGraphAsset"></param>
+		/// <param name="outputValueIndex"></param>
+		/// <returns></returns>
+		public static Nullable<SubGraphOutputValue> GetSubGraphOutputSlotValue(VTSubGraphAsset subGraphAsset, int outputValueIndex, VTGraphProcessingSettings parentGraphProcessingSettings)
+		{
+			var subGraph = subGraphAsset.subGraph;
+			var thisOutputNode = subGraphAsset.GetSubGraphOutputNode(outputValueIndex);
+			if(thisOutputNode != null)
+			{
+				var subGraphProcessingSettings = GenerateSubGraphProcessingSettings(parentGraphProcessingSettings);
+
+				subGraph.ProcessNode(thisOutputNode, subGraphProcessingSettings);
+				return new SubGraphOutputValue
+				{
+					rangeGridValue = thisOutputNode.GetOutputConnection().GetRangeGridValue(),
+					floatValue = thisOutputNode.GetOutputConnection().GetFloatValue(),
+				};
+			}
+
+			return null;
+		}
+
 		//UTILITY
+
+		static VTGraphProcessingSettings GenerateSubGraphProcessingSettings(VTGraphProcessingSettings parentGraphProcessingSettings)
+		{
+			return new VTGraphProcessingSettings(
+				textureGenResolutionNumber: parentGraphProcessingSettings.textureGenResolutionNumber,
+				thumbnailMode: false,
+				calculatingSubgraph: true
+			);
+		}
 
 		static VTGraphProcessingSettings GenerateAssetProcessingSettings(VTSettingsAsset asset, bool previewMode)
 		{

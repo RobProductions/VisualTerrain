@@ -396,6 +396,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				setTerrainLayers[i] = splatLayers[i].layerData;
 			}
 
+			float splatStitchingPercentRadius = Mathf.Clamp(setupProperties.terrainResolution.splatStitchingPercentRadius, 0.0f, 0.1f);
+
 			//Set the terrain layers to terrains and
 			//apply the splatmap data
 			try
@@ -519,14 +521,17 @@ namespace RobProductions.VisualTerrain.Runtime
 						{
 							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
 							{
-								//Terrain splatmaps are indexed as y,x
-								float averageValue = (
-									splatmapsList[i][y, splatmapWidth - 1, splatIndex]
-									+ splatmapsList[rightIndex][y, 0, splatIndex]
-								) * 0.5f;
+								//Create a smooth gradient between the two
+								int endXIndex = Mathf.RoundToInt(splatmapWidth * splatStitchingPercentRadius);
+								float startValue = (splatmapsList[i][y, splatmapWidth - 1, splatIndex]);
+								float endValue = splatmapsList[rightIndex][y, endXIndex, splatIndex];
 
-								splatmapsList[i][y, splatmapWidth - 1, splatIndex] = averageValue;
-								splatmapsList[rightIndex][y, 0, splatIndex] = averageValue;
+								splatmapsList[rightIndex][y, 0, splatIndex] = startValue;
+								for (int gradientIndex = 1; gradientIndex < endXIndex; gradientIndex++)
+								{
+									float gradientPercent = (float)gradientIndex / endXIndex;
+									splatmapsList[rightIndex][y, gradientIndex, splatIndex] = Mathf.Lerp(startValue, endValue, gradientPercent);
+								}
 							}
 						}
 					}
@@ -543,17 +548,28 @@ namespace RobProductions.VisualTerrain.Runtime
 						{
 							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
 							{
-								//Terrain heights are indexed as y,x
-								float averageValue = (
-									splatmapsList[i][splatmapHeight - 1, x, splatIndex]
-									+ splatmapsList[topIndex][0, x, splatIndex]
-								) * 0.5f;
+								//Create a smooth gradient between the two
+								int endYIndex = Mathf.RoundToInt(splatmapHeight * splatStitchingPercentRadius);
+								float startValue = (splatmapsList[i][splatmapHeight - 1, x, splatIndex]);
+								float endValue = splatmapsList[topIndex][endYIndex, x, splatIndex];
 
-								splatmapsList[i][splatmapHeight - 1, x, splatIndex] = averageValue;
-								splatmapsList[topIndex][0, x, splatIndex] = averageValue;
+								//splatmapsList[i][splatmapHeight - 1, x, splatIndex] = setValue;
+								splatmapsList[topIndex][0, x, splatIndex] = startValue;
+								for(int gradientIndex = 1; gradientIndex < endYIndex; gradientIndex++)
+								{
+									float gradientPercent = (float)gradientIndex / endYIndex;
+									splatmapsList[topIndex][gradientIndex, x, splatIndex] = Mathf.Lerp(startValue, endValue, gradientPercent);
+								}
 							}
 						}
 					}
+				}
+
+				//Do a pass to set final splatmaps
+				for (int i = 0; i < data.terrainRefs.Count; i++)
+				{
+					var thisRef = data.terrainRefs[i];
+					var thisData = thisRef.terrainData;
 
 					thisData.SetAlphamaps(0, 0, splatmapsList[i]);
 				}
@@ -626,6 +642,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefComponent.transform.localRotation = Quaternion.identity;
 
 				//Set properties
+				thisRefComponent.heightmapPixelError = (float)setupProperties.terrainProperties.lodPixelError;
+				thisRefComponent.basemapDistance = (float)setupProperties.terrainProperties.compositeStartDistance;
 
 #if UNITY_2022_2_OR_NEWER
 				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;

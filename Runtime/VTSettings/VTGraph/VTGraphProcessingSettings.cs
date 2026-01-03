@@ -8,16 +8,19 @@ namespace RobProductions.VisualTerrain.Runtime
 	{
 		public int textureGenResolutionNumber = 256;
 		public bool thumbnailMode = false;
+		public bool calculatingSubgraph = false;
 
 		public VTSettingsAsset contextAsset = null;
 
 		public VTGraphProcessingSettings(
 			int textureGenResolutionNumber = 256,
 			bool thumbnailMode = false,
+			bool calculatingSubgraph = false,
 			VTSettingsAsset contextAsset = null)
 		{
 			this.textureGenResolutionNumber = textureGenResolutionNumber;
 			this.thumbnailMode = thumbnailMode;
+			this.calculatingSubgraph = calculatingSubgraph;
 			this.contextAsset = contextAsset;
 		}
 	}

@@ -57,11 +57,13 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private Vector2 scrollPosition = Vector2.zero;
 
-		private VTEditorWindow parentWindow;
+		//private VTEditorWindow parentWindow;
+		private VTEditorMainPanel mainPanel;
 
-		public VTEditorSetupView(VTEditorWindow parentWindow)
+		public VTEditorSetupView(VTEditorMainPanel mainPanel)
 		{
-			this.parentWindow = parentWindow;
+			//this.parentWindow = parentWindow;
+			this.mainPanel = mainPanel;
 		}
 
 		//LIFECYCLE
@@ -153,12 +155,16 @@ namespace RobProductions.VisualTerrain.Editor
 			//Check for any changed values
 			EditorGUI.BeginChangeCheck();
 
-			var currentAsset = parentWindow.GetCurrentAsset();
-			if(currentAsset != null)
+			var hasVTAsset = mainPanel.HasVTAsset();
+			if(hasVTAsset)
 			{
 				if(setupViewMode == SetupViewMode.AssetSettings)
 				{
-					LayoutDrawAssetSettings(currentAsset.setupData);
+					var mainSettingsAsset = mainPanel.GetMainSettingsAsset();
+					if(mainSettingsAsset != null)
+					{
+						LayoutDrawAssetSettings(mainSettingsAsset.setupData);
+					}
 				}
 				else if (setupViewMode == SetupViewMode.NodeProperties)
 				{
@@ -173,7 +179,7 @@ namespace RobProductions.VisualTerrain.Editor
 			//If we changed any values, inform that we edited the asset
 			if (EditorGUI.EndChangeCheck())
 			{
-				parentWindow.EditedAsset();
+				mainPanel.EditedAsset();
 			}
 			//End the scrollview
 			GUILayout.EndScrollView();
@@ -224,25 +230,25 @@ namespace RobProductions.VisualTerrain.Editor
 			var meshWidthLength = EditorGUILayout.Vector2Field("Total Mesh Size", terrainSetup.terrainSize.meshWidthLength);
 			if (meshWidthLength != terrainSetup.terrainSize.meshWidthLength)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Mesh Width Length");
+				mainPanel.RegisterAssetStructureUndo("Edited Mesh Width Length");
 				terrainSetup.terrainSize.meshWidthLength = meshWidthLength;
 			}
 			var meshHeight = EditorGUILayout.FloatField("Mesh Height", terrainSetup.terrainSize.meshHeight);
 			if (meshHeight != terrainSetup.terrainSize.meshHeight)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Mesh Height");
+				mainPanel.RegisterAssetStructureUndo("Edited Mesh Height");
 				terrainSetup.terrainSize.meshHeight = meshHeight;
 			}
 			var meshTerrainCountX = (VTSetupTerrain.TerrainCountType)EditorGUILayout.EnumPopup("Terrain Count X", terrainSetup.terrainSize.meshTerrainCountX);
 			if (meshTerrainCountX != terrainSetup.terrainSize.meshTerrainCountX)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Mesh Terrain Count X");
+				mainPanel.RegisterAssetStructureUndo("Edited Mesh Terrain Count X");
 				terrainSetup.terrainSize.meshTerrainCountX = meshTerrainCountX;
 			}
 			var meshTerrainCountY = (VTSetupTerrain.TerrainCountType)EditorGUILayout.EnumPopup("Terrain Count Y", terrainSetup.terrainSize.meshTerrainCountY);
 			if (meshTerrainCountY != terrainSetup.terrainSize.meshTerrainCountY)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Mesh Terrain Count Y");
+				mainPanel.RegisterAssetStructureUndo("Edited Mesh Terrain Count Y");
 				terrainSetup.terrainSize.meshTerrainCountY = meshTerrainCountY;
 			}
 
@@ -251,37 +257,45 @@ namespace RobProductions.VisualTerrain.Editor
 			var heightmapRes = (VTSetupTerrain.HeightmapResolution)EditorGUILayout.EnumPopup("Heightmap Resolution", terrainSetup.terrainResolution.heightmapResolution);
 			if (heightmapRes != terrainSetup.terrainResolution.heightmapResolution)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Heightmap Resolution");
+				mainPanel.RegisterAssetStructureUndo("Edited Heightmap Resolution");
 				terrainSetup.terrainResolution.heightmapResolution = heightmapRes;
 			}
 
 			var splatmapRes = (VTSetupTerrain.SplatmapResolution)EditorGUILayout.EnumPopup("Splatmap Resolution", terrainSetup.terrainResolution.splatmapResolution);
 			if (splatmapRes != terrainSetup.terrainResolution.splatmapResolution)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Splatmap Resolution");
+				mainPanel.RegisterAssetStructureUndo("Edited Splatmap Resolution");
 				terrainSetup.terrainResolution.splatmapResolution = splatmapRes;
 			}
 
 			var compositeRes = (VTSetupTerrain.SplatmapResolution)EditorGUILayout.EnumPopup("Composite Resolution", terrainSetup.terrainResolution.compositeSplatmapResolution);
 			if (compositeRes != terrainSetup.terrainResolution.compositeSplatmapResolution)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Composite Splatmap Resolution");
+				mainPanel.RegisterAssetStructureUndo("Edited Composite Splatmap Resolution");
 				terrainSetup.terrainResolution.compositeSplatmapResolution = compositeRes;
 			}
 
 			var smoothingIterations = (VTSetupTerrain.PostSmoothingIterations)EditorGUILayout.EnumPopup("Post Smoothing", terrainSetup.terrainResolution.postSmoothingIterations);
 			if (smoothingIterations != terrainSetup.terrainResolution.postSmoothingIterations)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Post Smoothing");
+				mainPanel.RegisterAssetStructureUndo("Edited Post Smoothing");
 				terrainSetup.terrainResolution.postSmoothingIterations = smoothingIterations;
 			}
 
+			terrainSetup.terrainResolution.splatStitchingPercentRadius = 
+				DrawSetupFloatSliderField("Splat Stitching Radius", terrainSetup.terrainResolution.splatStitchingPercentRadius, 0.0f, 0.1f);
+
 			DrawLabelSeparator("Terrain Properties");
+
+			terrainSetup.terrainProperties.lodPixelError = DrawSetupIntSliderField("LOD Pixel Error", terrainSetup.terrainProperties.lodPixelError, 1, 200);
+
+			terrainSetup.terrainProperties.compositeStartDistance =
+				DrawSetupIntSliderField("Composite Start Distance", terrainSetup.terrainProperties.compositeStartDistance, 0, 20000);
 
 			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
 			if(raytracingBool != terrainSetup.terrainProperties.raytracingSupport)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Raytracing Support");
+				mainPanel.RegisterAssetStructureUndo("Edited Raytracing Support");
 				terrainSetup.terrainProperties.raytracingSupport = raytracingBool;
 			}
 
@@ -296,7 +310,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var multipleTerrainType = (VTSetupProcessing.MultipleTerrainTextureType)EditorGUILayout.EnumPopup("Multiple Terrains", processing.texture.textureMultipleTerrainHandling);
 			if (multipleTerrainType != processing.texture.textureMultipleTerrainHandling)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited Splatmap Resolution");
+				mainPanel.RegisterAssetStructureUndo("Edited Splatmap Resolution");
 				processing.texture.textureMultipleTerrainHandling = multipleTerrainType;
 			}
 
@@ -344,9 +358,9 @@ namespace RobProductions.VisualTerrain.Editor
 					VTGraphConnectionSlot.SlotValueType valueType = (VTGraphConnectionSlot.SlotValueType)EditorGUILayout.EnumPopup(thisSlot.connectionSlotName, thisSlot.valueType);
 					if(valueType != thisSlot.valueType)
 					{
-						parentWindow.RegisterAssetStructureUndo("Edited Input Value Type");
+						mainPanel.RegisterAssetStructureUndo("Edited Input Value Type");
 						thisSlot.valueType = valueType;
-						parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+						mainPanel.GetGraphView().TryUpdateOutputConnectedPreviews(node);
 					}
 
 					if(thisSlot.valueType != VTGraphConnectionSlot.SlotValueType.RangeGrid)
@@ -371,9 +385,9 @@ namespace RobProductions.VisualTerrain.Editor
 							float newFloat = (float)EditorGUILayout.FloatField("Default", thisSlot.defaultFloatValue);
 							if (newFloat != thisSlot.defaultFloatValue)
 							{
-								parentWindow.RegisterAssetStructureUndo("Edited Default Input");
+								mainPanel.RegisterAssetStructureUndo("Edited Default Input");
 								thisSlot.defaultFloatValue = newFloat;
-								parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+								mainPanel.GetGraphView().TryUpdateOutputConnectedPreviews(node);
 							}
 						}
 						EditorGUILayout.EndHorizontal();
@@ -401,12 +415,12 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void BeginEditNodeProperty(string desc)
 		{
-			parentWindow.RegisterAssetStructureUndo(desc);
+			mainPanel.RegisterAssetStructureUndo(desc);
 		}
 
 		void EndEditNodeProperty(VTGraphNode node)
 		{
-			parentWindow.GetGraphView().TryUpdateOutputConnectedPreviews(node);
+			mainPanel.GetGraphView().TryUpdateOutputConnectedPreviews(node);
 		}
 
 		//MULTI SELECT MODE
@@ -418,12 +432,38 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//UTILITY
 
+		float DrawSetupFloatSliderField(string labelName, float value, float startValue, float endValue)
+		{
+			GUILayout.Space(5f);
+			GUILayout.Label(labelName);
+
+			var sliderValue = EditorGUILayout.Slider("", value, startValue, endValue);
+			if (sliderValue != value)
+			{
+				mainPanel.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return sliderValue;
+		}
+
+		int DrawSetupIntSliderField(string labelName, int value, int startValue, int endValue)
+		{
+			GUILayout.Space(5f);
+			GUILayout.Label(labelName);
+
+			var sliderValue = EditorGUILayout.IntSlider("", value, startValue, endValue);
+			if (sliderValue != value)
+			{
+				mainPanel.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return sliderValue;
+		}
+
 		string DrawSetupStringField(string labelName, string value, bool emptyLabel)
 		{
 			var changedString = EditorGUILayout.TextField(emptyLabel ? "" : labelName, value);
 			if(changedString != value)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+				mainPanel.RegisterAssetStructureUndo("Edited " + labelName);
 			}
 			return changedString;
 		}
@@ -433,7 +473,7 @@ namespace RobProductions.VisualTerrain.Editor
 			var changedInt = EditorGUILayout.IntField(labelName, value);
 			if (changedInt != value)
 			{
-				parentWindow.RegisterAssetStructureUndo("Edited " + labelName);
+				mainPanel.RegisterAssetStructureUndo("Edited " + labelName);
 			}
 			return changedInt;
 		}

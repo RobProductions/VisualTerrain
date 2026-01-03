@@ -129,23 +129,29 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private GraphViewData data = new GraphViewData();
 
-		private VTEditorWindow parentWindow;
+		private VTEditorMainPanel mainPanel;
 
-		public VTEditorGraphView(VTEditorWindow parentWindow)
+		public VTEditorGraphView(VTEditorMainPanel mainPanel)
 		{
-			this.parentWindow = parentWindow;
+			this.mainPanel = mainPanel;
 		}
 
 		//LIFECYCLE
 
 		public void OnEnable()
 		{
-
+			if(data.currentGraph != null)
+			{
+				data.currentGraph.OnGraphEnable();
+			}
 		}
 
 		public void OnDisable()
 		{
-
+			if(data.currentGraph != null)
+			{
+				data.currentGraph.OnGraphDisable();
+			}
 		}
 
 		/// <summary>
@@ -172,10 +178,17 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(data.currentGraph != null)
 			{
-
+				//Clear old graph
+				data.currentGraph.OnGraphDisable();
 			}
 
 			data.currentGraph = newGraph;
+
+			if(data.currentGraph != null)
+			{
+				//Enable lifecycle on new graph
+				data.currentGraph.OnGraphEnable();
+			}
 
 			data.draggingNode = null;
 			data.startClickOnNode = null;
@@ -199,7 +212,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(markEditAsset)
 			{
-				parentWindow.EditedAsset();
+				mainPanel.EditedAsset();
 			}
 		}
 
@@ -225,7 +238,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
-			var currentAsset = parentWindow.GetCurrentAsset();
+			var currentAsset = mainPanel.GetMainSettingsAsset();
 			if(currentAsset != null)
 			{
 				//TODO: Maybe update processing settings based on user setting?
@@ -251,7 +264,7 @@ namespace RobProductions.VisualTerrain.Editor
 					if(node is VTGraphNodeHeightOutput && currentAsset != null)
 					{
 						currentAsset.SetCachedThumbnailHeightmapTexture(gridValue);
-						parentWindow.EditedAsset();
+						mainPanel.EditedAsset();
 					}
 				}
 				else
@@ -319,10 +332,10 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			var positionMinusOffset = (position - GetCurrentViewOffset()) / GetCurrentViewScale();
 
-			parentWindow.RegisterAssetDataUndo("Created New Node");
+			mainPanel.RegisterAssetDataUndo("Created New Node");
 			var newNode = data.currentGraph.CreateNode<T>(positionMinusOffset);
 			TryUpdateNodePreviewImage(newNode);
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void DeleteNodes(List<VTGraphNode> nodeList)
@@ -332,7 +345,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetStructureUndo("Deleted Nodes");
+			mainPanel.RegisterAssetStructureUndo("Deleted Nodes");
 
 			List<VTGraphNode> affectedNodes = new List<VTGraphNode>();
 
@@ -359,7 +372,7 @@ namespace RobProductions.VisualTerrain.Editor
 				TryUpdateOutputConnectedPreviews(affectedNode);
 			}
 
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void UpdateNodePreview(List<VTGraphNode> nodeList)
@@ -374,7 +387,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				TryUpdateNodePreviewImage(node);
 			}
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void CreateNodeConnection(VTGraphConnectionSlot slot1, VTGraphConnectionSlot slot2)
@@ -384,14 +397,14 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetStructureUndo("Connected Nodes");
+			mainPanel.RegisterAssetStructureUndo("Connected Nodes");
 			data.currentGraph.AddNodeConnection(slot1, slot2);
 
 			//Update preview of both nodes
 			TryUpdateOutputConnectedPreviews(slot1.parentNode);
 			TryUpdateOutputConnectedPreviews(slot2.parentNode);
 
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void DeleteNodeConnection(VTGraphConnection connection)
@@ -401,13 +414,13 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetStructureUndo("Disconnected Nodes");
+			mainPanel.RegisterAssetStructureUndo("Disconnected Nodes");
 			data.currentGraph.RemoveNodeConnection(connection);
 
 			//Update preview of the input node and its output
 			TryUpdateOutputConnectedPreviews(connection.inputSlot.parentNode);
 
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void SetNodesExpanded(List<VTGraphNode> nodes, bool setExpanded)
@@ -417,7 +430,7 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetStructureUndo("Set Nodes Expanded");
+			mainPanel.RegisterAssetStructureUndo("Set Nodes Expanded");
 			foreach (VTGraphNode node in nodes)
 			{
 				if(!data.currentGraph.nodeList.Contains(node))
@@ -430,7 +443,7 @@ namespace RobProductions.VisualTerrain.Editor
 				}
 				node.IsExpanded = setExpanded;
 			}
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void BringNodeToFront(VTGraphNode node)
@@ -448,9 +461,9 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if (data.currentGraph.nodeList.Count > 1 && indexOfNode != lastIndex)
 			{
-				parentWindow.RegisterAssetStructureUndo("Changed Node Order");
+				mainPanel.RegisterAssetStructureUndo("Changed Node Order");
 				data.currentGraph.SetNodeIndex(node, lastIndex);
-				parentWindow.EditedAsset();
+				mainPanel.EditedAsset();
 			}
 		}
 
@@ -461,9 +474,9 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetDataUndo("Dragged Node");
+			mainPanel.RegisterAssetDataUndo("Dragged Node");
 			data.currentGraph.SetNodePosition(node, node.NodePosition + (delta / GetCurrentViewScale()));
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void DragNodes(List<VTGraphNode> draggingNodes, Vector2 delta)
@@ -473,12 +486,12 @@ namespace RobProductions.VisualTerrain.Editor
 				return;
 			}
 
-			parentWindow.RegisterAssetDataUndo("Dragged Nodes");
+			mainPanel.RegisterAssetDataUndo("Dragged Nodes");
 			foreach(VTGraphNode node in draggingNodes)
 			{
 				data.currentGraph.SetNodePosition(node, node.NodePosition + (delta / GetCurrentViewScale()));
 			}
-			parentWindow.EditedAsset();
+			mainPanel.EditedAsset();
 		}
 
 		void DragView(Vector2 delta)
@@ -487,7 +500,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				//No need to register undo for view change
 				data.currentGraph.displayData.ViewOffset += (delta / GetCurrentViewScale());
-				parentWindow.EditedAsset();
+				mainPanel.EditedAsset();
 			}
 			else
 			{
@@ -518,7 +531,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 				var adjustFactor = (zoomCenterPoint - data.currentGraph.displayData.ViewOffset) * (data.currentGraph.displayData.ViewScale / oldScale);
 				data.currentGraph.displayData.ViewOffset = zoomCenterPoint - adjustFactor;
-				parentWindow.EditedAsset();
+				mainPanel.EditedAsset();
 			}
 			else
 			{
@@ -533,7 +546,8 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				//No need to register undo for view change
 				var accumulatedViewOffset = Vector2.zero;
-				var parentWindowCenter = new Vector2(parentWindow.position.width * 0.5f, parentWindow.position.height * 0.5f) - (styles.nodeBaseSize * 0.5f);
+
+				var parentWindowCenter = new Vector2(mainPanel.data.storedGuiWindowRect.width * 0.5f, mainPanel.data.storedGuiWindowRect.height * 0.5f) - (styles.nodeBaseSize * 0.5f);
 				if(optionalFocusNodes != null && optionalFocusNodes.Count > 0)
 				{
 					foreach (VTGraphNode node in optionalFocusNodes)
@@ -552,7 +566,7 @@ namespace RobProductions.VisualTerrain.Editor
 				}
 
 				data.currentGraph.displayData.ViewOffset = accumulatedViewOffset;
-				parentWindow.EditedAsset();
+				mainPanel.EditedAsset();
 			}
 			else
 			{
@@ -800,14 +814,19 @@ namespace RobProductions.VisualTerrain.Editor
 
 		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
 		{
-			//TODO: Restrict node types by graph type
-
 			//Test
 			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
 
 			//Input
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
-			menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+			}
+			if (data.currentGraph.graphType == VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Input Node/Sub Graph Input"), false, () => CreateNodeAtPosition<VTGraphNodeSGInValue>(mousePosition));
+			}
 
 			//Math
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
@@ -817,9 +836,25 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
+			//Processing
+			if(data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Processing Node/Sub Graph"), false, () => CreateNodeAtPosition<VTGraphNodeSubGraph>(mousePosition));
+			}
+
 			//Output
-			menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
-			menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
+			if(data.currentGraph.graphType == VTGraph.GraphType.Height)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Height Output"), false, () => CreateNodeAtPosition<VTGraphNodeHeightOutput>(mousePosition));
+			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.Texture)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
+			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.SubGraph)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Sub Graph Output"), false, () => CreateNodeAtPosition<VTGraphNodeSGOutValue>(mousePosition));
+			}
 		}
 
 		void ClearSelectedGraphNodes()
@@ -873,7 +908,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//RENDERING
 
-		public void DrawGraphView(Rect graphViewRect)
+		public void DrawGraphView(Rect guiWindowRect, Rect graphViewRect)
 		{
 			//Cache the render rect for later
 			data.currentRenderRect = graphViewRect;
@@ -891,9 +926,9 @@ namespace RobProductions.VisualTerrain.Editor
 			if(GetCurrentViewScale() >= stopSmallGridAtScale)
 			{
 				largeGridOpacity = 0.25f;
-				DrawGrid(styles.grid1Spacing, 0.1f, Color.black, styles.gridLineWidth, graphViewRect);
+				DrawGrid(styles.grid1Spacing, 0.1f, Color.black, styles.gridLineWidth, guiWindowRect, graphViewRect);
 			}
-			DrawGrid(styles.grid2Spacing, largeGridOpacity, Color.black, styles.gridLineWidth, graphViewRect);
+			DrawGrid(styles.grid2Spacing, largeGridOpacity, Color.black, styles.gridLineWidth, guiWindowRect, graphViewRect);
 
 			//Draw nodes
 			DrawGraphConnections();
@@ -1013,9 +1048,9 @@ namespace RobProductions.VisualTerrain.Editor
 				//GUI.DrawTexture(disableButtonRect, node.IsDisabled ? styles.nodeDisabledTexture : styles.nodeEnabledTexture);
 				if(GUI.Button(disableButtonRect, content))
 				{
-					parentWindow.RegisterAssetStructureUndo("Toggled Node Disabled");
+					mainPanel.RegisterAssetStructureUndo("Toggled Node Disabled");
 					node.IsDisabled = !node.IsDisabled;
-					parentWindow.EditedAsset();
+					mainPanel.EditedAsset();
 				}
 
 				GUI.backgroundColor = disableButtonDefaultBGColor;
@@ -1359,7 +1394,7 @@ namespace RobProductions.VisualTerrain.Editor
 			GUI.color = defaultColor;
 		}
 
-		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor, float lineWidth, Rect graphViewRect)
+		private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor, float lineWidth, Rect guiWindowRect, Rect graphViewRect)
 		{
 			Handles.BeginGUI();
 			Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
@@ -1370,8 +1405,8 @@ namespace RobProductions.VisualTerrain.Editor
 			//Number of divisions is based on width/height of parent window
 			//since we're drawing outside of the graphview bounds (underneath setup view)
 			float extraDivsMultiplier = 1.1f;
-			int widthDivs = Mathf.CeilToInt((parentWindow.position.width / finalSpacingAmount) * extraDivsMultiplier);
-			int heightDivs = Mathf.CeilToInt((parentWindow.position.height / finalSpacingAmount) * extraDivsMultiplier);
+			int widthDivs = Mathf.CeilToInt((guiWindowRect.width / finalSpacingAmount) * extraDivsMultiplier);
+			int heightDivs = Mathf.CeilToInt((guiWindowRect.height / finalSpacingAmount) * extraDivsMultiplier);
 
 			var viewOffsetPos = GetCurrentViewOffset();
 			float gridStartOffsetX = viewOffsetPos.x % finalSpacingAmount;
@@ -1384,7 +1419,7 @@ namespace RobProductions.VisualTerrain.Editor
 				//Draw lines on every finalSpacingAmount from top to bottom of the rect
 				float xPos = gridStartOffsetX + (finalSpacingAmount * i);
 				var startPos = new Vector3(xPos, 0f, 0f);
-				var endPos = new Vector3(xPos, parentWindow.position.height * extraLengthMultiplier, 0f);
+				var endPos = new Vector3(xPos, guiWindowRect.height * extraLengthMultiplier, 0f);
 
 				Handles.DrawLine(startPos, endPos, lineWidth);
 			}
@@ -1394,7 +1429,7 @@ namespace RobProductions.VisualTerrain.Editor
 				//Draw lines on every finalSpacingAmount from left to right of the rect
 				float yPos = gridStartOffsetY + (finalSpacingAmount * j);
 				var startPos = new Vector3(0, yPos, 0);
-				var endPos = new Vector3(parentWindow.position.width * extraLengthMultiplier, yPos, 0f);
+				var endPos = new Vector3(guiWindowRect.width * extraLengthMultiplier, yPos, 0f);
 
 				Handles.DrawLine(startPos, endPos, lineWidth);
 			}

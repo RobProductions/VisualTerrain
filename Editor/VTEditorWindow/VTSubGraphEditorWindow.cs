@@ -1,79 +1,63 @@
-
 #if UNITY_EDITOR
 
 using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using UnityEditor;
 using UnityEngine;
+using static RobProductions.VisualTerrain.Editor.VTEditorWindow;
 
 namespace RobProductions.VisualTerrain.Editor
 {
-	public class VTEditorWindow : EditorWindow
+	public class VTSubGraphEditorWindow : EditorWindow
 	{
-		private const string windowName = "Visual Terrain Editor";
+		private const string windowName = "VT Sub Graph Editor";
 
-		private class EditorWindowStyles
+		private class SubGraphEditorWindowStyles
 		{
 			public GUIStyle propertiesButtonStyle;
 			public GUIStyle moreOptionsButtonStyle;
-			public GUIStyle previewButtonStyle;
 
 			public GUIContent moreOptionsContent;
 			public GUIContent displayPropertiesContent;
-			public GUIContent previewToggleContent;
 
-			public EditorWindowStyles()
+			public SubGraphEditorWindowStyles()
 			{
 				moreOptionsContent = EditorGUIUtility.IconContent("_Menu@2x");
 				moreOptionsContent.tooltip = "Show additional window options.";
 				displayPropertiesContent = new GUIContent("Properties");
 				displayPropertiesContent.tooltip = "Toggle properties panel display.";
-				previewToggleContent = EditorGUIUtility.IconContent("ViewToolOrbit@2x");
-				previewToggleContent.tooltip = "Toggle preview mode.";
 
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
-				previewButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
-				previewButtonStyle.padding = new RectOffset(8, 8, 2, 2);
 			}
 		}
 
-		private EditorWindowStyles styles;
+		private SubGraphEditorWindowStyles styles;
 
-		public enum VTGraphScreen
+		private class VTSubGraphEditorWindowData
 		{
-			Heightmap = 0,
-			Texture = 1,
-		}
-
-		private class VTEditorWindowData
-		{
-			public VTGraphScreen currentGraphScreen = VTGraphScreen.Heightmap;
+			public VTEditorMainPanel mainPanel;
 
 			public bool displayPropertiesPanel = false;
 
-			public VTEditorMainPanel mainPanel;
-
-			public VTSettingsAsset currentAsset = null;
+			public VTSubGraphAsset currentAsset = null;
 			public bool windowActive = false;
 		}
 
-		private VTEditorWindowData data = new VTEditorWindowData();
+		private VTSubGraphEditorWindowData data = new VTSubGraphEditorWindowData();
 
 		private const float defaultSetupPanelWidth = 250.0f;
 
-		private const string storeAssetKey = "RobProductions.VisualTerrain.VTSettingsAsset";
-		private const string storeDisplayPropertiesKey = "RobProductions.VisualTerrain.DisplayProperties";
-		private const string storeGraphScreenKey = "RobProductions.VisualTerrain.CurrentGraphScreen";
+		private const string storeSubGraphAssetKey = "RobProductions.VisualTerrain.VTSubGraphAsset";
+		private const string storeSubGraphDisplayPropertiesKey = "RobProductions.VisualTerrain.SubGraphDisplayProperties";
 
 		//LIFECYCLE
 
-		[MenuItem("Window/Visual Terrain/Visual Terrain Editor")]
+		[MenuItem("Window/Visual Terrain/VT Sub Graph Editor")]
 		private static void OpenWindow()
 		{
-			VTEditorWindow window = GetWindow<VTEditorWindow>();
+			VTSubGraphEditorWindow window = GetWindow<VTSubGraphEditorWindow>();
 			window.titleContent = new GUIContent(windowName);
 			window.OnEnable();
 		}
@@ -83,12 +67,12 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			string assetPath = AssetDatabase.GetAssetPath(instanceID);
 
-			VTSettingsAsset settingsAssetObject = AssetDatabase.LoadAssetAtPath<VTSettingsAsset>(assetPath);
+			VTSubGraphAsset settingsAssetObject = AssetDatabase.LoadAssetAtPath<VTSubGraphAsset>(assetPath);
 			if (settingsAssetObject != null)
 			{
-				VTEditorWindow window = (VTEditorWindow)GetWindow(typeof(VTEditorWindow));
+				VTSubGraphEditorWindow window = (VTSubGraphEditorWindow)GetWindow(typeof(VTSubGraphEditorWindow));
 				window.titleContent = new GUIContent(windowName);
-				window.SetVTSettingsAsset(settingsAssetObject);
+				window.SetVTSubGraphAsset(settingsAssetObject);
 				window.Show();
 				return true;
 			}
@@ -98,6 +82,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnEnable()
 		{
+			
 			Undo.undoRedoPerformed += UndoPerformed;
 
 			data.mainPanel = new VTEditorMainPanel();
@@ -107,14 +92,14 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent += RegisterAssetStructureUndo;
 			data.mainPanel.events.onRegisterAssetDataUndoEvent += RegisterAssetDataUndo;
 
+			
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
 			CheckLoadStoredAsset();
 			//Preload stored EditorWindow data
 			CheckStoredDisplayProperties();
-			CheckStoredCurrentGraphScreen();
 			//Then set the asset to refresh all associated data based on EditorWindow data
-			SetVTSettingsAsset(data.currentAsset);
+			SetVTSubGraphAsset(data.currentAsset);
 
 			data.windowActive = true;
 		}
@@ -134,89 +119,33 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//ASSET MANAGEMENT
 
-		public VTSettingsAsset GetCurrentAsset()
+		public VTSubGraphAsset GetCurrentAsset()
 		{
 			return data.currentAsset;
 		}
 
-		public void ClearVTSettingsAsset()
+		public void ClearVTSubGraphAsset()
 		{
-			SetVTSettingsAsset(null);
+			SetVTSubGraphAsset(null);
 		}
 
-		public void SetVTSettingsAsset(VTSettingsAsset newAsset)
+		public void SetVTSubGraphAsset(VTSubGraphAsset newAsset)
 		{
-			//Set our current stored asset so that it can be read later
+			//Store the sub graph asset for later
 			SetStoredAsset(newAsset);
 
-			//Set the current settings asset
+			//Set the sub graph asset
 			data.currentAsset = newAsset;
-			data.mainPanel.SetMainSettingsAsset(newAsset);
 			data.mainPanel.SetVTHasVTAsset(newAsset != null);
 
-			//Refresh the target graph
+			//Refresh screen data and values
 			RefreshGraphScreen();
 
-			//Reset values and redraw the screen
-			if(newAsset == null)
+			if (newAsset == null)
 			{
 				SetDisplayProperties(false);
 			}
 			Repaint();
-		}
-
-		void CheckLoadStoredAsset()
-		{
-			if(EditorPrefs.HasKey(storeAssetKey))
-			{
-				var retrievedPath = EditorPrefs.GetString(storeAssetKey);
-				if(retrievedPath != null && retrievedPath != "")
-				{
-					data.currentAsset = AssetDatabase.LoadAssetAtPath<VTSettingsAsset>(retrievedPath);
-				}
-			}
-		}
-
-		void SetStoredAsset(VTSettingsAsset storedAsset)
-		{
-			var finalPath = "";
-			if(storedAsset != null)
-			{
-				finalPath = AssetDatabase.GetAssetPath(storedAsset);
-			}
-			EditorPrefs.SetString(storeAssetKey, finalPath);
-		}
-
-		void CheckStoredDisplayProperties()
-		{
-			if(EditorPrefs.HasKey(storeDisplayPropertiesKey))
-			{
-				if(data.currentAsset != null)
-				{
-					SetDisplayProperties(EditorPrefs.GetBool(storeDisplayPropertiesKey, false));
-				}
-			}
-		}
-
-		void SetStoredDisplayProperties(bool v)
-		{
-			EditorPrefs.SetBool(storeDisplayPropertiesKey, v);
-		}
-
-		void CheckStoredCurrentGraphScreen()
-		{
-			if(EditorPrefs.HasKey(storeGraphScreenKey))
-			{
-				if(data.currentAsset != null)
-				{
-					data.currentGraphScreen = (VTGraphScreen)EditorPrefs.GetInt(storeGraphScreenKey, 0);
-				}
-			}
-		}
-
-		void SetStoredCurrentGraphScreen(VTGraphScreen screen)
-		{
-			EditorPrefs.SetInt(storeGraphScreenKey, (int)screen);
 		}
 
 		/// <summary>
@@ -228,7 +157,7 @@ namespace RobProductions.VisualTerrain.Editor
 		/// <param name="description"></param>
 		public void RegisterAssetDataUndo(string description)
 		{
-			if(data.currentAsset == null)
+			if (data.currentAsset == null)
 			{
 				return;
 			}
@@ -245,7 +174,7 @@ namespace RobProductions.VisualTerrain.Editor
 		/// <param name="description"></param>
 		public void RegisterAssetStructureUndo(string description)
 		{
-			if(data.currentAsset == null)
+			if (data.currentAsset == null)
 			{
 				return;
 			}
@@ -260,12 +189,50 @@ namespace RobProductions.VisualTerrain.Editor
 		/// </summary>
 		public void EditedAsset()
 		{
-			if(data.currentAsset == null)
+			if (data.currentAsset == null)
 			{
 				return;
 			}
 
 			EditorUtility.SetDirty(data.currentAsset);
+		}
+
+		void CheckLoadStoredAsset()
+		{
+			if (EditorPrefs.HasKey(storeSubGraphAssetKey))
+			{
+				var retrievedPath = EditorPrefs.GetString(storeSubGraphAssetKey);
+				if (retrievedPath != null && retrievedPath != "")
+				{
+					data.currentAsset = AssetDatabase.LoadAssetAtPath<VTSubGraphAsset>(retrievedPath);
+				}
+			}
+		}
+
+		void SetStoredAsset(VTSubGraphAsset storedAsset)
+		{
+			var finalPath = "";
+			if (storedAsset != null)
+			{
+				finalPath = AssetDatabase.GetAssetPath(storedAsset);
+			}
+			EditorPrefs.SetString(storeSubGraphAssetKey, finalPath);
+		}
+
+		void CheckStoredDisplayProperties()
+		{
+			if (EditorPrefs.HasKey(storeSubGraphDisplayPropertiesKey))
+			{
+				if (data.currentAsset != null)
+				{
+					SetDisplayProperties(EditorPrefs.GetBool(storeSubGraphDisplayPropertiesKey, false));
+				}
+			}
+		}
+
+		void SetStoredDisplayProperties(bool v)
+		{
+			EditorPrefs.SetBool(storeSubGraphDisplayPropertiesKey, v);
 		}
 
 		/// <summary>
@@ -285,21 +252,11 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			VTGraph finalDisplayGraph = null;
 
-			if(data.currentAsset != null)
+			if (data.currentAsset != null)
 			{
-				//Ensure graph types are set
-				data.currentAsset.generationData.heightmapGraph.SetGraphType(VTGraph.GraphType.Height);
-				data.currentAsset.generationData.textureGraph.SetGraphType(VTGraph.GraphType.Texture);
-
-				//Get the final display graph
-				if (data.currentGraphScreen == VTGraphScreen.Heightmap)
-				{
-					finalDisplayGraph = data.currentAsset.generationData.heightmapGraph;
-				}
-				else if (data.currentGraphScreen == VTGraphScreen.Texture)
-				{
-					finalDisplayGraph = data.currentAsset.generationData.textureGraph;
-				}
+				//Ensure graph type is set
+				data.currentAsset.subGraph.SetGraphType(VTGraph.GraphType.SubGraph);
+				finalDisplayGraph = data.currentAsset.subGraph;
 			}
 
 			data.mainPanel.SetTargetGraph(finalDisplayGraph);
@@ -321,9 +278,9 @@ namespace RobProductions.VisualTerrain.Editor
 		private void OnGUI()
 		{
 			//Create the GUI styles
-			if(styles == null)
+			if (styles == null)
 			{
-				styles = new EditorWindowStyles();
+				styles = new SubGraphEditorWindowStyles();
 			}
 
 			var toolbarHeight = EditorStyles.toolbar.CalcHeight(GUIContent.none, position.width);
@@ -340,7 +297,7 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.DrawGraphPanel(position, mainPanelRect, setupPanelRect);
 
 			//Draw the top toolbar
-			DrawToolbar();
+			DrawSubGraphToolbar();
 
 			//Then draw the setup view if needed
 			data.mainPanel.DrawPropertiesPanel(position, mainPanelRect, setupPanelRect);
@@ -358,13 +315,13 @@ namespace RobProductions.VisualTerrain.Editor
 			bool handledGraphEvent = false;
 			bool handledSetupEvent = false;
 
-			if(currentEvent.isMouse)
+			if (currentEvent.isMouse)
 			{
 				//For mouse events, we want to know if the pointer is
 				//inside the bounds of each view
-				if(mainPanelRect.Contains(currentEvent.mousePosition))
+				if (mainPanelRect.Contains(currentEvent.mousePosition))
 				{
-					if(setupPanelRect.Contains(currentEvent.mousePosition))
+					if (setupPanelRect.Contains(currentEvent.mousePosition))
 					{
 						doSetupEvent = true;
 					}
@@ -384,7 +341,7 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				handledSetupEvent = data.mainPanel.ProcessSetupEvents(currentEvent);
 			}
-			if(doGraphEvent)
+			if (doGraphEvent)
 			{
 				handledGraphEvent = data.mainPanel.ProcessGraphEvents(currentEvent);
 			}
@@ -409,31 +366,31 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private class MoreOptionsPopup : PopupWindowContent
 		{
-			VTEditorWindow parentWindow;
+			VTSubGraphEditorWindow parentWindow;
 
-			public MoreOptionsPopup(VTEditorWindow parentWindow)
+			public MoreOptionsPopup(VTSubGraphEditorWindow parentWindow)
 			{
 				this.parentWindow = parentWindow;
 			}
 
 			public override void OnGUI(Rect rect)
 			{
-				if(GUILayout.Button("Refresh UI"))
+				if (GUILayout.Button("Refresh UI"))
 				{
 					parentWindow.Repaint();
 				}
 
-				if(parentWindow.data.currentAsset != null)
+				if (parentWindow.data.currentAsset != null)
 				{
-					if(GUILayout.Button("Clear Asset"))
+					if (GUILayout.Button("Clear Asset"))
 					{
-						parentWindow.ClearVTSettingsAsset();
+						parentWindow.ClearVTSubGraphAsset();
 					}
 				}
 			}
 		}
 
-		private void DrawToolbar()
+		private void DrawSubGraphToolbar()
 		{
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			{
@@ -448,7 +405,7 @@ namespace RobProductions.VisualTerrain.Editor
 					var propertiesStyle = styles.propertiesButtonStyle;
 
 					var newDisplayPropertiesBool = GUILayout.Toggle(data.displayPropertiesPanel, styles.displayPropertiesContent, propertiesStyle);
-					if(newDisplayPropertiesBool != data.displayPropertiesPanel)
+					if (newDisplayPropertiesBool != data.displayPropertiesPanel)
 					{
 						SetDisplayProperties(newDisplayPropertiesBool);
 						SetStoredDisplayProperties(data.displayPropertiesPanel);
@@ -456,21 +413,24 @@ namespace RobProductions.VisualTerrain.Editor
 
 					GUILayout.Space(6f);
 
+					/*
 					var newGraphScreen = (VTGraphScreen)EditorGUILayout.EnumPopup(data.currentGraphScreen, EditorStyles.toolbarDropDown);
-					if(newGraphScreen != data.currentGraphScreen)
+					if (newGraphScreen != data.currentGraphScreen)
 					{
 						data.currentGraphScreen = newGraphScreen;
 						SetStoredCurrentGraphScreen(data.currentGraphScreen);
 						RefreshGraphScreen();
 					}
+					*/
 				}
 
 				//Middle space
 				GUILayout.FlexibleSpace();
 
 				//Right hand side
-				if(data.currentAsset != null)
+				if (data.currentAsset != null)
 				{
+					/*
 					var previewValue = GUILayout.Toggle(data.currentAsset.IsPreviewMode(), styles.previewToggleContent, styles.previewButtonStyle);
 					if (previewValue != data.currentAsset.IsPreviewMode())
 					{
@@ -489,6 +449,7 @@ namespace RobProductions.VisualTerrain.Editor
 						//Tell all managers with this asset to generate the terrain
 						VTEditorSceneInterface.GenerateTerrainsWithAsset(data.currentAsset);
 					}
+					*/
 				}
 
 			}
@@ -511,5 +472,4 @@ namespace RobProductions.VisualTerrain.Editor
 		}
 	}
 }
-
 #endif
