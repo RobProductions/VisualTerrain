@@ -889,8 +889,11 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
+			//Filter
+			menu.AddItem(new GUIContent("Add Filter Node/Box Blur"), false, () => CreateNodeAtPosition<VTGraphNodeBlur>(mousePosition));
+
 			//Processing
-			if(data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+			if (data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Processing Node/Sub Graph"), false, () => CreateNodeAtPosition<VTGraphNodeSubGraph>(mousePosition));
 			}
