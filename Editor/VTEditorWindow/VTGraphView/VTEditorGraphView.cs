@@ -866,7 +866,9 @@ namespace RobProductions.VisualTerrain.Editor
 		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
 		{
 			//Test
+			/*
 			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+			*/
 
 			//Input
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
@@ -891,6 +893,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Filter
 			menu.AddItem(new GUIContent("Add Filter Node/Box Blur"), false, () => CreateNodeAtPosition<VTGraphNodeBlur>(mousePosition));
+			menu.AddItem(new GUIContent("Add Filter Node/Step"), false, () => CreateNodeAtPosition<VTGraphNodeStep>(mousePosition));
 
 			//Processing
 			if (data.currentGraph.graphType != VTGraph.GraphType.SubGraph)

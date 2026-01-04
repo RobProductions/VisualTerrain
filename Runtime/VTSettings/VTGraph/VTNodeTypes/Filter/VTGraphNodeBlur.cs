@@ -11,7 +11,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		public override bool HasNodeProperties => true;
 
 		[SerializeField]
-		public float blurRadius = 0.0f;
+		public float blurRadiusX = 0.0f;
+		[SerializeField]
+		public float blurRadiusY = 0.0f;
 
 		public VTGraphNodeBlur()
 		{
@@ -33,51 +35,77 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			if (!baseInputGrid.IsNullOrEmpty())
 			{
-				int blurCheckOffsetX = Mathf.RoundToInt(blurRadius * baseInputGrid.Width * 0.01f);
-				int blurCheckOffsetY = Mathf.RoundToInt(blurRadius * baseInputGrid.Height * 0.01f);
+				int blurCheckOffsetX = Mathf.RoundToInt(blurRadiusX * baseInputGrid.Width * 0.002f);
+				int blurCheckOffsetY = Mathf.RoundToInt(blurRadiusY * baseInputGrid.Height * 0.002f);
 
 				for (int y = 0; y < baseInputGrid.Height; y++)
 				{
+					//Blur this row with sliding window method
+					float sumValue = 0;
+					int windowSize = 0;
+
+					//Compute the average for the first pixel
+					for (int currentCheckX = 0; currentCheckX <= blurCheckOffsetX && currentCheckX < baseInputGrid.Width; currentCheckX++)
+					{
+						sumValue += baseInputGrid.GetRangeValue(currentCheckX, y);
+						windowSize++;
+					}
+
 					for (int x = 0; x < baseInputGrid.Width; x++)
 					{
-						//Blur this row
-						int horizontalCount = 0;
-						int startCheck = Mathf.Max(x - blurCheckOffsetX, 0);
-						int endCheck = Mathf.Min(baseInputGrid.Width - 1, x + blurCheckOffsetX);
-						float averageValue = baseInputGrid.GetRangeValue(x, y);
-						for(int checkIndex = startCheck; checkIndex < endCheck; checkIndex++)
+						//Compute the average for the rest of the pixels
+						//by adding right edge and subtracting left
+						int rightIndex = x + blurCheckOffsetX;
+						if (rightIndex < baseInputGrid.Width)
 						{
-							averageValue += baseInputGrid.GetRangeValue(checkIndex, y);
-							horizontalCount++;
-						}
-						if(horizontalCount > 0)
-						{
-							averageValue /= horizontalCount;
+							sumValue += baseInputGrid.GetRangeValue(rightIndex, y);
+							windowSize++;
 						}
 
-						newGrid.SetRangeValue(x, y, averageValue);
+						//And remove left edge
+						int leftIndex = x - blurCheckOffsetX - 1;
+						if (leftIndex >= 0)
+						{
+							sumValue -= baseInputGrid.GetRangeValue(leftIndex, y);
+							windowSize--;
+						}
+
+						newGrid.SetRangeValue(x, y, sumValue / windowSize);
 					}
 				}
 				for (int x = 0; x < baseInputGrid.Width; x++)
 				{
+					//Blur this column with sliding window method
+					float sumValue = 0;
+					int windowSize = 0;
+
+					//Compute the average for the first pixel
+					for (int currentCheckY = 0; currentCheckY <= blurCheckOffsetY && currentCheckY < baseInputGrid.Height; currentCheckY++)
+					{
+						sumValue += newGrid.GetRangeValue(x, currentCheckY);
+						windowSize++;
+					}
+
 					for (int y = 0; y < baseInputGrid.Height; y++)
 					{
-						//Blur this column
-						int verticalCount = 0;
-						int startCheck = Mathf.Max(y - blurCheckOffsetY, 0);
-						int endCheck = Mathf.Min(baseInputGrid.Height - 1, y + blurCheckOffsetY);
-						float averageValue = baseInputGrid.GetRangeValue(x, y);
-						for(int checkIndex = startCheck; checkIndex < endCheck; checkIndex++)
+						//Compute the average for the rest of the pixels
+						//by adding bottom edge and subtracting top
+						int bottomIndex = y + blurCheckOffsetY;
+						if (bottomIndex < baseInputGrid.Height)
 						{
-							averageValue += baseInputGrid.GetRangeValue(x, checkIndex);
-							verticalCount++;
-						}
-						if(verticalCount > 0)
-						{
-							averageValue /= verticalCount;
+							sumValue += newGrid.GetRangeValue(x, bottomIndex);
+							windowSize++;
 						}
 
-						newGrid.SetRangeValue(x, y, averageValue);
+						//And remove top edge
+						int topIndex = y - blurCheckOffsetY - 1;
+						if (topIndex >= 0)
+						{
+							sumValue -= newGrid.GetRangeValue(x, topIndex);
+							windowSize--;
+						}
+
+						newGrid.SetRangeValue(x, y, sumValue / windowSize);
 					}
 				}
 			}
@@ -96,11 +124,19 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float blurRadiusFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Blur Radius", blurRadius), 0.0f, 50f);
-			if (blurRadiusFloat != blurRadius)
+			float blurRadiusXFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Blur Radius X", blurRadiusX), 0.0f, 100f);
+			if (blurRadiusXFloat != blurRadiusX)
 			{
 				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				blurRadius = blurRadiusFloat;
+				blurRadiusX = blurRadiusXFloat;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+
+			float blurRadiusYFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Blur Radius Y", blurRadiusY), 0.0f, 100f);
+			if (blurRadiusYFloat != blurRadiusY)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				blurRadiusY = blurRadiusYFloat;
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 		}

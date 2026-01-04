@@ -632,7 +632,7 @@ namespace RobProductions.VisualTerrain.Runtime
 					individualTerrainSizeY);
 
 				//Set position
-				thisRefComponent.transform.position = new Vector3(
+				thisRefComponent.transform.localPosition = new Vector3(
 					individualTerrainSizeX * thisTerrainCol,
 					0.0f,
 					individualTerrainSizeY * thisTerrainRow
