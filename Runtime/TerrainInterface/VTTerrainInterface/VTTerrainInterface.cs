@@ -89,6 +89,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Texture graph may use the cachedHeightmap generated above
 			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
 			SetTerrainSplatTextures(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, splatContainers);
+
+			//Set the terrain tree objects
+			//Terrain object graph may use cachedHeightmap and cached splat layers
+			var treeContainers = VTGraphValueInterface.GetAssetTreeLayers(settingsAsset, manager.IsPreviewMode());
+			SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, treeContainers);
 		}
 
 		//TERRAIN HEIGHT
@@ -165,9 +170,6 @@ namespace RobProductions.VisualTerrain.Runtime
 							int pixelX = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionX), 0, heightmap.Width);
 							int pixelY = Mathf.Clamp(Mathf.FloorToInt(heightmapSamplePositionY), 0, heightmap.Height);
 							float setValue = heightmap.GetRangeValue(pixelX, pixelY);
-							
-							//TODO: Could do a pre-sample blur pass scaling heightmap up to heights resolution
-							//to clean edges and smooth a bit
 
 							//Heights are indexed as y,x
 							terrainHeights[y, x] = setValue;
@@ -455,13 +457,16 @@ namespace RobProductions.VisualTerrain.Runtime
 						else if (!thisSplatLayer.layerSplatmap.IsNullOrEmpty())
 						{
 							//Sample the splat layer alphamap texture
-							for (int y = 0; y < thisData.alphamapHeight; y++)
+							float alphamapHeight = thisData.alphamapHeight;
+							float alphamapWidth = thisData.alphamapWidth;
+
+							for (int y = 0; y < alphamapHeight; y++)
 							{
-								for (int x = 0; x < thisData.alphamapWidth; x++)
+								for (int x = 0; x < alphamapWidth; x++)
 								{
 									//Get the percent into the alphamap location
-									float percentX = (float)x / thisData.alphamapWidth;
-									float percentY = (float)y / thisData.alphamapHeight;
+									float percentX = (float)x / alphamapWidth;
+									float percentY = (float)y / alphamapHeight;
 
 									//Get the amount into our local sliver
 									float amountIntoSliverX = percentX * sizeOfSplatmapSliverX;
@@ -578,6 +583,120 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				//We might have an unreadable texture
 				VTLog.LogWarning(e.Message);
+			}
+		}
+
+		//TERRAIN OBJECTS
+
+		void SetTerrainTreeObjects(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, List<VTGraphValueInterface.TreeLayerContainer> treeLayers)
+		{
+			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
+			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
+
+			float eachTerrainWidth = setupProperties.terrainSize.meshWidthLength.x / numberOfHorizontalTerrains;
+			float eachTerrainLength = setupProperties.terrainSize.meshWidthLength.y / numberOfVerticalTerrains;
+
+			//Create tree prototype array in the correct format
+			TreePrototype[] setTreePrototypes = new TreePrototype[treeLayers.Count];
+			for (int i = 0; i < treeLayers.Count; i++)
+			{
+				setTreePrototypes[i] = new TreePrototype();
+
+				setTreePrototypes[i].prefab = treeLayers[i].treePrototypeObject;
+				setTreePrototypes[i].bendFactor = treeLayers[i].treeBendFactor;
+				setTreePrototypes[i].navMeshLod = treeLayers[i].navMeshLODIndex;
+			}
+
+			for (int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisRef = data.terrainRefs[i];
+				var thisData = thisRef.terrainData;
+
+				int thisTerrainRow = i % numberOfVerticalTerrains;
+				int thisTerrainCol = i / numberOfVerticalTerrains;
+
+				//Set tree prototypes
+				thisData.treePrototypes = setTreePrototypes;
+
+				//Initialize the instance list
+				List<TreeInstance> finalInstances = new List<TreeInstance>();
+
+				//Set the map layer values of each tree
+				for (int prototypeLayerIndex = 0; prototypeLayerIndex < treeLayers.Count; prototypeLayerIndex++)
+				{
+					VTGraphValueInterface.TreeLayerContainer thisLayerContainer = treeLayers[prototypeLayerIndex];
+
+					int treeMapWidth = thisLayerContainer.treeMap.Width;
+					int treeMapHeight = thisLayerContainer.treeMap.Height;
+
+					//Splatmap may have different resolution than alphamap resolution
+					float sizeOfTreeMapSliverX = (float)treeMapWidth;
+					float sizeOfTreeMapSliverY = (float)treeMapHeight;
+
+					if (processingProperties.texture.textureMultipleTerrainHandling == VTSetupProcessing.MultipleTerrainTextureType.CoverSurface)
+					{
+						//In cover mode, only sample a sliver of the final tree map
+						//correlating to the row/column
+						sizeOfTreeMapSliverX = (float)treeMapWidth / numberOfHorizontalTerrains;
+						sizeOfTreeMapSliverY = (float)treeMapHeight / numberOfVerticalTerrains;
+					}
+					else if (processingProperties.texture.textureMultipleTerrainHandling == VTSetupProcessing.MultipleTerrainTextureType.TileEachTerrain)
+					{
+						//In tile mode, make each row and col appear to be 0
+						thisTerrainRow = 0;
+						thisTerrainCol = 0;
+					}
+
+					//Calculate the amount of trees to try placing
+					int treeCountX = Mathf.CeilToInt(thisLayerContainer.treePlacementDensity * eachTerrainWidth);
+					int treeCountY = Mathf.CeilToInt(thisLayerContainer.treePlacementDensity * eachTerrainLength);
+
+					//For now just a place tree everywhere
+					for(int x = 0; x < treeCountX; x++)
+					{
+						for(int y = 0; y < treeCountY; y++)
+						{
+							//Get the percent into the alphamap location
+							float treePositionPercentX = (float)x / treeCountX;
+							float treePositionPercentY = (float)y / treeCountY;
+
+							//Get the amount into our local sliver
+							float amountIntoSliverX = treePositionPercentX * sizeOfTreeMapSliverX;
+							float amountIntoSliverY = treePositionPercentY * sizeOfTreeMapSliverY;
+
+							//Get the position based on index * sliver + amount into sliver
+							float treeMapSamplePositionX = (thisTerrainCol * sizeOfTreeMapSliverX) + amountIntoSliverX;
+							float treeMapSamplePositionY = (thisTerrainRow * sizeOfTreeMapSliverY) + amountIntoSliverY;
+
+							//Get the pixel at the sample position
+							int pixelX = Mathf.Clamp(Mathf.FloorToInt(treeMapSamplePositionX), 0, treeMapWidth);
+							int pixelY = Mathf.Clamp(Mathf.FloorToInt(treeMapSamplePositionY), 0, treeMapHeight);
+							float getValue = thisLayerContainer.treeMap.GetRangeValue(pixelX, pixelY);
+
+							if(getValue < 0.1f)
+							{
+								//Don't even bother with this low value
+								continue;
+							}
+
+							//Add a new tree instance
+							var newTreeInstance = new TreeInstance();
+							newTreeInstance.prototypeIndex = prototypeLayerIndex;
+							newTreeInstance.position = new Vector3(treePositionPercentX, 0f, treePositionPercentY);
+							newTreeInstance.color = Color.white;
+							newTreeInstance.heightScale = 1.0f;
+							newTreeInstance.widthScale = 1.0f;
+
+							finalInstances.Add(newTreeInstance);
+						}
+					}
+
+				}
+
+				//Set the final tree instances
+				thisData.SetTreeInstances(finalInstances.ToArray(), true);
+
+				//TODO: Optional post step to change instance height
 			}
 		}
 

@@ -122,6 +122,71 @@ namespace RobProductions.VisualTerrain.Runtime
 			return ret;
 		}
 
+		//TERRAIN OBJECTS
+
+		public struct TreeLayerContainer
+		{
+			//Core properties
+			public GameObject treePrototypeObject;
+			public float treeBendFactor;
+			public int navMeshLODIndex;
+
+			//Placement
+			public float treePlacementDensity;
+
+			//Position map
+			public VTRangeGrid treeMap;
+		}
+
+		public static List<TreeLayerContainer> GetAssetTreeLayers(VTSettingsAsset asset, bool previewMode)
+		{
+			var processingSettings = GenerateAssetProcessingSettings(asset, previewMode);
+			return GetGraphTreeLayers(asset.generationData.terrainObjectGraph, processingSettings);
+		}
+
+		public static List<TreeLayerContainer> GetGraphTreeLayers(VTGraph graph, VTGraphProcessingSettings settings)
+		{
+			//Init the graph
+			graph.OnGraphEnable();
+
+			//Get all the tree layer nodes
+			var ret = new List<TreeLayerContainer>();
+			var treeOutputNodes = new List<VTGraphNodeTreeLayerOutput>();
+			foreach (VTGraphNode node in graph.nodeList)
+			{
+				if (node is VTGraphNodeTreeLayerOutput)
+				{
+					treeOutputNodes.Add(node as VTGraphNodeTreeLayerOutput);
+				}
+			}
+
+			//Order the tree output nodes so they stay consistent
+			treeOutputNodes = treeOutputNodes.OrderBy(item => item.NodePosition).OrderBy(item => item.treePrototype.ToString()).ToList();
+
+			for (int i = 0; i < treeOutputNodes.Count; i++)
+			{
+				var thisTreeOutputNode = treeOutputNodes[i];
+				if (thisTreeOutputNode.treePrototype != null && !thisTreeOutputNode.IsDisabled && !thisTreeOutputNode.GetOutputConnection().GetRangeGridValue().IsNullOrEmpty())
+				{
+					var treeLayer = new TreeLayerContainer();
+					treeLayer.treePrototypeObject = thisTreeOutputNode.GetNodeTreePrototype();
+					treeLayer.treeBendFactor = thisTreeOutputNode.GetNodeTreeBendFactor();
+					treeLayer.navMeshLODIndex = thisTreeOutputNode.GetNodeNavMeshLODIndex();
+
+					treeLayer.treePlacementDensity = 0.2f;
+
+					graph.ProcessNode(thisTreeOutputNode, settings);
+					treeLayer.treeMap = thisTreeOutputNode.GetOutputConnection().GetRangeGridValue();
+
+					ret.Add(treeLayer);
+				}
+			}
+
+			return ret;
+		}
+
+		//SUB GRAPH
+
 		public struct SubGraphOutputValue
 		{
 			public VTRangeGrid rangeGridValue;

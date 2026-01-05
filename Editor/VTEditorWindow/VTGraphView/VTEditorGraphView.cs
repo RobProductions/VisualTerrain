@@ -910,6 +910,10 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
 			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.TerrainObject)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Tree Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeTreeLayerOutput>(mousePosition));
+			}
 			if(data.currentGraph.graphType == VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Output Node/Sub Graph Output"), false, () => CreateNodeAtPosition<VTGraphNodeSGOutValue>(mousePosition));

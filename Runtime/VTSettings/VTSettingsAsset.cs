@@ -36,6 +36,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			public VTGraph heightmapGraph = new VTGraph();
 			public VTGraph textureGraph = new VTGraph();
+			public VTGraph terrainObjectGraph = new VTGraph();
 
 			[NonSerialized]
 			public VTRangeGrid cachedThumbHeightmapGrid = VTRangeGrid.Empty;

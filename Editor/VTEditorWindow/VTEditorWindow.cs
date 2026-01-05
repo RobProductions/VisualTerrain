@@ -46,6 +46,7 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			Heightmap = 0,
 			Texture = 1,
+			TerrainObject = 2,
 		}
 
 		private class VTEditorWindowData
@@ -290,6 +291,7 @@ namespace RobProductions.VisualTerrain.Editor
 				//Ensure graph types are set
 				data.currentAsset.generationData.heightmapGraph.SetGraphType(VTGraph.GraphType.Height);
 				data.currentAsset.generationData.textureGraph.SetGraphType(VTGraph.GraphType.Texture);
+				data.currentAsset.generationData.terrainObjectGraph.SetGraphType(VTGraph.GraphType.TerrainObject);
 
 				//Get the final display graph
 				if (data.currentGraphScreen == VTGraphScreen.Heightmap)
@@ -299,6 +301,10 @@ namespace RobProductions.VisualTerrain.Editor
 				else if (data.currentGraphScreen == VTGraphScreen.Texture)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.textureGraph;
+				}
+				else if (data.currentGraphScreen == VTGraphScreen.TerrainObject)
+				{
+					finalDisplayGraph = data.currentAsset.generationData.terrainObjectGraph;
 				}
 			}
 
