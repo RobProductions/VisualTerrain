@@ -137,6 +137,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public float treePlacementDensity;
 			public float treePlacementJitterRange;
 			public bool treePlacementRevalidateValue;
+			public Vector2 treePlacementRotationRange;
 			public Vector2 treePlacementHeightAdjustRange;
 
 			//Instance properties
@@ -191,6 +192,7 @@ namespace RobProductions.VisualTerrain.Runtime
 						treePlacementDensity = thisTreeOutputNode.GetNodePlacementDensity(),
 						treePlacementJitterRange = thisTreeOutputNode.GetNodePlacementJitterRange(),
 						treePlacementRevalidateValue = thisTreeOutputNode.GetNodePlacementRevalidateValue(),
+						treePlacementRotationRange = thisTreeOutputNode.GetNodePlacementRotationRange(),
 
 						instanceWidthRange = thisTreeOutputNode.GetNodeInstanceWidthScaleRange(),
 						instanceHeightRange = thisTreeOutputNode.GetNodeInstanceHeightScaleRange(),

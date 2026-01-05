@@ -24,6 +24,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		public float placementJitterRange = 5f;
 		[SerializeField]
 		public bool placementRevalidateValue = true;
+		[SerializeField]
+		public Vector2 placementRotationRange = new Vector2(-180f, 180f);
 
 		[SerializeField]
 		public Vector2 instanceWidthScaleRange = new Vector2(1.0f, 1.0f);
@@ -75,6 +77,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			return placementJitterRange;
 		}
 
+		public Vector2 GetNodePlacementRotationRange()
+		{
+			return placementRotationRange;
+		}
+
 		public bool GetNodePlacementRevalidateValue()
 		{
 			return placementRevalidateValue;
@@ -96,8 +103,6 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			EditorGUILayout.LabelField("Prototype Settings", EditorStyles.boldLabel);
-
 			RenderGameObjectProperty("Tree Prototype", ref treePrototype, true);
 			RenderFloatProperty("Bend Factor", ref treeBendFactor);
 			RenderIntProperty("Navmesh LOD Index", ref navMeshLODIndex,
@@ -112,6 +117,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatProperty("Jitter Range", ref placementJitterRange,
 				"Each tree grid position will be jittered to some position within this range as a radius. The range is in world units.");
 			RenderBoolProperty("Revalidate Position Value", ref placementRevalidateValue);
+			RenderVector2Property("Rotation Range", ref placementRotationRange,
+				"Each tree will be rotated by a random amount within this X-Y range. The range is in euler degrees.");
+
+			EditorGUILayout.Space(5f);
 
 			EditorGUILayout.LabelField("Instance Settings", EditorStyles.boldLabel);
 

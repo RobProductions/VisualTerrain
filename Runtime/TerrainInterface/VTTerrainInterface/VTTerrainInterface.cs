@@ -674,9 +674,13 @@ namespace RobProductions.VisualTerrain.Runtime
 							//Even if we don't need them later.
 							//This is so that tree placement is more deterministic
 							//between preview and non-preview
-							float initialPositionRand = RandInRange(data.terrainPlacementRandom, 0.0f, 1.0f);
-							float jitterPositionXRand = RandInRange(data.terrainPlacementRandom, -treeJitterRangeInPercentX, treeJitterRangeInPercentX);
-							float jitterPositionYRand = RandInRange(data.terrainPlacementRandom, -treeJitterRangeInPercentY, treeJitterRangeInPercentY);
+							float initialPositionRand = RandLerpAmount(data.terrainPlacementRandom);
+							float jitterPositionXRand = RandLerpAmount(data.terrainPlacementRandom);
+							float jitterPositionYRand = RandLerpAmount(data.terrainPlacementRandom);
+							float rotationRand = RandLerpAmount(data.terrainPlacementRandom);
+
+							float heightScaleRand = RandLerpAmount(data.terrainInstancePropertyRandom);
+							float widthScaleRand = RandLerpAmount(data.terrainInstancePropertyRandom);
 
 							//Get the percent into the alphamap location
 							float treePositionPercentX = (float)x / treeCountX;
@@ -709,11 +713,11 @@ namespace RobProductions.VisualTerrain.Runtime
 							//Determine the potential tree instance position
 							//Positions are based on percent into terrain
 							Vector3 treeInstancePosition = new Vector3(treePositionPercentX, 0f, treePositionPercentY);
-							treeInstancePosition.x += jitterPositionXRand;
-							treeInstancePosition.z += jitterPositionYRand;
+							treeInstancePosition.x += RandInRange(jitterPositionXRand, -treeJitterRangeInPercentX, treeJitterRangeInPercentX);
+							treeInstancePosition.z += RandInRange(jitterPositionYRand, -treeJitterRangeInPercentY, treeJitterRangeInPercentY);
 
 							//If the position fell outside of our terrain, don't place a tree
-							if(treeInstancePosition.x < 0 || treeInstancePosition.x > 1f)
+							if (treeInstancePosition.x < 0 || treeInstancePosition.x > 1f)
 							{
 								continue;
 							}
@@ -735,14 +739,19 @@ namespace RobProductions.VisualTerrain.Runtime
 								}
 							}
 
+							float treeRotation = RandInRange(rotationRand, thisLayerContainer.treePlacementRotationRange.x, thisLayerContainer.treePlacementRotationRange.y);
+							float treeHeightScale = RandInRange(heightScaleRand, thisLayerContainer.instanceHeightRange.x, thisLayerContainer.instanceHeightRange.y);
+							float treeWidthScale = RandInRange(widthScaleRand, thisLayerContainer.instanceWidthRange.x, thisLayerContainer.instanceWidthRange.y);
+
 							//Add a new tree instance
 							var newTreeInstance = new TreeInstance
 							{
 								prototypeIndex = prototypeLayerIndex,
 								position = treeInstancePosition,
+								rotation = treeRotation * Mathf.Deg2Rad,
 								color = Color.white,
-								heightScale = 1.0f,
-								widthScale = 1.0f
+								heightScale = treeHeightScale,
+								widthScale = treeWidthScale,
 							};
 
 							finalInstances.Add(newTreeInstance);
@@ -758,9 +767,19 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
+		float RandLerpAmount(System.Random randomClass)
+		{
+			return (float)randomClass.NextDouble();
+		}
+
 		float RandInRange(System.Random randomClass, float minValue, float maxValue)
 		{
-			return Mathf.Lerp(minValue, maxValue, (float)randomClass.NextDouble());
+			return RandInRange(RandLerpAmount(randomClass), minValue, maxValue);
+		}
+
+		float RandInRange(float randValue, float minValue, float maxValue)
+		{
+			return Mathf.Lerp(minValue, maxValue, randValue);
 		}
 
 		//TERRAIN PROPERTIES

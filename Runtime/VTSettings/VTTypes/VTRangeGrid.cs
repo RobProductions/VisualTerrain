@@ -125,6 +125,18 @@ namespace RobProductions.VisualTerrain.Runtime
 
 	public static class VTRangeGridUtilities
 	{
+		public static VTRangeGrid FillRangeGridWithValue(this VTRangeGrid grid, float value)
+		{
+			for (int x = 0; x < grid.Width; x++)
+			{
+				for (int y = 0; y < grid.Height; y++)
+				{
+					grid.SetRangeValue(x, y, value);
+				}
+			}
+			return grid;
+		}
+
 		public static Texture2D ToGrayscale(this VTRangeGrid grid)
 		{
 			if(grid.IsNullOrEmpty())
