@@ -52,37 +52,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float scaleFloat = (float)EditorGUILayout.FloatField("Noise Scale", noiseScale);
-			if (scaleFloat != noiseScale)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				noiseScale = scaleFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-			float strengthFloat = (float)EditorGUILayout.FloatField("Noise Strength", noiseStrength);
-			if (strengthFloat != noiseStrength)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				noiseStrength = strengthFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-			float offsetFloatX = (float)EditorGUILayout.FloatField("Noise Offset X", noiseOffsetX);
-			if (offsetFloatX != noiseOffsetX)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				noiseOffsetX = offsetFloatX;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-			float offsetFloatY = (float)EditorGUILayout.FloatField("Noise Offset Y", noiseOffsetY);
-			if (offsetFloatY != noiseOffsetY)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				noiseOffsetY = offsetFloatY;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatProperty("Noise Scale", ref noiseScale);
+			RenderFloatProperty("Noise Strength", ref noiseStrength);
+			RenderFloatProperty("Noise Offset X", ref noiseOffsetX);
+			RenderFloatProperty("Noise Offset Y", ref noiseOffsetY);
 		}
 	}
 }

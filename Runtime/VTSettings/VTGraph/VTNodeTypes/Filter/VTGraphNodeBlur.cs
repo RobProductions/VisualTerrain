@@ -124,21 +124,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float blurRadiusXFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Blur Radius X", blurRadiusX), 0.0f, 100f);
-			if (blurRadiusXFloat != blurRadiusX)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				blurRadiusX = blurRadiusXFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-			float blurRadiusYFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Blur Radius Y", blurRadiusY), 0.0f, 100f);
-			if (blurRadiusYFloat != blurRadiusY)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				blurRadiusY = blurRadiusYFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatPropertyWithClamp("Blur Radius X", ref blurRadiusX, 0.0f, 100f);
+			RenderFloatPropertyWithClamp("Blur Radius Y", ref blurRadiusY, 0.0f, 100f);
 		}
 	}
 }

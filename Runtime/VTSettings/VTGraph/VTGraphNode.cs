@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
@@ -141,5 +142,142 @@ namespace RobProductions.VisualTerrain.Runtime
 			return null;
 		}
 
+		//PROPERTIES
+
+		/// <summary>
+		/// Draws a GUILayout FloatField and potentially modifies the ref
+		/// input float if the user changes the value. 
+		/// Also invokes begin and end edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		protected void RenderFloatProperty(string propertyName, ref float baseValue, string tooltip = "")
+		{
+			var content = new GUIContent(propertyName, tooltip);
+			var newValue = EditorGUILayout.FloatField(content, baseValue);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+
+		/// <summary>
+		/// Draws a GUILayout FloatField and potentially modifies the ref
+		/// input float if the user changes the value but only within clamp range.
+		/// Also invokes begin and end edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		/// <param name="clampMin"></param>
+		/// <param name="clampMax"></param>
+		protected void RenderFloatPropertyWithClamp(string propertyName, ref float baseValue, float clampMin, float clampMax, string tooltip = "")
+		{
+			var content = new GUIContent(propertyName, tooltip);
+			var newValue = Mathf.Clamp(EditorGUILayout.FloatField(content, baseValue), clampMin, clampMax);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+
+		/// <summary>
+		/// Draws a GUILayout IntField and potentially modifies the ref
+		/// input int if the user changes the value.
+		/// Also invokes begin and end edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		protected void RenderIntProperty(string propertyName, ref int baseValue, string tooltip = "")
+		{
+
+			var content = new GUIContent(propertyName, tooltip);
+			var newValue = EditorGUILayout.IntField(content, baseValue);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+
+		/// <summary>
+		/// Draws a GUILayout IntField and potentially modifies the ref
+		/// input int if the user changes the value but only within clamp range.
+		/// Also invokes begin and end edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		protected void RenderIntPropertyWithClamp(string propertyName, ref int baseValue, int clampMin, int clampMax, string tooltip = "")
+		{
+
+			var content = new GUIContent(propertyName, tooltip);
+			var newValue = Mathf.Clamp(EditorGUILayout.IntField(content, baseValue), clampMin, clampMax);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+
+		/// <summary>
+		/// Draws a GUILayout Toggle and potentially modifies the ref
+		/// input bool if the user changes the value.
+		/// Invokes begin and edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		protected void RenderBoolProperty(string propertyName, ref bool baseValue, string tooltip = "")
+		{
+			var content = new GUIContent(propertyName, tooltip);
+			bool newValue = EditorGUILayout.Toggle(content, baseValue);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+
+		/// <summary>
+		/// Draws a GUILayout Vector2 field and potentially modifies the ref
+		/// input Vec2 if the user changes the value.
+		/// Invokes begin and edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		protected void RenderVector2Property(string propertyName, ref Vector2 baseValue, string tooltip = "")
+		{
+			var content = new GUIContent(propertyName, tooltip);
+			Vector2 newValue = EditorGUILayout.Vector2Field(content, baseValue);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
+
+		/// <summary>
+		/// Render an object property field specifically for GameObjects.
+		/// Invokes begin and end edit node property events.
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="baseValue"></param>
+		/// <param name="allowSceneObjects"></param>
+		protected void RenderGameObjectProperty(string propertyName, ref UnityEngine.GameObject baseValue,  bool allowSceneObjects)
+		{
+			var newValue = (GameObject)EditorGUILayout.ObjectField(propertyName, baseValue, typeof(GameObject), allowSceneObjects);
+			if (newValue != baseValue)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				baseValue = newValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
+		}
 	}
 }

@@ -18,6 +18,18 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public int navMeshLODIndex = 0;
 
+		[SerializeField]
+		public float placementDensity = 0.1f;
+		[SerializeField]
+		public float placementJitterRange = 5f;
+		[SerializeField]
+		public bool placementRevalidateValue = true;
+
+		[SerializeField]
+		public Vector2 instanceWidthScaleRange = new Vector2(1.0f, 1.0f);
+		[SerializeField]
+		public Vector2 instanceHeightScaleRange = new Vector2(1.0f, 1.0f);
+
 		public VTGraphNodeTreeLayerOutput()
 		{
 			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
@@ -53,38 +65,60 @@ namespace RobProductions.VisualTerrain.Runtime
 			return navMeshLODIndex;
 		}
 
+		public float GetNodePlacementDensity()
+		{
+			return placementDensity;
+		}
+
+		public float GetNodePlacementJitterRange()
+		{
+			return placementJitterRange;
+		}
+
+		public bool GetNodePlacementRevalidateValue()
+		{
+			return placementRevalidateValue;
+		}
+
+		public Vector2 GetNodeInstanceWidthScaleRange()
+		{
+			return instanceWidthScaleRange;
+		}
+
+		public Vector2 GetNodeInstanceHeightScaleRange()
+		{
+			return instanceHeightScaleRange;
+		}
+
 		//RENDERING
 
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
 
+			EditorGUILayout.LabelField("Prototype Settings", EditorStyles.boldLabel);
 
-			var treeObjectValue = (GameObject)EditorGUILayout.ObjectField("Tree Prototype", treePrototype, typeof(GameObject), true);
-			if (treeObjectValue != treePrototype)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				treePrototype = treeObjectValue;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderGameObjectProperty("Tree Prototype", ref treePrototype, true);
+			RenderFloatProperty("Bend Factor", ref treeBendFactor);
+			RenderIntProperty("Navmesh LOD Index", ref navMeshLODIndex,
+				"The index of LOD value used when generating a navmesh. This allows you to use low-res versions of trees for nav calcuations.");
 
-			var bendFactorValue = EditorGUILayout.FloatField("Bend Factor", treeBendFactor);
-			if (bendFactorValue != treeBendFactor)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				treeBendFactor = bendFactorValue;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			EditorGUILayout.Space(5f);
 
-			var navMeshLODIndexValue = EditorGUILayout.IntField("Navmesh LOD Index", navMeshLODIndex);
-			if (navMeshLODIndexValue != navMeshLODIndex)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				navMeshLODIndex = navMeshLODIndexValue;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			EditorGUILayout.LabelField("Placement Settings", EditorStyles.boldLabel);
 
+			RenderFloatProperty("Density", ref placementDensity,
+				"For each world unit, this many trees will be attempted to be placed in a grid pattern and later jittered/randomized.");
+			RenderFloatProperty("Jitter Range", ref placementJitterRange,
+				"Each tree grid position will be jittered to some position within this range as a radius. The range is in world units.");
+			RenderBoolProperty("Revalidate Position Value", ref placementRevalidateValue);
 
+			EditorGUILayout.LabelField("Instance Settings", EditorStyles.boldLabel);
+
+			RenderVector2Property("Width Scale Range", ref instanceWidthScaleRange,
+				"When an instance is placed, its width will be random between the range of this X and Y value.");
+			RenderVector2Property("Height Scale Range", ref instanceHeightScaleRange,
+				"When an instance is placed, its height will be random between the range of this X and Y value.");
 		}
 	}
 }

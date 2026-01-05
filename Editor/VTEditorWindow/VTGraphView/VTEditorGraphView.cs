@@ -1207,10 +1207,15 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(!inProgressLine && optionalConnection != null)
 			{
-				if (Handles.Button((startPosition + endPosition) * 0.5f, Quaternion.identity, 4, 8, Handles.CircleHandleCap))
+				Vector3 removeButtonPosition = (startPosition + endPosition) * 0.5f;
+				if (Handles.Button(removeButtonPosition, Quaternion.identity, 4, 8, Handles.CircleHandleCap))
 				{
-					var closureConnection = optionalConnection;
-					DeleteNodeConnection(optionalConnection);
+					if(data.currentRenderRect.Contains(removeButtonPosition))
+					{
+						//Make sure we're not blocked by setup view
+						var closureConnection = optionalConnection;
+						DeleteNodeConnection(optionalConnection);
+					}
 				}
 			}
 		}

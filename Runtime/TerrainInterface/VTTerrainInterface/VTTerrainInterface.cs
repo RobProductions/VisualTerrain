@@ -28,6 +28,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		private class TerrainInterfaceData
 		{
 			public List<TerrainReference> terrainRefs = new List<TerrainReference>();
+
+			public System.Random terrainPlacementRandom = new System.Random();
+			public System.Random terrainInstancePropertyRandom = new System.Random();
 		}
 
 		[SerializeField]
@@ -80,6 +83,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Set the terrain properties
 			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
 
+			//Create new random managers based on setup seeds
+			data.terrainPlacementRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.placeObjectRandomSeed);
+			data.terrainInstancePropertyRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.instancePropertyRandomSeed);
+
 			//Set the terrain height values
 			//This will set the cachedHeightmap for later use
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
@@ -93,7 +100,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Set the terrain tree objects
 			//Terrain object graph may use cachedHeightmap and cached splat layers
 			var treeContainers = VTGraphValueInterface.GetAssetTreeLayers(settingsAsset, manager.IsPreviewMode());
-			SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, treeContainers);
+			SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup, treeContainers);
 		}
 
 		//TERRAIN HEIGHT
@@ -588,7 +595,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//TERRAIN OBJECTS
 
-		void SetTerrainTreeObjects(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, List<VTGraphValueInterface.TreeLayerContainer> treeLayers)
+		void SetTerrainTreeObjects(VTSetupTerrain setupProperties, VTSetupTerrainObject terrainObjectProperties,
+			VTSetupProcessing processingProperties, List<VTGraphValueInterface.TreeLayerContainer> treeLayers)
 		{
 			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
 			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
@@ -615,7 +623,10 @@ namespace RobProductions.VisualTerrain.Runtime
 				int thisTerrainRow = i % numberOfVerticalTerrains;
 				int thisTerrainCol = i / numberOfVerticalTerrains;
 
-				//Set tree prototypes
+				//Remove any previous tree data
+				thisData.SetTreeInstances(new TreeInstance[0], false);
+
+				//Set tree prototype data
 				thisData.treePrototypes = setTreePrototypes;
 
 				//Initialize the instance list
@@ -651,11 +662,22 @@ namespace RobProductions.VisualTerrain.Runtime
 					int treeCountX = Mathf.CeilToInt(thisLayerContainer.treePlacementDensity * eachTerrainWidth);
 					int treeCountY = Mathf.CeilToInt(thisLayerContainer.treePlacementDensity * eachTerrainLength);
 
+					float treeJitterRangeInPercentX = thisLayerContainer.treePlacementJitterRange / eachTerrainWidth;
+					float treeJitterRangeInPercentY = thisLayerContainer.treePlacementJitterRange / eachTerrainLength;
+
 					//For now just a place tree everywhere
 					for(int x = 0; x < treeCountX; x++)
 					{
 						for(int y = 0; y < treeCountY; y++)
 						{
+							//Get all the random values we could potentially need
+							//Even if we don't need them later.
+							//This is so that tree placement is more deterministic
+							//between preview and non-preview
+							float initialPositionRand = RandInRange(data.terrainPlacementRandom, 0.0f, 1.0f);
+							float jitterPositionXRand = RandInRange(data.terrainPlacementRandom, -treeJitterRangeInPercentX, treeJitterRangeInPercentX);
+							float jitterPositionYRand = RandInRange(data.terrainPlacementRandom, -treeJitterRangeInPercentY, treeJitterRangeInPercentY);
+
 							//Get the percent into the alphamap location
 							float treePositionPercentX = (float)x / treeCountX;
 							float treePositionPercentY = (float)y / treeCountY;
@@ -673,19 +695,55 @@ namespace RobProductions.VisualTerrain.Runtime
 							int pixelY = Mathf.Clamp(Mathf.FloorToInt(treeMapSamplePositionY), 0, treeMapHeight);
 							float getValue = thisLayerContainer.treeMap.GetRangeValue(pixelX, pixelY);
 
-							if(getValue < 0.1f)
+							if(getValue < terrainObjectProperties.objectPlacement.placeObjectValueCutoff)
 							{
 								//Don't even bother with this low value
 								continue;
 							}
+							if(getValue < initialPositionRand)
+							{
+								//We didn't meet the qualifications for placing this tree
+								continue;
+							}
+
+							//Determine the potential tree instance position
+							//Positions are based on percent into terrain
+							Vector3 treeInstancePosition = new Vector3(treePositionPercentX, 0f, treePositionPercentY);
+							treeInstancePosition.x += jitterPositionXRand;
+							treeInstancePosition.z += jitterPositionYRand;
+
+							//If the position fell outside of our terrain, don't place a tree
+							if(treeInstancePosition.x < 0 || treeInstancePosition.x > 1f)
+							{
+								continue;
+							}
+							if(treeInstancePosition.z < 0 || treeInstancePosition.z > 1f)
+							{
+								continue;
+							}
+
+							if(thisLayerContainer.treePlacementRevalidateValue)
+							{
+								//Revalidate if this tree should be here at this new position
+								int revalidatePixelX = Mathf.Clamp(Mathf.FloorToInt(treeInstancePosition.x), 0, treeMapWidth);
+								int revalidatePixelY = Mathf.Clamp(Mathf.FloorToInt(treeInstancePosition.z), 0, treeMapHeight);
+								float revalidateValue = thisLayerContainer.treeMap.GetRangeValue(revalidatePixelX, revalidatePixelY);
+								if(revalidateValue < initialPositionRand)
+								{
+									//Didn't meet revalidation requirement
+									continue;
+								}
+							}
 
 							//Add a new tree instance
-							var newTreeInstance = new TreeInstance();
-							newTreeInstance.prototypeIndex = prototypeLayerIndex;
-							newTreeInstance.position = new Vector3(treePositionPercentX, 0f, treePositionPercentY);
-							newTreeInstance.color = Color.white;
-							newTreeInstance.heightScale = 1.0f;
-							newTreeInstance.widthScale = 1.0f;
+							var newTreeInstance = new TreeInstance
+							{
+								prototypeIndex = prototypeLayerIndex,
+								position = treeInstancePosition,
+								color = Color.white,
+								heightScale = 1.0f,
+								widthScale = 1.0f
+							};
 
 							finalInstances.Add(newTreeInstance);
 						}
@@ -698,6 +756,11 @@ namespace RobProductions.VisualTerrain.Runtime
 
 				//TODO: Optional post step to change instance height
 			}
+		}
+
+		float RandInRange(System.Random randomClass, float minValue, float maxValue)
+		{
+			return Mathf.Lerp(minValue, maxValue, (float)randomClass.NextDouble());
 		}
 
 		//TERRAIN PROPERTIES

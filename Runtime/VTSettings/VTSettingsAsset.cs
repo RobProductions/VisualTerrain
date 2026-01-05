@@ -24,7 +24,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			/// generate the terrain.
 			/// </summary>
 			public bool previewMode = true;
+
 			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
+			public VTSetupTerrainObject terrainObjectSetup = new VTSetupTerrainObject();
 			public VTSetupProcessing processingSetup = new VTSetupProcessing();
 		}
 

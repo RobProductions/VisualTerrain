@@ -109,8 +109,10 @@ namespace RobProductions.VisualTerrain.Runtime
 				var thisSplatNode = splatOutputNodes[i];
 				if(thisSplatNode.terrainLayer != null && !thisSplatNode.IsDisabled)
 				{
-					var splatLayer = new SplatmapLayerContainer();
-					splatLayer.layerData = thisSplatNode.GetNodeTerrainLayer();
+					var splatLayer = new SplatmapLayerContainer
+					{
+						layerData = thisSplatNode.GetNodeTerrainLayer()
+					};
 
 					graph.ProcessNode(thisSplatNode, settings);
 					splatLayer.layerSplatmap = thisSplatNode.GetOutputConnection().GetRangeGridValue();
@@ -133,6 +135,14 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			//Placement
 			public float treePlacementDensity;
+			public float treePlacementJitterRange;
+			public bool treePlacementRevalidateValue;
+			public Vector2 treePlacementHeightAdjustRange;
+
+			//Instance properties
+			public Vector2 instanceWidthRange;
+			public Vector2 instanceHeightRange;
+
 
 			//Position map
 			public VTRangeGrid treeMap;
@@ -156,24 +166,35 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				if (node is VTGraphNodeTreeLayerOutput)
 				{
-					treeOutputNodes.Add(node as VTGraphNodeTreeLayerOutput);
+					var treeLayerNode = node as VTGraphNodeTreeLayerOutput;
+					if(treeLayerNode.GetNodeTreePrototype() != null)
+					{
+						treeOutputNodes.Add(treeLayerNode);
+					}
 				}
 			}
 
 			//Order the tree output nodes so they stay consistent
-			treeOutputNodes = treeOutputNodes.OrderBy(item => item.NodePosition).OrderBy(item => item.treePrototype.ToString()).ToList();
+			treeOutputNodes = treeOutputNodes.OrderBy(item => item.NodePosition.y).OrderBy(item => item.GetNodeTreePrototype().name).ToList();
 
 			for (int i = 0; i < treeOutputNodes.Count; i++)
 			{
 				var thisTreeOutputNode = treeOutputNodes[i];
-				if (thisTreeOutputNode.treePrototype != null && !thisTreeOutputNode.IsDisabled && !thisTreeOutputNode.GetOutputConnection().GetRangeGridValue().IsNullOrEmpty())
+				if (!thisTreeOutputNode.IsDisabled && !thisTreeOutputNode.GetOutputConnection().GetRangeGridValue().IsNullOrEmpty())
 				{
-					var treeLayer = new TreeLayerContainer();
-					treeLayer.treePrototypeObject = thisTreeOutputNode.GetNodeTreePrototype();
-					treeLayer.treeBendFactor = thisTreeOutputNode.GetNodeTreeBendFactor();
-					treeLayer.navMeshLODIndex = thisTreeOutputNode.GetNodeNavMeshLODIndex();
+					var treeLayer = new TreeLayerContainer
+					{
+						treePrototypeObject = thisTreeOutputNode.GetNodeTreePrototype(),
+						treeBendFactor = thisTreeOutputNode.GetNodeTreeBendFactor(),
+						navMeshLODIndex = thisTreeOutputNode.GetNodeNavMeshLODIndex(),
 
-					treeLayer.treePlacementDensity = 0.2f;
+						treePlacementDensity = thisTreeOutputNode.GetNodePlacementDensity(),
+						treePlacementJitterRange = thisTreeOutputNode.GetNodePlacementJitterRange(),
+						treePlacementRevalidateValue = thisTreeOutputNode.GetNodePlacementRevalidateValue(),
+
+						instanceWidthRange = thisTreeOutputNode.GetNodeInstanceWidthScaleRange(),
+						instanceHeightRange = thisTreeOutputNode.GetNodeInstanceHeightScaleRange(),
+					};
 
 					graph.ProcessNode(thisTreeOutputNode, settings);
 					treeLayer.treeMap = thisTreeOutputNode.GetOutputConnection().GetRangeGridValue();
