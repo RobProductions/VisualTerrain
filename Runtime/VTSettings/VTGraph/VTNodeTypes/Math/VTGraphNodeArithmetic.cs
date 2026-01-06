@@ -26,11 +26,11 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		public VTGraphNodeArithmetic()
 		{
-			SetupEmptyInputConnections(2, VTGraphConnectionSlot.SlotValueType.Float);
+			SetupEmptyInputConnections(2, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			inputConnections[0].connectionSlotName = "Base Input";
 			inputConnections[1].connectionSlotName = "Term Input";
 
-			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.Float);
+			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			outputConnections[0].connectionSlotName = "Result";
 		}
 
