@@ -871,8 +871,9 @@ namespace RobProductions.VisualTerrain.Editor
 			*/
 
 			//Input
-			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Simple Value"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleValue>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Octave Noise"), false, () => CreateNodeAtPosition<VTGraphNodeOctaveNoise>(mousePosition));
 			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
@@ -895,6 +896,7 @@ namespace RobProductions.VisualTerrain.Editor
 			//Filter
 			menu.AddItem(new GUIContent("Add Filter Node/Box Blur"), false, () => CreateNodeAtPosition<VTGraphNodeBlur>(mousePosition));
 			menu.AddItem(new GUIContent("Add Filter Node/Step"), false, () => CreateNodeAtPosition<VTGraphNodeStep>(mousePosition));
+			menu.AddItem(new GUIContent("Add Filter Node/Sharpen"), false, () => CreateNodeAtPosition<VTGraphNodeSharpen>(mousePosition));
 
 			//Processing
 			if (data.currentGraph.graphType != VTGraph.GraphType.SubGraph)

@@ -175,13 +175,15 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 			}
 
+
 			//Order the tree output nodes so they stay consistent
 			treeOutputNodes = treeOutputNodes.OrderBy(item => item.NodePosition.y).OrderBy(item => item.GetNodeTreePrototype().name).ToList();
 
 			for (int i = 0; i < treeOutputNodes.Count; i++)
 			{
 				var thisTreeOutputNode = treeOutputNodes[i];
-				if (!thisTreeOutputNode.IsDisabled && !thisTreeOutputNode.GetOutputConnection().GetRangeGridValue().IsNullOrEmpty())
+
+				if (!thisTreeOutputNode.IsDisabled)
 				{
 					var treeLayer = new TreeLayerContainer
 					{

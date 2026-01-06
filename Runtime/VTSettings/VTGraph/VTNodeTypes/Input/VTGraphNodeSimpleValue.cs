@@ -39,5 +39,5 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			RenderFloatProperty("Output Value", ref outputValue);
 		}
-		}
+	}
 }

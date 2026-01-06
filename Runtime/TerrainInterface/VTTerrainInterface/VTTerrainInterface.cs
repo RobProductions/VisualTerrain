@@ -630,11 +630,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			TreePrototype[] setTreePrototypes = new TreePrototype[treeLayers.Count];
 			for (int i = 0; i < treeLayers.Count; i++)
 			{
-				setTreePrototypes[i] = new TreePrototype();
-
-				setTreePrototypes[i].prefab = treeLayers[i].treePrototypeObject;
-				setTreePrototypes[i].bendFactor = treeLayers[i].treeBendFactor;
-				setTreePrototypes[i].navMeshLod = treeLayers[i].navMeshLODIndex;
+				setTreePrototypes[i] = new TreePrototype
+				{
+					prefab = treeLayers[i].treePrototypeObject,
+					bendFactor = treeLayers[i].treeBendFactor,
+					navMeshLod = treeLayers[i].navMeshLODIndex,
+				};
 			}
 
 			for (int i = 0; i < data.terrainRefs.Count; i++)
@@ -658,6 +659,12 @@ namespace RobProductions.VisualTerrain.Runtime
 				for (int prototypeLayerIndex = 0; prototypeLayerIndex < treeLayers.Count; prototypeLayerIndex++)
 				{
 					VTGraphValueInterface.TreeLayerContainer thisLayerContainer = treeLayers[prototypeLayerIndex];
+
+					if(thisLayerContainer.treeMap.IsNullOrEmpty())
+					{
+						//We don't have a map to use, so save some work and skip the rest
+						continue;
+					}
 
 					int treeMapWidth = thisLayerContainer.treeMap.Width;
 					int treeMapHeight = thisLayerContainer.treeMap.Height;

@@ -28,7 +28,7 @@ namespace RobProductions.VisualTerrain.Runtime
 					float xIndex = (float)x / width * noiseScale + xOffset;
 					float yIndex = (float)y / height * noiseScale + yOffset;
 
-					var sampleNoiseValue = Mathf.PerlinNoise(xIndex, yIndex) * noiseStrength;
+					var sampleNoiseValue = GetPerlinNoiseValue(xIndex, yIndex, noiseStrength);
 					ret.SetRangeValue(x, y, sampleNoiseValue);
 				}
 			}
@@ -63,6 +63,18 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 			ret.Apply();
 			return ret;
+		}
+
+		/// <summary>
+		/// Retrieve a single sampled perlin noise value.
+		/// </summary>
+		/// <param name="xIndex"></param>
+		/// <param name="yIndex"></param>
+		/// <param name="noiseStrength"></param>
+		/// <returns></returns>
+		public static float GetPerlinNoiseValue(float xIndex, float yIndex, float noiseStrength)
+		{
+			return Mathf.PerlinNoise(xIndex, yIndex) * noiseStrength;
 		}
 	}
 }
