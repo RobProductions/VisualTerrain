@@ -74,28 +74,9 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float offsetXFloat = EditorGUILayout.FloatField("Offset X", offsetX);
-			if (offsetXFloat != offsetX)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				offsetX = offsetXFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-			float offsetYFloat = EditorGUILayout.FloatField("Offset Y", offsetY);
-			if (offsetYFloat != offsetY)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				offsetY = offsetYFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-			float clipValueFloat = (float)EditorGUILayout.FloatField("Clip Value", clipValue);
-			if (clipValueFloat != clipValue)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				clipValue = clipValueFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatProperty("Offset X", ref offsetX);
+			RenderFloatProperty("Offset Y", ref offsetY);
+			RenderFloatProperty("Clip Value", ref clipValue);
 		}
 	}
 }

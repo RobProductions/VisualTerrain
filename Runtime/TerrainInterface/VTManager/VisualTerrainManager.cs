@@ -27,6 +27,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			public bool forcePreviewMode = false;
 
 			/// <summary>
+			/// When enabled, this manager instance will no longer
+			/// generate or change existing terrains with VT. They can
+			/// still be edited manually for further customization.
+			/// </summary>
+			public bool lockGeneration = false;
+
+			/// <summary>
 			/// The base name of generated terrain objects.
 			/// </summary>
 			[Header("Containers")]
@@ -119,6 +126,10 @@ namespace RobProductions.VisualTerrain.Runtime
 		public void GenerateTerrain()
 		{
 			if(settingsAsset == null)
+			{
+				return;
+			}
+			if(properties.lockGeneration)
 			{
 				return;
 			}

@@ -92,21 +92,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float strengthFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Mask Strength", maskStrength), 0.0f, Mathf.Infinity);
-			if (strengthFloat != maskStrength)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				maskStrength = strengthFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-			bool setValueMaskBool = EditorGUILayout.Toggle("Set Value Is Mask", setValueAsMask);
-			if (setValueMaskBool != setValueAsMask)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				setValueAsMask = setValueMaskBool;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatPropertyWithClamp("Mask Strength", ref maskStrength, 0.0f, Mathf.Infinity);
+			RenderBoolProperty("Set Value Is Mask", ref setValueAsMask);
 		}
 	}
 }

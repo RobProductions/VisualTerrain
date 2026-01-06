@@ -24,7 +24,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			/// generate the terrain.
 			/// </summary>
 			public bool previewMode = true;
+
 			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
+			public VTSetupTerrainObject terrainObjectSetup = new VTSetupTerrainObject();
 			public VTSetupProcessing processingSetup = new VTSetupProcessing();
 		}
 
@@ -36,6 +38,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			public VTGraph heightmapGraph = new VTGraph();
 			public VTGraph textureGraph = new VTGraph();
+			public VTGraph terrainObjectGraph = new VTGraph();
 
 			[NonSerialized]
 			public VTRangeGrid cachedThumbHeightmapGrid = VTRangeGrid.Empty;

@@ -866,10 +866,14 @@ namespace RobProductions.VisualTerrain.Editor
 		void GenericMenuAddNodeCreationItems(GenericMenu menu, Vector2 mousePosition)
 		{
 			//Test
+			/*
 			menu.AddItem(new GUIContent("Add Test Node/Test Node"), false, () => CreateNodeAtPosition<VTGraphNodeTest>(mousePosition));
+			*/
 
 			//Input
+			menu.AddItem(new GUIContent("Add Input Node/Simple Value"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleValue>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Octave Noise"), false, () => CreateNodeAtPosition<VTGraphNodeOctaveNoise>(mousePosition));
 			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
@@ -889,8 +893,13 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
 
+			//Filter
+			menu.AddItem(new GUIContent("Add Filter Node/Box Blur"), false, () => CreateNodeAtPosition<VTGraphNodeBlur>(mousePosition));
+			menu.AddItem(new GUIContent("Add Filter Node/Step"), false, () => CreateNodeAtPosition<VTGraphNodeStep>(mousePosition));
+			menu.AddItem(new GUIContent("Add Filter Node/Sharpen"), false, () => CreateNodeAtPosition<VTGraphNodeSharpen>(mousePosition));
+
 			//Processing
-			if(data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+			if (data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Processing Node/Sub Graph"), false, () => CreateNodeAtPosition<VTGraphNodeSubGraph>(mousePosition));
 			}
@@ -903,6 +912,10 @@ namespace RobProductions.VisualTerrain.Editor
 			if(data.currentGraph.graphType == VTGraph.GraphType.Texture)
 			{
 				menu.AddItem(new GUIContent("Add Output Node/Splat Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition));
+			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.TerrainObject)
+			{
+				menu.AddItem(new GUIContent("Add Output Node/Tree Layer Output"), false, () => CreateNodeAtPosition<VTGraphNodeTreeLayerOutput>(mousePosition));
 			}
 			if(data.currentGraph.graphType == VTGraph.GraphType.SubGraph)
 			{
@@ -1197,10 +1210,15 @@ namespace RobProductions.VisualTerrain.Editor
 
 			if(!inProgressLine && optionalConnection != null)
 			{
-				if (Handles.Button((startPosition + endPosition) * 0.5f, Quaternion.identity, 4, 8, Handles.CircleHandleCap))
+				Vector3 removeButtonPosition = (startPosition + endPosition) * 0.5f;
+				if (Handles.Button(removeButtonPosition, Quaternion.identity, 4, 8, Handles.CircleHandleCap))
 				{
-					var closureConnection = optionalConnection;
-					DeleteNodeConnection(optionalConnection);
+					if(data.currentRenderRect.Contains(removeButtonPosition))
+					{
+						//Make sure we're not blocked by setup view
+						var closureConnection = optionalConnection;
+						DeleteNodeConnection(optionalConnection);
+					}
 				}
 			}
 		}

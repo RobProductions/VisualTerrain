@@ -109,8 +109,10 @@ namespace RobProductions.VisualTerrain.Runtime
 				var thisSplatNode = splatOutputNodes[i];
 				if(thisSplatNode.terrainLayer != null && !thisSplatNode.IsDisabled)
 				{
-					var splatLayer = new SplatmapLayerContainer();
-					splatLayer.layerData = thisSplatNode.GetNodeTerrainLayer();
+					var splatLayer = new SplatmapLayerContainer
+					{
+						layerData = thisSplatNode.GetNodeTerrainLayer()
+					};
 
 					graph.ProcessNode(thisSplatNode, settings);
 					splatLayer.layerSplatmap = thisSplatNode.GetOutputConnection().GetRangeGridValue();
@@ -121,6 +123,96 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			return ret;
 		}
+
+		//TERRAIN OBJECTS
+
+		public struct TreeLayerContainer
+		{
+			//Core properties
+			public GameObject treePrototypeObject;
+			public float treeBendFactor;
+			public int navMeshLODIndex;
+
+			//Placement
+			public float treePlacementDensity;
+			public float treePlacementJitterRange;
+			public bool treePlacementRevalidateValue;
+			public Vector2 treePlacementRotationRange;
+			public Vector2 treePlacementHeightAdjustRange;
+
+			//Instance properties
+			public Vector2 instanceWidthRange;
+			public Vector2 instanceHeightRange;
+			public Gradient instanceColorRange;
+
+			//Position map
+			public VTRangeGrid treeMap;
+		}
+
+		public static List<TreeLayerContainer> GetAssetTreeLayers(VTSettingsAsset asset, bool previewMode)
+		{
+			var processingSettings = GenerateAssetProcessingSettings(asset, previewMode);
+			return GetGraphTreeLayers(asset.generationData.terrainObjectGraph, processingSettings);
+		}
+
+		public static List<TreeLayerContainer> GetGraphTreeLayers(VTGraph graph, VTGraphProcessingSettings settings)
+		{
+			//Init the graph
+			graph.OnGraphEnable();
+
+			//Get all the tree layer nodes
+			var ret = new List<TreeLayerContainer>();
+			var treeOutputNodes = new List<VTGraphNodeTreeLayerOutput>();
+			foreach (VTGraphNode node in graph.nodeList)
+			{
+				if (node is VTGraphNodeTreeLayerOutput)
+				{
+					var treeLayerNode = node as VTGraphNodeTreeLayerOutput;
+					if(treeLayerNode.GetNodeTreePrototype() != null)
+					{
+						treeOutputNodes.Add(treeLayerNode);
+					}
+				}
+			}
+
+
+			//Order the tree output nodes so they stay consistent
+			treeOutputNodes = treeOutputNodes.OrderBy(item => item.NodePosition.y).OrderBy(item => item.GetNodeTreePrototype().name).ToList();
+
+			for (int i = 0; i < treeOutputNodes.Count; i++)
+			{
+				var thisTreeOutputNode = treeOutputNodes[i];
+
+				if (!thisTreeOutputNode.IsDisabled)
+				{
+					var treeLayer = new TreeLayerContainer
+					{
+						treePrototypeObject = thisTreeOutputNode.GetNodeTreePrototype(),
+						treeBendFactor = thisTreeOutputNode.GetNodeTreeBendFactor(),
+						navMeshLODIndex = thisTreeOutputNode.GetNodeNavMeshLODIndex(),
+
+						treePlacementDensity = thisTreeOutputNode.GetNodePlacementDensity(),
+						treePlacementJitterRange = thisTreeOutputNode.GetNodePlacementJitterRange(),
+						treePlacementRevalidateValue = thisTreeOutputNode.GetNodePlacementRevalidateValue(),
+						treePlacementRotationRange = thisTreeOutputNode.GetNodePlacementRotationRange(),
+						treePlacementHeightAdjustRange = thisTreeOutputNode.GetNodePlacementHeightOffsetRange(),
+
+						instanceWidthRange = thisTreeOutputNode.GetNodeInstanceWidthScaleRange(),
+						instanceHeightRange = thisTreeOutputNode.GetNodeInstanceHeightScaleRange(),
+						instanceColorRange = thisTreeOutputNode.GetNodeInstanceColorRange(),
+					};
+
+					graph.ProcessNode(thisTreeOutputNode, settings);
+					treeLayer.treeMap = thisTreeOutputNode.GetOutputConnection().GetRangeGridValue();
+
+					ret.Add(treeLayer);
+				}
+			}
+
+			return ret;
+		}
+
+		//SUB GRAPH
 
 		public struct SubGraphOutputValue
 		{

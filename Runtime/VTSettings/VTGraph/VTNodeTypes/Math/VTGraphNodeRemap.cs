@@ -99,24 +99,12 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			if(remapType == RemapType.FromTo || remapType == RemapType.From)
 			{
-				var fromRangeValue = EditorGUILayout.Vector2Field("From Range", fromRange);
-				if (fromRangeValue != fromRange)
-				{
-					beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-					fromRange = fromRangeValue;
-					endEditNodePropertyEvent?.Invoke(this);
-				}
+				RenderVector2Property("From Range", ref fromRange);
 			}
 
 			if(remapType == RemapType.FromTo || remapType == RemapType.To)
 			{
-				var toRangeValue = EditorGUILayout.Vector2Field("To Range", toRange);
-				if (toRangeValue != toRange)
-				{
-					beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-					toRange = toRangeValue;
-					endEditNodePropertyEvent?.Invoke(this);
-				}
+				RenderVector2Property("To Range", ref toRange);
 			}
 		}
 	}
