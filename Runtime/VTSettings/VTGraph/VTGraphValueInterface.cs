@@ -143,7 +143,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Instance properties
 			public Vector2 instanceWidthRange;
 			public Vector2 instanceHeightRange;
-
+			public Gradient instanceColorRange;
 
 			//Position map
 			public VTRangeGrid treeMap;
@@ -193,9 +193,11 @@ namespace RobProductions.VisualTerrain.Runtime
 						treePlacementJitterRange = thisTreeOutputNode.GetNodePlacementJitterRange(),
 						treePlacementRevalidateValue = thisTreeOutputNode.GetNodePlacementRevalidateValue(),
 						treePlacementRotationRange = thisTreeOutputNode.GetNodePlacementRotationRange(),
+						treePlacementHeightAdjustRange = thisTreeOutputNode.GetNodePlacementHeightOffsetRange(),
 
 						instanceWidthRange = thisTreeOutputNode.GetNodeInstanceWidthScaleRange(),
 						instanceHeightRange = thisTreeOutputNode.GetNodeInstanceHeightScaleRange(),
+						instanceColorRange = thisTreeOutputNode.GetNodeInstanceColorRange(),
 					};
 
 					graph.ProcessNode(thisTreeOutputNode, settings);

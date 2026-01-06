@@ -14,6 +14,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public int instancePropertyRandomSeed = 200;
 
 			public float placeObjectValueCutoff = 0.1f;
+			public float revalidatePositionMultiplier = 1.2f;
 		}
 
 		[SerializeField]

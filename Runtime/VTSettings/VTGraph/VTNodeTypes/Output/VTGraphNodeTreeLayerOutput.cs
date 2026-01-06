@@ -26,11 +26,15 @@ namespace RobProductions.VisualTerrain.Runtime
 		public bool placementRevalidateValue = true;
 		[SerializeField]
 		public Vector2 placementRotationRange = new Vector2(-180f, 180f);
+		[SerializeField]
+		public Vector2 placementHeightOffsetRange = new Vector2(0f, -0.2f);
 
 		[SerializeField]
 		public Vector2 instanceWidthScaleRange = new Vector2(1.0f, 1.0f);
 		[SerializeField]
 		public Vector2 instanceHeightScaleRange = new Vector2(1.0f, 1.0f);
+		[SerializeField]
+		public Gradient instanceColorRange = new Gradient();
 
 		public VTGraphNodeTreeLayerOutput()
 		{
@@ -39,6 +43,12 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			SetupEmptyOutputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
 			outputConnections[0].slotHidden = true;
+
+			instanceColorRange.colorKeys = new GradientColorKey[2]
+			{
+				new GradientColorKey(Color.white, 0f),
+				new GradientColorKey(Color.white, 0f),
+			};
 		}
 
 		public override void ProcessNode(VTGraphProcessingSettings settings)
@@ -82,6 +92,11 @@ namespace RobProductions.VisualTerrain.Runtime
 			return placementRotationRange;
 		}
 
+		public Vector2 GetNodePlacementHeightOffsetRange()
+		{
+			return placementHeightOffsetRange;
+		}
+
 		public bool GetNodePlacementRevalidateValue()
 		{
 			return placementRevalidateValue;
@@ -95,6 +110,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		public Vector2 GetNodeInstanceHeightScaleRange()
 		{
 			return instanceHeightScaleRange;
+		}
+
+		public Gradient GetNodeInstanceColorRange()
+		{
+			return instanceColorRange;
 		}
 
 		//RENDERING
@@ -112,13 +132,15 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			EditorGUILayout.LabelField("Placement Settings", EditorStyles.boldLabel);
 
-			RenderFloatProperty("Density", ref placementDensity,
+			RenderFloatPropertyWithClamp("Density", ref placementDensity, 0.0f, 10f,
 				"For each world unit, this many trees will be attempted to be placed in a grid pattern and later jittered/randomized.");
 			RenderFloatProperty("Jitter Range", ref placementJitterRange,
 				"Each tree grid position will be jittered to some position within this range as a radius. The range is in world units.");
 			RenderBoolProperty("Revalidate Position Value", ref placementRevalidateValue);
 			RenderVector2Property("Rotation Range", ref placementRotationRange,
 				"Each tree will be rotated by a random amount within this X-Y range. The range is in euler degrees.");
+			RenderVector2Property("Height Offset Range", ref placementHeightOffsetRange,
+				"Each tree will be offset in the Y direction by a random amount within this X-Y range. The range is in world units.");
 
 			EditorGUILayout.Space(5f);
 
@@ -128,6 +150,14 @@ namespace RobProductions.VisualTerrain.Runtime
 				"When an instance is placed, its width will be random between the range of this X and Y value.");
 			RenderVector2Property("Height Scale Range", ref instanceHeightScaleRange,
 				"When an instance is placed, its height will be random between the range of this X and Y value.");
+
+			Gradient gradient = EditorGUILayout.GradientField("Color Range", instanceColorRange);
+			if(gradient != instanceColorRange)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				instanceColorRange = gradient;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
 		}
 	}
 }

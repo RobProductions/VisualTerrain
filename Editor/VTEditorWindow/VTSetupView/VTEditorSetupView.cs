@@ -319,6 +319,8 @@ namespace RobProductions.VisualTerrain.Editor
 
 			terrainObjectSetup.objectPlacement.placeObjectValueCutoff = DrawSetupFloatSliderField("Place Object Value Cutoff", terrainObjectSetup.objectPlacement.placeObjectValueCutoff,
 				0.0f, 1.0f, "Map sample points below this value will be completely skipped for object placement.");
+			terrainObjectSetup.objectPlacement.revalidatePositionMultiplier = DrawSetupFloatSliderField("Validate Position Multiplier", terrainObjectSetup.objectPlacement.revalidatePositionMultiplier,
+				0.0f, 2.0f, "When objects check for revalidation of a sample point after random jitter, the value is multiplied by this. Higher multiplier = higher chance to pass validation.");
 		}
 
 		void LayoutDrawProcessingSetup(VTSetupProcessing processing)

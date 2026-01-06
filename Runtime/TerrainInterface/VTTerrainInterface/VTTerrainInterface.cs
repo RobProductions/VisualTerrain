@@ -101,6 +101,28 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Terrain object graph may use cachedHeightmap and cached splat layers
 			var treeContainers = VTGraphValueInterface.GetAssetTreeLayers(settingsAsset, manager.IsPreviewMode());
 			SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup, treeContainers);
+
+			//Finalize terrain steps
+			FinalizeTerrainGeneration();
+		}
+
+		void FinalizeTerrainGeneration()
+		{
+			for(int i = 0; i < data.terrainRefs.Count; i++)
+			{
+				var thisTerrainRef = data.terrainRefs[i];
+
+				//Flush changes to mark edits as complete
+				//...seemingly does nothing but you never know
+				thisTerrainRef.terrainComponent.Flush();
+
+				//There's a tiling issue in Untity 2020
+				//where neighboring terrains aren't properly linked in specific cases
+				//like when you delete some terrains and run VT to add them back.
+				//Turning them off and on fixes it for some reason :')
+				thisTerrainRef.terrainObject.SetActive(false);
+				thisTerrainRef.terrainObject.SetActive(true);
+			}
 		}
 
 		//TERRAIN HEIGHT
@@ -681,6 +703,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 							float heightScaleRand = RandLerpAmount(data.terrainInstancePropertyRandom);
 							float widthScaleRand = RandLerpAmount(data.terrainInstancePropertyRandom);
+							float colorRand = RandLerpAmount(data.terrainInstancePropertyRandom);
 
 							//Get the percent into the alphamap location
 							float treePositionPercentX = (float)x / treeCountX;
@@ -729,19 +752,30 @@ namespace RobProductions.VisualTerrain.Runtime
 							if(thisLayerContainer.treePlacementRevalidateValue)
 							{
 								//Revalidate if this tree should be here at this new position
-								int revalidatePixelX = Mathf.Clamp(Mathf.FloorToInt(treeInstancePosition.x), 0, treeMapWidth);
-								int revalidatePixelY = Mathf.Clamp(Mathf.FloorToInt(treeInstancePosition.z), 0, treeMapHeight);
+								float revalidateAmountIntoSliverX = treeInstancePosition.x * sizeOfTreeMapSliverX;
+								float revalidateAmountIntoSliverY = treeInstancePosition.z * sizeOfTreeMapSliverY;
+
+								//Get the position based on index * sliver + amount into sliver
+								float revalidateSamplePosX = (thisTerrainCol * sizeOfTreeMapSliverX) + revalidateAmountIntoSliverX;
+								float revalidateSamplePosY = (thisTerrainRow * sizeOfTreeMapSliverY) + revalidateAmountIntoSliverY;
+
+								int revalidatePixelX = Mathf.Clamp(Mathf.FloorToInt(revalidateSamplePosX), 0, treeMapWidth);
+								int revalidatePixelY = Mathf.Clamp(Mathf.FloorToInt(revalidateSamplePosY), 0, treeMapHeight);
+								
 								float revalidateValue = thisLayerContainer.treeMap.GetRangeValue(revalidatePixelX, revalidatePixelY);
-								if(revalidateValue < initialPositionRand)
+
+								if(revalidateValue * terrainObjectProperties.objectPlacement.revalidatePositionMultiplier < initialPositionRand)
 								{
 									//Didn't meet revalidation requirement
 									continue;
 								}
+								
 							}
 
 							float treeRotation = RandInRange(rotationRand, thisLayerContainer.treePlacementRotationRange.x, thisLayerContainer.treePlacementRotationRange.y);
 							float treeHeightScale = RandInRange(heightScaleRand, thisLayerContainer.instanceHeightRange.x, thisLayerContainer.instanceHeightRange.y);
 							float treeWidthScale = RandInRange(widthScaleRand, thisLayerContainer.instanceWidthRange.x, thisLayerContainer.instanceWidthRange.y);
+							Color treeColor = thisLayerContainer.instanceColorRange.Evaluate(colorRand);
 
 							//Add a new tree instance
 							var newTreeInstance = new TreeInstance
@@ -749,7 +783,7 @@ namespace RobProductions.VisualTerrain.Runtime
 								prototypeIndex = prototypeLayerIndex,
 								position = treeInstancePosition,
 								rotation = treeRotation * Mathf.Deg2Rad,
-								color = Color.white,
+								color = treeColor,
 								heightScale = treeHeightScale,
 								widthScale = treeWidthScale,
 							};
@@ -757,13 +791,37 @@ namespace RobProductions.VisualTerrain.Runtime
 							finalInstances.Add(newTreeInstance);
 						}
 					}
-
 				}
 
 				//Set the final tree instances
-				thisData.SetTreeInstances(finalInstances.ToArray(), true);
+				TreeInstance[] finalInstancesArray = finalInstances.ToArray();
+				thisData.SetTreeInstances(finalInstancesArray, true);
 
-				//TODO: Optional post step to change instance height
+				//TODO: Whenever SetTreeInstances is called, it seems to set heights
+				//to 0 or to terrain height depending on the input bool.
+				//This seemingly makes it impossible to set y position afterwards :(
+				//Would be good to fix this...
+
+				/*
+				//Do a post pass on the instances to offset their heights
+				//based on the user layer definition
+				System.Random heightOffsetRandom;
+				for(int thisInstanceIndex = 0; thisInstanceIndex < finalInstancesArray.Length; thisInstanceIndex++)
+				{
+					TreeInstance thisInstance = finalInstancesArray[i];
+					int instancePrototypeIndex = thisInstance.prototypeIndex;
+					var thisPrototypeLayer = treeLayers[instancePrototypeIndex];
+
+					//Find a deterministic random number based on existing properties
+					//To use to find the height offset
+					float randomHash = (thisInstance.position.x * thisInstance.position.z * 10000f) + thisInstance.rotation;
+					heightOffsetRandom = new System.Random(Mathf.RoundToInt(randomHash));
+
+					thisInstance.position.y += RandInRange(heightOffsetRandom, thisPrototypeLayer.treePlacementHeightAdjustRange.x, thisPrototypeLayer.treePlacementHeightAdjustRange.y);
+					finalInstancesArray[i] = thisInstance;
+				}
+				*/
+
 			}
 		}
 
