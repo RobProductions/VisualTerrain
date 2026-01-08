@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
@@ -10,7 +11,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		private class TerrainInterfaceStats
 		{
-
+			[Header("Debug")]
+			public bool measurePerformance = false;
 		}
 
 		[SerializeField]
@@ -31,6 +33,11 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			public System.Random terrainPlacementRandom = new System.Random();
 			public System.Random terrainInstancePropertyRandom = new System.Random();
+
+			[HideInInspector]
+			public Stopwatch mainGeneratorStopwatch = null;
+			[HideInInspector]
+			public Stopwatch setHeightsStopwatch = null;
 		}
 
 		[SerializeField]
@@ -69,8 +76,17 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 			//Debug.Log("Generating terrain");
 
+			//Start the terrain creation process
+			if(stats.measurePerformance)
+			{
+				data.mainGeneratorStopwatch = new Stopwatch();
+				data.mainGeneratorStopwatch.Start();
+			}
+
 			//Delete any extra terrain objects that we don't have reference to
 			DeleteUnreferencedTerrainObjects();
+
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Delete Unreferened Objects");
 
 			//Trim and create new terrain references to work with later
 			int terrainCountX = TerrainCountToNumber(settingsAsset.setupData.terrainSetup.terrainSize.meshTerrainCountX);
@@ -80,8 +96,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			EnforceTerrainReferenceObjects(requiredTerrainReferences);
 			DeleteExtraTerrainReferences(requiredTerrainReferences);
 
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Delete Extra References");
+
 			//Set the terrain properties
 			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
+
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Configure Terrain Properties");
 
 			//Create new random managers based on setup seeds
 			data.terrainPlacementRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.placeObjectRandomSeed);
@@ -92,18 +112,27 @@ namespace RobProductions.VisualTerrain.Runtime
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
 			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
 
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Set Terrain Height Data");
+
 			//Set the terrain splat textures
 			//Texture graph may use the cachedHeightmap generated above
 			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
 			SetTerrainSplatTextures(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, splatContainers);
+
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Set Terrain Splat Layers");
 
 			//Set the terrain tree objects
 			//Terrain object graph may use cachedHeightmap and cached splat layers
 			var treeContainers = VTGraphValueInterface.GetAssetTreeLayers(settingsAsset, manager.IsPreviewMode());
 			SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup, treeContainers);
 
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Set Tree Objects");
+
 			//Finalize terrain steps
 			FinalizeTerrainGeneration();
+
+			PrintResetStopwatch(data.mainGeneratorStopwatch, "Finalize Generation");
+			data.mainGeneratorStopwatch = null;
 		}
 
 		void FinalizeTerrainGeneration()
@@ -129,6 +158,12 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		void SetTerrainHeight(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties, VTRangeGrid heightmap)
 		{
+			if (stats.measurePerformance)
+			{
+				data.setHeightsStopwatch = new Stopwatch();
+				data.setHeightsStopwatch.Start();
+			}
+
 			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
 			int numberOfVerticalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountY);
 
@@ -145,6 +180,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				smoothingIterations = PostSmoothingIterationsToNumber(setupProperties.terrainResolution.postSmoothingIterations);
 			}
 			List<float[,]> terrainHeightsList = new List<float[,]>();
+
+			PrintResetStopwatch(data.setHeightsStopwatch, "Height Data Setup");
 
 			//Set the initial heights based on sampled heightmap
 			for (int i = 0; i < data.terrainRefs.Count; i++)
@@ -208,6 +245,8 @@ namespace RobProductions.VisualTerrain.Runtime
 				terrainHeightsList.Add(terrainHeights);
 			}
 
+			PrintResetStopwatch(data.setHeightsStopwatch, "Sample Heightmap");
+
 			//Do a pass to stitch terrain edges together
 			for (int i = 0; i < data.terrainRefs.Count; i++)
 			{
@@ -260,9 +299,11 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 			}
 
+			PrintResetStopwatch(data.setHeightsStopwatch, "Stitch Edge");
+
 			//Do a pass to stitch corners, which need top and right edges to be set in place
 			//and also do post-smoothing now that the terrain heights are set
-			for(int i = 0; i < data.terrainRefs.Count; i++)
+			for (int i = 0; i < data.terrainRefs.Count; i++)
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisData = thisRef.terrainData;
@@ -298,27 +339,19 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						for(int x = 1; x < heightsXCount - 1; x++)
 						{
-							//Smooth this point
-							float averageValue = 0.0f;
-							int pointCount = 0;
-
-							//Check neighbor points
-							for (int checkY = -1; checkY <= 1; checkY++)
-							{
-								for (int checkX = -1; checkX <= 1; checkX++)
-								{
-									averageValue += terrainHeightsList[i][y + checkY, x + checkX];
-									pointCount++;
-								}
-							}
-							averageValue /= pointCount;
+							//Sum up neighbor points
+							float sumValue = terrainHeightsList[i][y - 1, x - 1] + terrainHeightsList[i][y - 1, x] + terrainHeightsList[i][y - 1, x + 1] +
+								 terrainHeightsList[i][y, x - 1] + terrainHeightsList[i][y, x] + terrainHeightsList[i][y, x + 1] +
+								 terrainHeightsList[i][y + 1, x - 1] + terrainHeightsList[i][y + 1, x] + terrainHeightsList[i][y + 1, x + 1];
 
 							//Assign the averaged value
-							terrainHeightsList[i][y, x] = averageValue;
+							terrainHeightsList[i][y, x] = sumValue / 9f;
 						}
 					}
 				}
 			}
+
+			PrintResetStopwatch(data.setHeightsStopwatch, "Stitch Corners & Initial Post Smoothing");
 
 			//Do a pass to smooth edges which need regular smoothed values first
 			for (int i = 0; i < data.terrainRefs.Count; i++)
@@ -402,8 +435,10 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 			}
 
+			PrintResetStopwatch(data.setHeightsStopwatch, "Post Smoothing Edges");
+
 			//Do a pass to assign final terrain data
-			for(int i = 0; i < data.terrainRefs.Count; i++)
+			for (int i = 0; i < data.terrainRefs.Count; i++)
 			{
 				var thisRef = data.terrainRefs[i];
 				var thisData = thisRef.terrainData;
@@ -411,6 +446,9 @@ namespace RobProductions.VisualTerrain.Runtime
 				//Assign the final height data
 				thisData.SetHeights(0, 0, terrainHeightsList[i]);
 			}
+
+			PrintResetStopwatch(data.setHeightsStopwatch, "Set Height Data");
+			data.setHeightsStopwatch = null;
 		}
 
 		//TERRAIN TEXTURE
@@ -520,7 +558,8 @@ namespace RobProductions.VisualTerrain.Runtime
 											//For every lower layer, we start to override the splat value,
 											//So subtract our current value from it there is always a max val of 1
 											//across all layers on this pixel
-											splatmaps[y, x, checkLowerLayerIndex] = Mathf.Clamp01(splatmaps[y, x, checkLowerLayerIndex] - setValue);
+											//Also important: Splat values < 0 are treated as 0, otherwise this would need Clamp01
+											splatmaps[y, x, checkLowerLayerIndex] = splatmaps[y, x, checkLowerLayerIndex] - setValue;
 										}
 									}
 								}
@@ -550,21 +589,26 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						//The terrain to the right is (number of vertical terrains) over to get to next column + i
 						int rightIndex = i + numberOfVerticalTerrains;
+						int endXIndex = Mathf.RoundToInt(splatmapWidth * splatStitchingPercentRadius);
+						float endXIndexInverted = 1.0f / (float)endXIndex;
 
-						for (int y = 0; y < splatmapHeight; y++)
+						float[,,] thisSplatmap = splatmapsList[i];
+						float[,,] rightSplatmap = splatmapsList[rightIndex];
+
+						for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
 						{
-							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
+							for (int y = 0; y < splatmapHeight; y++)
 							{
 								//Create a smooth gradient between the two
-								int endXIndex = Mathf.RoundToInt(splatmapWidth * splatStitchingPercentRadius);
-								float startValue = (splatmapsList[i][y, splatmapWidth - 1, splatIndex]);
-								float endValue = splatmapsList[rightIndex][y, endXIndex, splatIndex];
+								float startValue = (thisSplatmap[y, splatmapWidth - 1, splatIndex]);
+								float endValue = rightSplatmap[y, endXIndex, splatIndex];
 
-								splatmapsList[rightIndex][y, 0, splatIndex] = startValue;
+								rightSplatmap[y, 0, splatIndex] = startValue;
 								for (int gradientIndex = 1; gradientIndex < endXIndex; gradientIndex++)
 								{
-									float gradientPercent = (float)gradientIndex / endXIndex;
-									splatmapsList[rightIndex][y, gradientIndex, splatIndex] = Mathf.Lerp(startValue, endValue, gradientPercent);
+									float gradientPercent = (float)gradientIndex * endXIndexInverted;
+									//rightSplatmap[y, gradientIndex, splatIndex] = Mathf.Lerp(startValue, endValue, gradientPercent);
+									rightSplatmap[y, gradientIndex, splatIndex] = startValue + (endValue - startValue) * gradientPercent;
 								}
 							}
 						}
@@ -577,22 +621,27 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						//The terrain above is just i + 1
 						int topIndex = i + 1;
+						int endYIndex = Mathf.RoundToInt(splatmapHeight * splatStitchingPercentRadius);
+						float endYIndexInverted = 1.0f / (float)endYIndex;
 
-						for (int x = 0; x < splatmapWidth; x++)
+						float[,,] thisSplatmap = splatmapsList[i];
+						float[,,] topSplatmap = splatmapsList[topIndex];
+
+						for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
 						{
-							for (int splatIndex = 0; splatIndex < splatLayersCount; splatIndex++)
+							for (int x = 0; x < splatmapWidth; x++)
 							{
 								//Create a smooth gradient between the two
-								int endYIndex = Mathf.RoundToInt(splatmapHeight * splatStitchingPercentRadius);
-								float startValue = (splatmapsList[i][splatmapHeight - 1, x, splatIndex]);
-								float endValue = splatmapsList[topIndex][endYIndex, x, splatIndex];
+								float startValue = (thisSplatmap[splatmapHeight - 1, x, splatIndex]);
+								float endValue = topSplatmap[endYIndex, x, splatIndex];
 
 								//splatmapsList[i][splatmapHeight - 1, x, splatIndex] = setValue;
-								splatmapsList[topIndex][0, x, splatIndex] = startValue;
+								topSplatmap[0, x, splatIndex] = startValue;
 								for(int gradientIndex = 1; gradientIndex < endYIndex; gradientIndex++)
 								{
-									float gradientPercent = (float)gradientIndex / endYIndex;
-									splatmapsList[topIndex][gradientIndex, x, splatIndex] = Mathf.Lerp(startValue, endValue, gradientPercent);
+									float gradientPercent = (float)gradientIndex * endYIndexInverted;
+									//topSplatmap[gradientIndex, x, splatIndex] = Mathf.Lerp(startValue, endValue, gradientPercent);
+									topSplatmap[gradientIndex, x, splatIndex] = startValue + (endValue - startValue) * gradientPercent;
 								}
 							}
 						}
@@ -1130,12 +1179,27 @@ namespace RobProductions.VisualTerrain.Runtime
 		public void DestroyInAnyMode(Object self) => Object.Destroy(self);
 #endif
 
-		float GetGrayscaleValueFromColor(Color col)
+		void PrintResetStopwatch(Stopwatch stopwatch, string label)
 		{
-			//return (col.r + col.g + col.b) / 3f;
+			if(stopwatch == null)
+			{
+				return;
+			}
 
-			//It is more efficient to retrieve one color value than to calculate the brightness
-			return col.r;
+			stopwatch.Stop();
+			PrintStopwatchTime(stopwatch, label);
+			stopwatch.Restart();
+		}
+
+		void PrintStopwatchTime(Stopwatch stopwatch, string label)
+		{
+			if(stopwatch == null)
+			{
+				return;
+			}
+
+			string stopwatchInfo = label + " | " + stopwatch.ElapsedMilliseconds.ToString() + "ms";
+			VTLog.Log(stopwatchInfo);
 		}
 	}
 }

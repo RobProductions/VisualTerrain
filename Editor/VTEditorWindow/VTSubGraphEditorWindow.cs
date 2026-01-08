@@ -4,8 +4,9 @@ using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
-using static RobProductions.VisualTerrain.Editor.VTEditorWindow;
+using UnityEngine.SceneManagement;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -82,9 +83,6 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnEnable()
 		{
-			
-			Undo.undoRedoPerformed += UndoPerformed;
-
 			data.mainPanel = new VTEditorMainPanel();
 			data.mainPanel.OnEnable();
 
@@ -92,7 +90,10 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent += RegisterAssetStructureUndo;
 			data.mainPanel.events.onRegisterAssetDataUndoEvent += RegisterAssetDataUndo;
 
-			
+			Undo.undoRedoPerformed += UndoPerformed;
+			EditorSceneManager.activeSceneChanged += ActiveSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode += ActiveSceneChanged;
+
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
 			CheckLoadStoredAsset();
@@ -107,6 +108,8 @@ namespace RobProductions.VisualTerrain.Editor
 		private void OnDisable()
 		{
 			Undo.undoRedoPerformed -= UndoPerformed;
+			EditorSceneManager.activeSceneChanged -= ActiveSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode -= ActiveSceneChanged;
 
 			data.mainPanel.events.onEditedAssetEvent -= EditedAsset;
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent -= RegisterAssetStructureUndo;
@@ -115,6 +118,18 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.OnDisable();
 
 			data.windowActive = false;
+		}
+
+		//CALLBACKS
+
+		void ActiveSceneChanged(Scene lastScene, Scene newScene)
+		{
+			if (data.currentAsset != null)
+			{
+				RefreshGraphScreen();
+
+				data.mainPanel.RegenerateGraphPreviewImages();
+			}
 		}
 
 		//ASSET MANAGEMENT

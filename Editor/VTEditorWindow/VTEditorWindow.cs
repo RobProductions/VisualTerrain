@@ -6,7 +6,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -99,14 +101,16 @@ namespace RobProductions.VisualTerrain.Editor
 
 		private void OnEnable()
 		{
-			Undo.undoRedoPerformed += UndoPerformed;
-
 			data.mainPanel = new VTEditorMainPanel();
 			data.mainPanel.OnEnable();
 
 			data.mainPanel.events.onEditedAssetEvent += EditedAsset;
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent += RegisterAssetStructureUndo;
 			data.mainPanel.events.onRegisterAssetDataUndoEvent += RegisterAssetDataUndo;
+
+			Undo.undoRedoPerformed += UndoPerformed;
+			EditorSceneManager.activeSceneChanged += ActiveSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode += ActiveSceneChanged;
 
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
@@ -123,6 +127,8 @@ namespace RobProductions.VisualTerrain.Editor
 		private void OnDisable()
 		{
 			Undo.undoRedoPerformed -= UndoPerformed;
+			EditorSceneManager.activeSceneChanged -= ActiveSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode -= ActiveSceneChanged;
 
 			data.mainPanel.events.onEditedAssetEvent -= EditedAsset;
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent -= RegisterAssetStructureUndo;
@@ -131,6 +137,18 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.OnDisable();
 
 			data.windowActive = false;
+		}
+
+		//CALLBACKS
+
+		void ActiveSceneChanged(Scene lastScene, Scene newScene)
+		{
+			if(data.currentAsset != null)
+			{
+				RefreshGraphScreen();
+
+				data.mainPanel.RegenerateGraphPreviewImages();
+			}
 		}
 
 		//ASSET MANAGEMENT
@@ -292,6 +310,11 @@ namespace RobProductions.VisualTerrain.Editor
 				data.currentAsset.generationData.heightmapGraph.SetGraphType(VTGraph.GraphType.Height);
 				data.currentAsset.generationData.textureGraph.SetGraphType(VTGraph.GraphType.Texture);
 				data.currentAsset.generationData.terrainObjectGraph.SetGraphType(VTGraph.GraphType.TerrainObject);
+
+				//Run new scene callbacks
+				data.currentAsset.generationData.heightmapGraph.EnteredNewScene(SceneManager.GetActiveScene());
+				data.currentAsset.generationData.textureGraph.EnteredNewScene(SceneManager.GetActiveScene());
+				data.currentAsset.generationData.terrainObjectGraph.EnteredNewScene(SceneManager.GetActiveScene());
 
 				//Get the final display graph
 				if (data.currentGraphScreen == VTGraphScreen.Heightmap)

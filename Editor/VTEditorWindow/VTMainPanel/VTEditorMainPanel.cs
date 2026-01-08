@@ -2,7 +2,9 @@ using RobProductions.VisualTerrain.Editor;
 using RobProductions.VisualTerrain.Runtime;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -49,8 +51,6 @@ namespace RobProductions.VisualTerrain.Editor
 
 			data.setupView.OnEnable();
 			data.graphView.OnEnable();
-
-
 		}
 
 		public void OnDisable()
@@ -113,6 +113,11 @@ namespace RobProductions.VisualTerrain.Editor
 		public void RegenerateGraphPreviewImages()
 		{
 			data.graphView.RegenerateAllNodePreviewImages(true);
+		}
+
+		public void UpdateSceneDependentNodePreviews()
+		{
+			data.graphView.UpdateSceneDependentNodePreviews();
 		}
 
 		public VTEditorGraphView GetGraphView()

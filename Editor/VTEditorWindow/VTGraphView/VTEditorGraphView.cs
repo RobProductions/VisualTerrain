@@ -61,6 +61,8 @@ namespace RobProductions.VisualTerrain.Editor
 			public Texture2D nodeDisabledTexture;
 			public Texture2D nodeEnabledTexture;
 
+			public Texture2D nodeUpdateTexture;
+
 			public GraphViewStyles()
 			{
 				defaultNodeStyle = new GUIStyle();
@@ -89,6 +91,9 @@ namespace RobProductions.VisualTerrain.Editor
 				//Disable button
 				nodeEnabledTexture = EditorGUIUtility.Load("scenevis_visible_hover@2x") as Texture2D;
 				nodeDisabledTexture = EditorGUIUtility.Load("scenevis_hidden_hover@2x") as Texture2D;
+
+				//Update buttons
+				nodeUpdateTexture = EditorGUIUtility.Load("RotateTool@2x") as Texture2D;
 			}
 		}
 
@@ -316,6 +321,22 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 		}
 
+		public void UpdateSceneDependentNodePreviews()
+		{
+			if(data.currentGraph == null)
+			{
+				return;
+			}
+
+			foreach(VTGraphNode thisNode in data.currentGraph.nodeList)
+			{
+				if(thisNode.SceneDependent)
+				{
+					TryUpdateOutputConnectedPreviews(thisNode);
+				}
+			}
+		}
+
 		public void RemoveNodePreviewImage(VTGraphNode node)
 		{
 			if (data.nodePreviewImageMap.ContainsKey(node))
@@ -424,7 +445,7 @@ namespace RobProductions.VisualTerrain.Editor
 			//parentWindow.RegisterAssetStructureUndo("Processed Nodes");
 			foreach (VTGraphNode node in nodeList)
 			{
-				TryUpdateNodePreviewImage(node);
+				TryUpdateOutputConnectedPreviews(node);
 			}
 			mainPanel.EditedAsset();
 		}
@@ -873,6 +894,7 @@ namespace RobProductions.VisualTerrain.Editor
 			//Input
 			menu.AddItem(new GUIContent("Add Input Node/Simple Value"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleValue>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Simple Shape"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleShape>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Group Shape"), false, () => CreateNodeAtPosition<VTGraphNodeGroupShape>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Octave Noise"), false, () => CreateNodeAtPosition<VTGraphNodeOctaveNoise>(mousePosition));
 			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
@@ -1106,18 +1128,34 @@ namespace RobProductions.VisualTerrain.Editor
 			//Draw disable button
 			if(node.HasDisableButton)
 			{
-				var content = new GUIContent(node.IsDisabled ? styles.nodeDisabledTexture : styles.nodeEnabledTexture);
+				var content = new GUIContent(node.IsDisabled ? styles.nodeDisabledTexture : styles.nodeEnabledTexture, "Toggle node disabled.");
 
 				var disableButtonDefaultBGColor = GUI.backgroundColor;
 				GUI.backgroundColor = node.IsDisabled ? styles.disableButtonBGDisabledColor : styles.disableButtonBGEnabledColor;
 
-				var disableButtonRect = GetNodeDisableButtonRenderRect(nodeRect);
+				var disableButtonRect = GetNodeTopButtonButtonRenderRect(nodeRect);
 				//GUI.DrawTexture(disableButtonRect, node.IsDisabled ? styles.nodeDisabledTexture : styles.nodeEnabledTexture);
 				if(GUI.Button(disableButtonRect, content))
 				{
 					mainPanel.RegisterAssetStructureUndo("Toggled Node Disabled");
 					node.IsDisabled = !node.IsDisabled;
 					mainPanel.EditedAsset();
+				}
+
+				GUI.backgroundColor = disableButtonDefaultBGColor;
+			}
+			//Draw refresh button for nodes affected by scene objects
+			if(node.SceneDependent)
+			{
+				var content = new GUIContent(styles.nodeUpdateTexture, "Update node preview image to reflect scene changes.");
+
+				var disableButtonDefaultBGColor = GUI.backgroundColor;
+				GUI.backgroundColor = styles.disableButtonBGEnabledColor;
+
+				var sceneUpdateRect = GetNodeTopButtonButtonRenderRect(nodeRect);
+				if(GUI.Button(sceneUpdateRect, content))
+				{
+					TryUpdateOutputConnectedPreviews(node);
 				}
 
 				GUI.backgroundColor = disableButtonDefaultBGColor;
@@ -1401,7 +1439,7 @@ namespace RobProductions.VisualTerrain.Editor
 			return nodeRect;
 		}
 
-		Rect GetNodeDisableButtonRenderRect(Rect nodeRect)
+		Rect GetNodeTopButtonButtonRenderRect(Rect nodeRect)
 		{
 			var viewScale = GetCurrentViewScale();
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using static RobProductions.VisualTerrain.Runtime.VTGraphConnectionSlot;
 
 namespace RobProductions.VisualTerrain.Runtime
@@ -165,6 +166,20 @@ namespace RobProductions.VisualTerrain.Runtime
 					nodeList[newIndex] = node;
 					nodeList[thisIndex] = oldNode;
 				}
+			}
+		}
+
+		//CALLBACKS
+
+		/// <summary>
+		/// Called when we have loaded a new runtime or editor scene as the active scene.
+		/// </summary>
+		/// <param name="thisScene"></param>
+		public void EnteredNewScene(Scene thisScene)
+		{
+			foreach(VTGraphNode node in nodeList)
+			{
+				node.EnteredNewScene(thisScene);
 			}
 		}
 
