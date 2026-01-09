@@ -908,6 +908,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 			//Math
 			menu.AddItem(new GUIContent("Add Math Node/Arithmetic"), false, () => CreateNodeAtPosition<VTGraphNodeArithmetic>(mousePosition));
+			menu.AddItem(new GUIContent("Add Math Node/Overlay"), false, () => CreateNodeAtPosition<VTGraphNodeOverlay>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Translation"), false, () => CreateNodeAtPosition<VTGraphNodeTranslation>(mousePosition));
 
@@ -922,6 +923,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Filter Node/Sharpen"), false, () => CreateNodeAtPosition<VTGraphNodeSharpen>(mousePosition));
 
 			//Processing
+			menu.AddItem(new GUIContent("Add Processing Node/Erosion"), false, () => CreateNodeAtPosition<VTGraphNodeErosion>(mousePosition));
 			if (data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Processing Node/Sub Graph"), false, () => CreateNodeAtPosition<VTGraphNodeSubGraph>(mousePosition));
