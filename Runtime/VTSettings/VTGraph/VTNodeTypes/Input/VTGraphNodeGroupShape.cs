@@ -5,7 +5,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using static PlasticGui.GetProcessName;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
@@ -161,15 +160,42 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 				else if (thisShape is BoxCollider)
 				{
-
+					newGrid = FillBoxShape(newGrid, thisShape as BoxCollider, gridWorldBoundsX, gridWorldBoundsZ, bottomLeftPixel, topRightPixel);
 				}
 			}
 
-			//Steps: Get terrain holder, find rightmost and topmost terrain
-			//then find end bounds based on terrain holder position
-			//do bounds check on colliders when projected into local space of terrain holder
-
 			return newGrid;
+		}
+
+		VTRangeGrid FillBoxShape(VTRangeGrid returnGrid, BoxCollider boxCol, Vector2 gridWorldBoundsX, Vector2 gridWorldBoundsZ, Vector2Int bottomLeftPixel, Vector2Int topRightPixel)
+		{
+			//Iterate through pixels within the bounds of this collision shape
+			//And determine actual fill pixels
+
+			//To check within a rotated box shape, convert the pixel point
+			//into world space and then rotate it to orient with the box
+			Vector3 boxWorldCenterPos = boxCol.transform.TransformPoint(boxCol.center);
+			Vector3 boxSize = Vector3.Scale(boxCol.size, boxCol.transform.lossyScale);
+			Vector2 halfBoxSize = new Vector2(boxSize.x * 0.5f, boxSize.z * 0.5f);
+
+			Quaternion inverseBoxRotation = Quaternion.Inverse(boxCol.transform.rotation);
+
+			for (int y = bottomLeftPixel.y; y <= topRightPixel.y; y++)
+			{
+				for (int x = bottomLeftPixel.x; x <= topRightPixel.x; x++)
+				{
+					//Check if we're actually within box
+					var worldPos = GridMapPosToWorldSpace(x, y, gridWorldBoundsX, gridWorldBoundsZ, returnGrid.Width, returnGrid.Height);
+					var localPointDifference = inverseBoxRotation * (new Vector3(worldPos.x, 0f, worldPos.y) - boxWorldCenterPos);
+
+					if (Mathf.Abs(localPointDifference.x) < halfBoxSize.x && Mathf.Abs(localPointDifference.z) < halfBoxSize.y)
+					{
+						returnGrid.SetRangeValue(x, y, shapeValue);
+					}
+				}
+			}
+
+			return returnGrid;
 		}
 
 		VTRangeGrid FillSphereShape(VTRangeGrid returnGrid, SphereCollider sphereCol, Vector2 gridWorldBoundsX, Vector2 gridWorldBoundsZ, Vector2Int bottomLeftPixel, Vector2Int topRightPixel)
@@ -180,6 +206,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			//To get the radius, we must multiply by the largest component of lossyScale
 			float maxScaleComponent = Mathf.Max(Mathf.Abs(sphereCol.transform.lossyScale.x), Mathf.Abs(sphereCol.transform.lossyScale.y), Mathf.Abs(sphereCol.transform.lossyScale.z));
 			var sphereWorldRadius = sphereCol.radius * maxScaleComponent;
+			var sphereWorldRadiusSquared = sphereWorldRadius * sphereWorldRadius;
 
 			var sphereCenter = sphereCol.transform.position + (sphereCol.transform.rotation * sphereCol.center);
 			var sphereCenter2D = new Vector2(sphereCenter.x, sphereCenter.z);
@@ -190,9 +217,9 @@ namespace RobProductions.VisualTerrain.Runtime
 				{
 					//Check if we're actually within sphere
 					var worldPos = GridMapPosToWorldSpace(x, y, gridWorldBoundsX, gridWorldBoundsZ, returnGrid.Width, returnGrid.Height);
-					var pointDist = Vector2.Distance(worldPos, sphereCenter2D);
+					var pointDifference = worldPos - sphereCenter2D;
 					
-					if(pointDist < sphereWorldRadius)
+					if(pointDifference.sqrMagnitude < sphereWorldRadiusSquared)
 					{
 						returnGrid.SetRangeValue(x, y, shapeValue);
 					}
