@@ -22,19 +22,46 @@ There are already several great plugins that fill this gap such as [MagMagic](ht
 
 ## Usage
 
-To get started, you first need to make a *VT Settings Asset* which sits in your Assets folder. It is a ScriptableObject which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graphs (the data type is *VTGraph*) stored inside of the asset which you must work with to create a terrain: the Heightmap graph, the Texture graph, and the Terrain Object graph. 
+To get started, you first need to make a *VT Settings Asset* which sits in your Assets folder. It is a ScriptableObject which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graph data structures (called a *VTGraph*) stored inside of the asset which you must work with to create a terrain: the Heightmap graph, the Texture graph, and the Terrain Object graph. 
 
-For the generation to work, you must place and connect nodes within each graph that will tell the algorithm how your terrain will be built. You can do this in code which I won't cover here, but that is quite complicated unless you understand each data structure. Instead, the user-friendly way to edit nodes is via the *Visual Terrain Editor*.
+For the generation to work, you must place and connect nodes within each graph that will tell the algorithm how your terrain will be built. You can do this in code (which is not documented yet), but that is quite complicated unless you understand how the system works under the hood. Instead, the user-friendly way to edit nodes is via the *Visual Terrain Editor*.
 
 ### The Visual Terrain Editor
 
-This is a custom Editor window which can be used to edit a *VT Settings Asset*. 
+This is a custom Editor window which can be used to edit a *VT Settings Asset*. You can open this panel by going to *Window->Visual Terrain->Visual Terrain Editor* or by double clicking a *VT Settings Asset*. A label at the bottom right of the screen will tell you which asset is currently being used by the editor.
+
+You can inspect each of the graphs in your asset by using an enum dropdown at the top left. There is also a Properties toggle which brings up an inspector panel. When a node is selected, the panel will display all of the properties used to configure it. When there is no node selected, the panel will show properties used to customize the resolution, size, quality, and rendering data of your terrain.
+
+### Graph View
+
+Each *VTGraph* in your asset can be modified by manipulating the nodes from this main view. You can select nodes by left clicking on them, browse extended options with right click, delete nodes with the delete key, and expand or hide their preview image with the **E key**. You can focus the view on selected nodes with the **F key**.
+
+To add new nodes, right click and select an Add Node option to create a node at your mouse cursor position. You can connect nodes by dragging from an input slot to an output slot, or the other way around. Each node will perform some processing operation on a value from an input slot (or generate a new input value) and then populate the output slot to be passed to the next node. There are two types of values supported currently:
+
+- VT Range Grid
+- Float
+
+A *VT Range Grid* is a representation of a 2D grid of floating point values. You can think of this like a grayscale texture, where each pixel can be of value 0 to 1. Range Grids are used all over the place to define where things happen on your terrain, such as how tall it is at each point (from 0% to 100%) or what the percent chance is (from 0% to 100%) that a tree will be placed. The Float value type is a single floating point number. In order to use different value types, you can select the desired type from the node's properties for each input slot. For convenience, a preview image of the first output slot's Range Grid is shown as a texture in each node, where 0.0f represents a black pixel, 0.5f represents a pure gray pixel, and 1.0f represents a white pixel.
 
 ### Input Nodes
 
+To start building a VT Range Grid that will represent your terrain, you need to generate some initial values with these special Input Nodes. 
 
+### Other Node Types
 
-### Basic Node Types
+There are plenty of operations you can perform with nodes such as Addition, Subtraction, and Multiplication with the **Arithmetic Node**, Step operations with the **Step Node**, Blur with the **Box Blur** node, and even a simple Erosion approximation with the **Erosion Node**. By manipulating the values within a VT Range Grid, you can alter the resulting terrain. For example, adding a value of 0.2f to a heightmap grid value with the **Arithmetic Node** raises the entire terrain by 20%.
+
+### Output Nodes
+
+In order for terrains to know which final Range Grid value to use, some special output nodes are designated for each graph type. These nodes can be disabled so that they don't influence the generation algorithm, which is useful for debugging.
+
+In the Heightmap graph, a **Height Output Node** is used to designate the final heightmap Range Grid. Values from 0 to 1 are used to mark how tall a point is. A value of 1 means that the height used will be the *Mesh Height* value specified in world units within the settings asset.
+
+In the Texture graph, a **Splat Layer Output Node** is used to designate the influence of a single Terrain Layer. Values from 0 to 1 are used to mark the opacity of this layer. The layer order can be customized with the *Layer Order* setting in each node. Layers that are evaluated first will be applied as a base texture, and then layers above that will override the layers below. If the order matches another node, they will be sorted according to their Y position within the graph.
+
+In the Terrain Object graph, a **Tree Layer Output Node** is used to define and place trees on the terrain. The *Density* setting lets you control how many trees are attempted to be placed per world unit. The *Jitter Range* setting controls how much each tree's position is randomized from its initial grid position. With the *Revalidate Position* field, you can check whether the new jittered position is also valid for placement, but with some extra leeway defined in the *Terrain Object Setup* tab in the asset properties.
+
+### Sub Graphs
 
 
 
@@ -44,7 +71,7 @@ To utilize your *VT Settings Asset*, you need to add a *Visual Terrain Manager* 
 
 There are a few ways to trigger the terrain generation. The first and easiest way is to hit the "Generate" button within the Visual Terrain Editor window. This will find all manager objects and generate their terrains if their Settings Asset matches the one being inspected in the editor window. You could also use the Context Menu button within the "3 dots" dropdown from the Visual Terrain Manager. Lastly, you could call the public **GenerateTerrain()** function on a manager of your choice to generate its terrain.
 
-When the terrain generates, it will first create all of the needed terrain objects and place them into a holder object. If the terrains already exist and are referenced, it will reuse them so that no unused values/components are lost. Then it will read the value of the heightmap graph within the asset and then apply that value to each terrain's height data. It store the heightmap value in a cache for future use. It will calculate the splatmap layer values from the texture graph and apply those as alphamaps. It will also stitch up terrain heights and splat layers smoothly using the Splat Stiching Radius setting in the asset. Finally, it will place trees using the terrain object graph's values by creating a grid of instances and jittering them based on provided seed values. When the interface revalidates a tree position, it first jitters the instance and then checks if the new position is still within an acceptable range to prevent trees being placed in spots where they shouldn't go. 
+When the terrain generates, it will first create all of the needed terrain objects and place them into a holder object. If the terrains already exist and are referenced, it will reuse them so that no unused values/components are lost. Then it will read the value of the heightmap graph within the asset and then apply that value to each terrain's height data. To provide better results, a Post Smoothing step is performed depending on asset settings which will average out terrain height points after they are sampled from the graph. This allows you to utilize a lower resolution graph output on a higher resolution terrain. It then stores the heightmap value in a cache for future use. It will calculate the splatmap layer values from the texture graph and apply those as alphamaps with your provided Terrain Layers. It will also stitch up terrain heights and splat layers smoothly using the Splat Stiching Radius setting in the asset. Finally, it will place trees using the terrain object graph's values by creating a grid of instances and jittering them based on provided seed values. When the interface revalidates a tree position, it first jitters the instance and then checks if the new position is still within an acceptable range to prevent trees being placed in spots where they shouldn't go. 
 
 When this process is complete, you now have fully usable terrains with their TerrainData stored locally within the scene. Note that this is different from hand-made terrains which typically ask you to make terrain data in your assets folder. Since regeneration wipes the terrain data, there is no need to save it to your assets folder unless you wish to keep the results for later. At this point, you can modify the terrain by painting on it or changing its data, but be aware that regenerating will revert those changes. If you want to use Visual Terrain as a base for manual modifications, you may want to enable the **lockGeneration** bool within the Visual Terrain Manager so that you don't accidentally generate again. You could also just delete the manager so that Visual Terrain doesn't consider it at all.
 
@@ -67,6 +94,10 @@ As you can see, the main problems involved are with performance and incorrect vi
 - There is no support for placing custom GameObjects via RangeGrids
 
 It would be great to tackle some of these subjects in the future once we understand the use cases better and potentially restructure some of the node processing steps. I will be updating Visual Terrain based on any issues I find while creating levels for my new game, which should provide some hands-on direction as to how the package will evolve.
+
+## Other Details
+
+The project is currently in a prerelease state, but will adhere to [Semantic Versioning](https://semver.org/). Each new release will be given a Tag which you can use to track changes.
 
 ## Installation
 
@@ -97,7 +128,7 @@ Visual Terrain should also work as a part of your `Assets/` directory if you'd l
 
 ### Want more details about the API?
 
-If you installed via Git, you may want to make sure that you've enabled .csproj for "Git Packages" in *Edit->Preferences->External Tools*
+If you installed via Git, you may want to make sure that you've enabled the generate .csproj setting for "Git Packages" in *Edit->Preferences->External Tools*
 
 <img width = "400" src="Documentation~/DocAssets/GitPackagesSetting.jpg">
 
