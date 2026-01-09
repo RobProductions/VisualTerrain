@@ -63,7 +63,7 @@ As you can see, the main problems involved are with performance and incorrect vi
 
 - There is no support for placing detail objects
 - There is no support for painting grass values
-- Not all of the terrain data properties have been added to
+- Not all of the possible terrain data properties are accounted for in the VT Settings Asset, so you have to manually apply them to each generated terrain
 - There is no support for placing custom GameObjects via RangeGrids
 
 It would be great to tackle some of these subjects in the future once we understand the use cases better and potentially restructure some of the node processing steps. I will be updating Visual Terrain based on any issues I find while creating levels for my new game, which should provide some hands-on direction as to how the package will evolve.
