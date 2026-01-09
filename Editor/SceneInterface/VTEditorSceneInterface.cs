@@ -43,7 +43,19 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			return ret;
+		}
 
+		public static List<VTSceneReferenceObject> GetSceneReferenceObjects()
+		{
+			var thisScene = EditorSceneManager.GetActiveScene();
+			var allRootObjects = thisScene.GetRootGameObjects();
+			List<VTSceneReferenceObject> referenceObjects = new List<VTSceneReferenceObject>();
+			foreach (GameObject thisRootObj in allRootObjects)
+			{
+				referenceObjects.AddRange(thisRootObj.GetComponentsInChildren<VTSceneReferenceObject>());
+			}
+
+			return referenceObjects;
 		}
 	}
 }

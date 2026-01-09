@@ -4,9 +4,11 @@
 
 An open source node-based Terrain generator for Unity.
 
+Check the README.md for usage details.
+
 ## Author
 
-
+Matt Enad - RobProductions
 
 ## License
 
