@@ -1,2 +1,131 @@
-# VisualTerrain
-An open source node-based Terrain generator for Unity.
+# Visual Terrain
+An open-source node-based Terrain generator for Unity. Create stunning terrain shapes and paint them mathematically by combining nodes in a user-friendly graph interface!
+
+(Logo Image)
+
+## Overview
+
+Visual Terrain is an open-source project aimed at giving developers a more professional non-destructive pipeline for creating procedural terrains at runtime or in the editor. There are two assemblies provided with the project:
+
+- Visual Terrain Runtime
+- Visual Terrain Editor
+
+The Runtime assembly provides definitions of all of the required assets (including nodes, value types, and graphs) needed to define a Visual Terrain. It also includes the *Visual Terrain Manager* and necessary tools to procedurally generate the landscape based on a provided *VT Settings Asset*. The Editor assembly provides tools for editing terrain assets within the Unity Editor, such as the *Visual Terrain Editor* which allows you to click on and connect nodes within a visual graph. 
+
+The Editor assembly is not included in builds and you should not use its API outside of the Editor. You can still construct and generate a Visual Terrain at runtime through code if you need that sort of control, but the plugin is primarily built to handle the case of pre-building a terrain for a large level or game world during development.
+
+### Why Make Visual Terrain?
+
+Several upcoming game ideas that I had involved needing to create a large variety of terrains, so I set out to find a suitable tool that would make this process easier. Previously, I would use Unity's [Terrain Tools](https://docs.unity3d.com/Packages/com.unity.terrain-tools@5.3/manual/index.html) to sculpt initial shapes and then iterate on them until I was satisfied. But looking at AAA production pipelines, I realized the benefit of a non-destructive workflow like the kind you'd get with Blender's geometry nodes or Houdini. 
+
+There are already several great plugins that fill this gap such as [MagMagic](https://assetstore.unity.com/packages/tools/terrain/mapmagic-2-165180?srsltid=AfmBOoqc299cBaAZbVUn5PWV6s0SXcFSrj_-xlI7348W6XR4PmHqi4Jd) or [TerraForge](https://assetstore.unity.com/packages/tools/terrain/terraforge-2-procedural-terrain-generator-291432), but what I could find was either paid, closed source, or experienced issues with Unity 6. Other open source options I looked at felt underdeveloped or were non-node based, which can make visualizing changes a hassle with a complicated terrain shape. So as someone who is not deterred from building custom solutions to problems like this, I set out to build a generic, highly adaptable tool that could produce the terrains I was looking for with as much developer control as possible. This also helped me to understand the techniques involved in terrain generation and benefit from the control of totally understanding each step in the plugin. I built Visual Terrain from the ground up to assist with the development of an upcoming game, and it's now released for free to benefit the gamedev community!
+
+## Usage
+
+To get started, you first need to make a *VT Settings Asset* which sits in your Assets folder. It is a ScriptableObject which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graphs (the data type is *VTGraph*) stored inside of the asset which you must work with to create a terrain: the Heightmap graph, the Texture graph, and the Terrain Object graph. 
+
+For the generation to work, you must place and connect nodes within each graph that will tell the algorithm how your terrain will be built. You can do this in code which I won't cover here, but that is quite complicated unless you understand each data structure. Instead, the user-friendly way to edit nodes is via the *Visual Terrain Editor*.
+
+### The Visual Terrain Editor
+
+This is a custom Editor window which can be used to edit a *VT Settings Asset*. 
+
+### Input Nodes
+
+
+
+### Basic Node Types
+
+
+
+### Generating Your Terrain
+
+To utilize your *VT Settings Asset*, you need to add a *Visual Terrain Manager* component to a GameObject in your scene. This will serve as the holder object for everything that is generated and placed by Visual Terrain. It can be moved to any location in your world, but be aware that Unity does not support rotating terrains, so the package assumes no rotation. 
+
+There are a few ways to trigger the terrain generation. The first and easiest way is to hit the "Generate" button within the Visual Terrain Editor window. This will find all manager objects and generate their terrains if their Settings Asset matches the one being inspected in the editor window. You could also use the Context Menu button within the "3 dots" dropdown from the Visual Terrain Manager. Lastly, you could call the public **GenerateTerrain()** function on a manager of your choice to generate its terrain.
+
+When the terrain generates, it will first create all of the needed terrain objects and place them into a holder object. If the terrains already exist and are referenced, it will reuse them so that no unused values/components are lost. Then it will read the value of the heightmap graph within the asset and then apply that value to each terrain's height data. It store the heightmap value in a cache for future use. It will calculate the splatmap layer values from the texture graph and apply those as alphamaps. It will also stitch up terrain heights and splat layers smoothly using the Splat Stiching Radius setting in the asset. Finally, it will place trees using the terrain object graph's values by creating a grid of instances and jittering them based on provided seed values. When the interface revalidates a tree position, it first jitters the instance and then checks if the new position is still within an acceptable range to prevent trees being placed in spots where they shouldn't go. 
+
+When this process is complete, you now have fully usable terrains with their TerrainData stored locally within the scene. Note that this is different from hand-made terrains which typically ask you to make terrain data in your assets folder. Since regeneration wipes the terrain data, there is no need to save it to your assets folder unless you wish to keep the results for later. At this point, you can modify the terrain by painting on it or changing its data, but be aware that regenerating will revert those changes. If you want to use Visual Terrain as a base for manual modifications, you may want to enable the **lockGeneration** bool within the Visual Terrain Manager so that you don't accidentally generate again. You could also just delete the manager so that Visual Terrain doesn't consider it at all.
+
+## Limitations
+
+**NOTE:** This project is in a prerelease state, and as such I cannot fully recommend it for production use unless you very clearly understand how it works and can live with the limitations.
+
+The package has several open issues that have been left for later as they were not of highest priority yet.
+
+- The auto-generate terrain feature does not work: Terrain generation can still be quite slow for the non-preview mode and it isn't threaded, so automatically building a terrain every time you change a property just isn't useful at this stage. If we were able to make the generation process a non-blocking call so that the editor can still be used while it's building, then this would make more sense.
+- Scene-Dependent nodes such as the Group Shape Node can't tell when GameObjects have shifted around in a scene, so their thumbnail image won't automatically update: You can update it by pressing the "Refresh" button which was added to these nodes or by right clicking and selecting "Update Node Preview". Due to the slowness of long chain evaluations, even updating these every frame would be a bit heavy. They may need to keep track of scene/object changes or we may need to come up with a time-spliced operation instead of the blocking call that currently occurs from the "Update Output Connected Nodes" function (called when the node thumbnail needs to update).
+- Graph evaluation is somewhat redundant and slow: If a node needs to be evaluated, it must evaluate the whole chain before it, even if the values haven't changed since the last evaluation. If they held some sort of memory and allow property changes to invalidate their outputs, we could avoid redundant recalls. However, Scene-Dependent nodes are not easily able to tell when they have been invalidated 
+- Sub graphs can't include other sub graphs within them: Due to not being able to detect endless loops (i.e. a sub graph contains itself or contains a Sub Graph Node that contains itself) sub graphs have been limited to not allow Sub Graph Nodes. Essentially, this means you can't nest sub graphs to create highly reusable prefabs. This is probably a logic problem that could be solved by traversing all Sub Graph Node contents, which would free up this limitation.
+
+As you can see, the main problems involved are with performance and incorrect visualizations, but outside of that the package should be reliable for generating consistent results. There are also a few useful features that should be added before the full release but have been skipped because I didn't need them right now.
+
+- There is no support for placing detail objects
+- There is no support for painting grass values
+- Not all of the terrain data properties have been added to
+- There is no support for placing custom GameObjects via RangeGrids
+
+It would be great to tackle some of these subjects in the future once we understand the use cases better and potentially restructure some of the node processing steps. I will be updating Visual Terrain based on any issues I find while creating levels for my new game, which should provide some hands-on direction as to how the package will evolve.
+
+## Installation
+
+### Recommended Installation
+
+If you're looking for any specific release of Visual Terrain, you can specify a release tag with the hashtag like so: "https://github.com/RobProductions/VisualTerrain.git#ReleaseNumber"
+
+1. Open the [Package Manager](https://docs.unity3d.com/2020.3/Documentation/Manual/upm-ui.html) in Unity
+2. Copy the GitHub "HTTPS Clone" URL for OpenEOS: [https://github.com/RobProductions/VisualTerrain.git](https://github.com/RobProductions/VisualTerrain.git)
+3. Click the '+' icon and hit *"Add package from git URL"*
+4. Paste the HTTPS Clone URL to the popup and (optionally) add on *#YourChosenReleaseNumer* to the end, then hit enter
+5. Wait for download to complete
+6. You can now create a *VT Settings Asset* and open it with the Visual Terrain Editor to start making your terrain!
+
+### Optional Installations
+
+**OpenUPM installation**
+
+Check [this link](https://openupm.com/docs/getting-started.html#installing-a-upm-package) for the recommended steps.
+
+**Local package installation**
+
+Feel free to download the project as .zip and unzip the folder to somewhere on your local drive. Then use the *"Add package from disk"* option in the Package Manager to add this local package instead of the remote installation.
+
+**Assets path installation**
+
+Visual Terrain should also work as a part of your `Assets/` directory if you'd like to customize it for your specific project without having to deal with the package system. Simply download the project as a .zip and unzip the contents to anywhere in your Assets folder, as long as they are self-contained so that the Assembly Definition doesn't confuse itself with your other files. There should be no difference between Package and non-Package installation in terms of usage.
+
+### Want more details about the API?
+
+If you installed via Git, you may want to make sure that you've enabled .csproj for "Git Packages" in *Edit->Preferences->External Tools*
+
+<img width = "400" src="Documentation~/DocAssets/GitPackagesSetting.jpg">
+
+## Contribution
+
+Visual Terrain is supported by the original author RobProductions and the game development community.
+
+### How to Contribute
+
+This open source project is free for all to suggest improvements and submit pull requests. These are the recommended steps to add your contribution:
+
+1. Fork the repository to your GitHub account
+2. Clone the code to the Assets or local Packages folder in a testbed Unity project
+3. Create a new branch or work off of your own "working branch"
+4. When your changes are complete, submit a pull request to merge your code; ideally to the "working-branch" used to test changes before main
+5. If the PR is approved, aggregate changes will eventually be merged into main and a new release tag is created
+
+## Credits & Details
+
+Created by [RobProductions](https://twitter.com/RobProductions). RobProductions' Steam games can be found [here](https://store.steampowered.com/developer/robproductions).
+
+### Requirements
+
+- Tested with Unity 2020.3.49f1 and .NET 4.x, though it will likely work in some earlier versions of Unity too. Parameters for Unity 6 terrains have been accounted for.
+- Non-preview terrain generation can be slow on older machines, so be aware that the CPU's single thread capabilities are what determines how fast each node is evaluated (at least for now until we better utilize multi-cores).
+
+### License
+
+This work is licensed under the MIT License. The intent for this software is to provide a free and open tool for developers to create procedural terrains, without requirement of attribution. However, attribution for uses of this package would be much appreciated. The code may be considered "open source" and could include snippets from multiple collaborators. Contributors may be named in the README.md and Documentation files. 
+
+The code is provided "as is" and without warranty. 
