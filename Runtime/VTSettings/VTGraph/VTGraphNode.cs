@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
@@ -12,6 +13,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		public virtual bool HasNodeProperties { get => false; }
 		public virtual bool HasDisableButton { get => false; }
 		public virtual bool SubGraphNode { get => false; }
+		public virtual bool SceneDependent { get => false; }
 
 		[SerializeField, SerializeReference]
 		public VTGraphConnectionSlot[] inputConnections;
@@ -77,6 +79,18 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// Render properties in the setup view for this node.
 		/// </summary>
 		public virtual void RenderNodeProperties()
+		{
+			return;
+		}
+
+		/// <summary>
+		/// Called when the editor has loaded a new active scene,
+		/// or when the graph becomes visible, or on enabled to
+		/// act as initialization for things that should happen
+		/// when we enter a new scene or start up.
+		/// </summary>
+		/// <param name="enteredScene"></param>
+		public virtual void EnteredNewScene(Scene enteredScene)
 		{
 			return;
 		}
@@ -265,19 +279,24 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// <summary>
 		/// Render an object property field specifically for GameObjects.
 		/// Invokes begin and end edit node property events.
+		/// Returns true when the value has changed.
 		/// </summary>
 		/// <param name="propertyName"></param>
 		/// <param name="baseValue"></param>
 		/// <param name="allowSceneObjects"></param>
-		protected void RenderGameObjectProperty(string propertyName, ref UnityEngine.GameObject baseValue,  bool allowSceneObjects)
+		protected bool RenderGameObjectProperty(string propertyName, ref UnityEngine.GameObject baseValue,  bool allowSceneObjects, string tooltip = "")
 		{
-			var newValue = (GameObject)EditorGUILayout.ObjectField(propertyName, baseValue, typeof(GameObject), allowSceneObjects);
+			var content = new GUIContent(propertyName, tooltip);
+			var newValue = (GameObject)EditorGUILayout.ObjectField(content, baseValue, typeof(GameObject), allowSceneObjects);
 			if (newValue != baseValue)
 			{
 				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
 				baseValue = newValue;
 				endEditNodePropertyEvent?.Invoke(this);
+
+				return true;
 			}
+			return false;
 		}
 	}
 }

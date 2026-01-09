@@ -52,35 +52,50 @@ namespace RobProductions.VisualTerrain.Runtime
 			int resolution = settings.textureGenResolutionNumber;
 			var newGrid = new VTRangeGrid(resolution, resolution);
 
-			//For each point, generate layered noise and sum them together
+			//Check if we can make a noise layer
 			if(octaveCount > 0)
 			{
+				//Set up key values
 				if(lacunarity <= 0.0f)
 				{
 					lacunarity = 0.001f;
 				}
 				float maxGridValue = 1.0f * octaveCount;
+				float newGridWidthInverted = 1.0f / newGrid.Width;
+				float newGridHeightInverted = 1.0f / newGrid.Height;
 
+				//Precompute lacunarity and persistence values
+				float[] amplitudes = new float[octaveCount];
+				float[] frequencies = new float[octaveCount];
+
+				float tempAmplitude = 1f;
+				float tempFrequency = 1f;
+
+				for (int i = 0; i < octaveCount; i++)
+				{
+					amplitudes[i] = tempAmplitude;
+					frequencies[i] = tempFrequency;
+
+					tempAmplitude *= persistence;
+					tempFrequency /= lacunarity;
+				}
+
+				//For each point, generate layered noise and sum them together
 				for (int y = 0; y < newGrid.Height; y++)
 				{
 					for (int x = 0; x < newGrid.Width; x++)
 					{
-						float currentAmplitude = 1.0f;
-						float currentFrequency = 1.0f;
 						float sumValue = 0.0f;
 
 						for (int octaveIndex = 0; octaveIndex < octaveCount; octaveIndex++)
 						{
 							float thisOctaveOffset = octaveIndex * octaveOffsetMultiplier;
 
-							float sampleX = (float)x / newGrid.Width * noiseScale * currentFrequency + thisOctaveOffset;
-							float sampleY = (float)y / newGrid.Height * noiseScale * currentFrequency + thisOctaveOffset;
+							float sampleX = (float)x * newGridWidthInverted * noiseScale * frequencies[octaveIndex] + thisOctaveOffset + noiseOffsetX;
+							float sampleY = (float)y * newGridHeightInverted * noiseScale * frequencies[octaveIndex] + thisOctaveOffset + noiseOffsetY;
 
 							float perlinValue = VTNoiseGenUtils.GetPerlinNoiseValue(sampleX, sampleY, noiseStrength);
-							sumValue += perlinValue * currentAmplitude;
-
-							currentAmplitude *= persistence;
-							currentFrequency /= lacunarity;
+							sumValue += perlinValue * amplitudes[octaveIndex];
 						}
 
 						newGrid.SetRangeValue(x, y, sumValue / maxGridValue);
