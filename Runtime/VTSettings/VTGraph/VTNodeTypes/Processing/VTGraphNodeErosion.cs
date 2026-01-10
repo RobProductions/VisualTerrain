@@ -10,6 +10,16 @@ namespace RobProductions.VisualTerrain.Runtime
 		public override string NodeTitle => "Erosion";
 		public override bool HasNodeProperties => true;
 
+		public enum ErodeFormulaType
+		{
+			OneOverX = 0,
+			EulerXPower1 = 1,
+			EulerXPower2 = 2,
+			EulerXPower3 = 3,
+		}
+
+		[SerializeField]
+		public ErodeFormulaType erosionFormulaType = ErodeFormulaType.OneOverX;
 		[SerializeField]
 		public float erosionCurveSteepness = 0.5f;
 		[SerializeField]
@@ -36,7 +46,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			if(!inputGrid.IsNullOrEmpty() && !erosionMaskGrid.IsNullOrEmpty())
 			{
 				//We have both base input and erosion mask
-				output.SetRangeGridValue(ProcessErosion(inputGrid, erosionMaskGrid));
+				output.SetRangeGridValue(ProcessErosion(inputGrid, erosionMaskGrid, erosionFormulaType));
 			}
 			else
 			{
@@ -49,7 +59,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//EROSION
 
-		VTRangeGrid ProcessErosion(VTRangeGrid inputGrid, VTRangeGrid influenceMask)
+		VTRangeGrid ProcessErosion(VTRangeGrid inputGrid, VTRangeGrid influenceMask, ErodeFormulaType formulaType)
 		{
 			var newGrid = new VTRangeGrid(inputGrid.Width, inputGrid.Height);
 
@@ -61,11 +71,28 @@ namespace RobProductions.VisualTerrain.Runtime
 					var influenceValue = influenceMask.GetRangeValue(x, y);
 					var inputValue = inputGrid.GetRangeValue(x, y);
 
-					//The formula 1 / 1 - kx where k is strength
-					//will give a smooth step from 1 to 0,
-					//but we want to remap to 0 to 1 so use 1 - formula
-
-					float sinkAmount = 1f - (1f / (1f + erosionCurveSteepness * influenceValue));
+					float sinkAmount = 0.0f;
+					if(formulaType == ErodeFormulaType.OneOverX)
+					{
+						//The formula 1 / 1 + kx where k is strength
+						//will give a smooth step from 1 to 0,
+						//but we want to remap to 0 to 1 so use 1 - formula
+						sinkAmount = 1f - (1f / (1f + erosionCurveSteepness * influenceValue));
+					}
+					else if (formulaType == ErodeFormulaType.EulerXPower1)
+					{
+						//The formula e ^ (-kx ^ p) will give a smooth curve value
+						//And we take 1 - formula to remap to 0 to 1
+						sinkAmount = 1f - (Mathf.Exp(Mathf.Pow(-erosionCurveSteepness * influenceValue, 1)));
+					}
+					else if (formulaType == ErodeFormulaType.EulerXPower2)
+					{
+						sinkAmount = 1f - (Mathf.Exp(Mathf.Pow(-erosionCurveSteepness * influenceValue, 2)));
+					}
+					else if (formulaType == ErodeFormulaType.EulerXPower3)
+					{
+						sinkAmount = 1f - (Mathf.Exp(Mathf.Pow(-erosionCurveSteepness * influenceValue, 3)));
+					}
 					//Then subtract height based on erosion curve and multiplier
 					newGrid.SetRangeValue(x, y, inputValue - (sinkAmount * erosionMultiplier));
 				}
@@ -79,6 +106,14 @@ namespace RobProductions.VisualTerrain.Runtime
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
+
+			ErodeFormulaType formulaValue = (ErodeFormulaType)EditorGUILayout.EnumPopup("Formula Type", erosionFormulaType);
+			if (formulaValue != erosionFormulaType)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				erosionFormulaType = formulaValue;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
 
 			RenderFloatPropertyWithClamp("Erosion Curve", ref erosionCurveSteepness, 0f, 30f, 
 				"The steepness of the curve used to calculate erosion sinking.");
