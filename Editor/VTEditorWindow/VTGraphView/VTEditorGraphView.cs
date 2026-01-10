@@ -897,6 +897,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Input Node/Group Shape"), false, () => CreateNodeAtPosition<VTGraphNodeGroupShape>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Simple Noise"), false, () => CreateNodeAtPosition<VTGraphNodeSimpleNoise>(mousePosition));
 			menu.AddItem(new GUIContent("Add Input Node/Octave Noise"), false, () => CreateNodeAtPosition<VTGraphNodeOctaveNoise>(mousePosition));
+			menu.AddItem(new GUIContent("Add Input Node/Texture"), false, () => CreateNodeAtPosition<VTGraphNodeTexture>(mousePosition));
 			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
