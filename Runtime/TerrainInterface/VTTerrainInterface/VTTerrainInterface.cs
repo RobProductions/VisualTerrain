@@ -103,10 +103,6 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Configure Terrain Properties");
 
-			//Create new random managers based on setup seeds
-			data.terrainPlacementRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.placeObjectRandomSeed);
-			data.terrainInstancePropertyRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.instancePropertyRandomSeed);
-
 			//Set the terrain height values
 			//This will set the cachedHeightmap for later use
 			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
@@ -715,6 +711,22 @@ namespace RobProductions.VisualTerrain.Runtime
 						continue;
 					}
 
+					//Setup random generators for each tree layer
+					int placementSeed = settingsAsset.setupData.terrainObjectSetup.objectPlacement.defaultPlacementSeed;
+					if(thisLayerContainer.placementSeed > 0)
+					{
+						placementSeed = thisLayerContainer.placementSeed;
+					}
+					data.terrainPlacementRandom = new System.Random(placementSeed + i);
+
+					int propertySeed = settingsAsset.setupData.terrainObjectSetup.objectPlacement.defaultPropertySeed;
+					if (thisLayerContainer.propertySeed > 0)
+					{
+						propertySeed = thisLayerContainer.propertySeed;
+					}
+					data.terrainInstancePropertyRandom = new System.Random(propertySeed + i);
+
+					//Gather important values for later
 					int treeMapWidth = thisLayerContainer.treeMap.Width;
 					int treeMapHeight = thisLayerContainer.treeMap.Height;
 

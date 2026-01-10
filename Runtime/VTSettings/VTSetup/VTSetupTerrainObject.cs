@@ -10,8 +10,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		[System.Serializable]
 		public class ObjectPlacement
 		{
-			public int placeObjectRandomSeed = 100;
-			public int instancePropertyRandomSeed = 200;
+			public int defaultPlacementSeed = 100;
+			public int defaultPropertySeed = 200;
 
 			public float placeObjectValueCutoff = 0.1f;
 			public float revalidatePositionMultiplier = 1.2f;

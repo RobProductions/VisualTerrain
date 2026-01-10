@@ -312,10 +312,10 @@ namespace RobProductions.VisualTerrain.Editor
 		{
 			DrawLabelSeparator("Object Placement");
 
-			terrainObjectSetup.objectPlacement.placeObjectRandomSeed = DrawSetupIntField("Place Object Seed", terrainObjectSetup.objectPlacement.placeObjectRandomSeed,
-				"The random number seed used for determining whether an object is placed and its position.");
-			terrainObjectSetup.objectPlacement.instancePropertyRandomSeed = DrawSetupIntField("Instance Property Seed", terrainObjectSetup.objectPlacement.instancePropertyRandomSeed,
-				"The random number seed used for determining a property of a placed object based on given ranges.");
+			terrainObjectSetup.objectPlacement.defaultPlacementSeed = DrawSetupIntField("Default Placement Seed", terrainObjectSetup.objectPlacement.defaultPlacementSeed,
+				"The default random number seed used for determining whether an object is placed and its position.");
+			terrainObjectSetup.objectPlacement.defaultPropertySeed = DrawSetupIntField("Default Property Seed", terrainObjectSetup.objectPlacement.defaultPropertySeed,
+				"The default random number seed used for determining a property of a placed object based on given ranges.");
 
 			terrainObjectSetup.objectPlacement.placeObjectValueCutoff = DrawSetupFloatSliderField("Place Object Value Cutoff", terrainObjectSetup.objectPlacement.placeObjectValueCutoff,
 				0.0f, 1.0f, "Map sample points below this value will be completely skipped for object placement.");

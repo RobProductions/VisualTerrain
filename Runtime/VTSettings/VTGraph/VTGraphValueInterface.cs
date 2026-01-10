@@ -145,6 +145,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			public Vector2 instanceHeightRange;
 			public Gradient instanceColorRange;
 
+			//Advanced
+			public int placementSeed;
+			public int propertySeed;
+
 			//Position map
 			public VTRangeGrid treeMap;
 		}
@@ -200,6 +204,9 @@ namespace RobProductions.VisualTerrain.Runtime
 						instanceWidthRange = thisTreeOutputNode.GetNodeInstanceWidthScaleRange(),
 						instanceHeightRange = thisTreeOutputNode.GetNodeInstanceHeightScaleRange(),
 						instanceColorRange = thisTreeOutputNode.GetNodeInstanceColorRange(),
+
+						placementSeed = thisTreeOutputNode.placementSeed,
+						propertySeed = thisTreeOutputNode.propertySeed,
 					};
 
 					graph.ProcessNode(thisTreeOutputNode, settings);

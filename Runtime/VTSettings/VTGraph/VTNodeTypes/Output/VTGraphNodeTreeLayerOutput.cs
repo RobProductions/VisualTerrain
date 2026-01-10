@@ -36,6 +36,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public Gradient instanceColorRange = new Gradient();
 
+		[SerializeField]
+		public int placementSeed = 0;
+		[SerializeField]
+		public int propertySeed = 0;
+
 		public VTGraphNodeTreeLayerOutput()
 		{
 			SetupEmptyInputConnections(1, VTGraphConnectionSlot.SlotValueType.RangeGrid);
@@ -158,6 +163,15 @@ namespace RobProductions.VisualTerrain.Runtime
 				instanceColorRange = gradient;
 				endEditNodePropertyEvent?.Invoke(this);
 			}
+
+			EditorGUILayout.Space(5f);
+
+			EditorGUILayout.LabelField("Advanced Settings", EditorStyles.boldLabel);
+
+			RenderIntPropertyWithClamp("Placement Seed", ref placementSeed, 0, 30000,
+				"If not 0, this value will be used as a seed for random placement offset and validation.");
+			RenderIntPropertyWithClamp("Property Seed", ref propertySeed, 0, 30000,
+				"If not 0, this value will be used as a seed for random property values on each instance.");
 		}
 	}
 }
