@@ -10,7 +10,7 @@ Visual Terrain is an open-source project aimed at giving developers a more profe
 - Visual Terrain Runtime
 - Visual Terrain Editor
 
-The Runtime assembly provides definitions of all of the required assets (including nodes, value types, and graphs) needed to define a Visual Terrain. It also includes the *Visual Terrain Manager* and necessary tools to procedurally generate the landscape based on a provided *VT Settings Asset*. The Editor assembly provides tools for editing terrain assets within the Unity Editor, such as the *Visual Terrain Editor* which allows you to click on and connect nodes within a visual graph. 
+The Runtime assembly provides definitions of all of the required assets (including nodes, value types, and graphs) needed to define a Visual Terrain. It also includes the **Visual Terrain Manager** and necessary tools to procedurally generate the landscape based on a provided `VT Settings Asset`. The Editor assembly provides tools for editing terrain assets within the Unity Editor, such as the **Visual Terrain Editor** which allows you to click on and connect nodes within a visual graph. 
 
 The Editor assembly is not included in builds and you should not use its API outside of the Editor. You can still construct and generate a Visual Terrain at runtime through code if you need that sort of control, but the plugin is primarily built to handle the case of pre-building a terrain for a large level or game world during development.
 
@@ -22,36 +22,56 @@ There are already several great plugins that fill this gap such as [MagMagic](ht
 
 ## Usage
 
-To get started, you first need to make a *VT Settings Asset* which sits in your Assets folder. It is a ScriptableObject which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graph data structures (called a *VTGraph*) stored inside of the asset which you must work with to create a terrain: the Heightmap graph, the Texture graph, and the Terrain Object graph. 
+To get started, you first need to make a `VT Settings Asset` which sits in your Assets folder. It is a ScriptableObject which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graph data structures (called a `VTGraph`) stored inside of the asset which you must work with to create a terrain: the `Heightmap` graph, the `Texture` graph, and the `Terrain Object` graph. 
 
-For the generation to work, you must place and connect nodes within each graph that will tell the algorithm how your terrain will be built. You can do this in code (which is not documented yet), but that is quite complicated unless you understand how the system works under the hood. Instead, the user-friendly way to edit nodes is via the *Visual Terrain Editor*.
+For the generation to work, you must place and connect nodes within each graph that will tell the algorithm how your terrain will be built. You can do this in code (which is not documented yet), but that is quite complicated unless you understand how the system works under the hood. Instead, the user-friendly way to edit nodes is via the **Visual Terrain Editor**.
 
 ### The Visual Terrain Editor
 
-This is a custom Editor window which can be used to edit a *VT Settings Asset*. You can open this panel by going to *Window->Visual Terrain->Visual Terrain Editor* or by double clicking a *VT Settings Asset*. A label at the bottom right of the screen will tell you which asset is currently being used by the editor.
+<img width = "600" src="Documentation~/DocAssets/VTEditorWindow.png">
+
+This is a custom Editor window which can be used to edit a `VT Settings Asset`. You can open this panel by going to *Window->Visual Terrain->Visual Terrain Editor* or by double clicking a `VT Settings Asset`. A label at the bottom right of the screen will tell you which asset is currently being used by the editor.
 
 You can inspect each of the graphs in your asset by using an enum dropdown at the top left. There is also a Properties toggle which brings up an inspector panel. When a node is selected, the panel will display all of the properties used to configure it. When there is no node selected, the panel will show properties used to customize the resolution, size, quality, and rendering data of your terrain.
 
 ### Graph View
 
-Each *VTGraph* in your asset can be modified by manipulating the nodes from this main view. You can select nodes by left clicking on them, browse extended options with right click, delete nodes with the delete key, and expand or hide their preview image with the **E key**. You can focus the view on selected nodes with the **F key**.
+<img width = "600" src="Documentation~/DocAssets/GraphView.png">
+
+Each `VTGraph` in your asset can be modified by manipulating the nodes from this main view. You can select nodes by **left clicking** on them, browse extended options with **right click**, delete nodes with the **delete or backspace key**, and expand or hide their preview image with the **E key**. You can focus the view on selected nodes with the **F key**.
 
 To add new nodes, right click and select an Add Node option to create a node at your mouse cursor position. You can connect nodes by dragging from an input slot to an output slot, or the other way around. Each node will perform some processing operation on a value from an input slot (or generate a new input value) and then populate the output slot to be passed to the next node. There are two types of values supported currently:
 
 - VT Range Grid
 - Float
 
-A *VT Range Grid* is a representation of a 2D grid of floating point values. You can think of this like a grayscale texture, where each pixel can be of value 0 to 1. Range Grids are used all over the place to define where things happen on your terrain, such as how tall it is at each point (from 0% to 100%) or what the percent chance is (from 0% to 100%) that a tree will be placed. The Float value type is a single floating point number. In order to use different value types, you can select the desired type from the node's properties for each input slot. For convenience, a preview image of the first output slot's Range Grid is shown as a texture in each node, where 0.0f represents a black pixel, 0.5f represents a pure gray pixel, and 1.0f represents a white pixel.
+A **VT Range Grid** is a representation of a 2D grid of floating point values. You can think of this like a grayscale texture, where each pixel can be of value 0 to 1. Range Grids are used all over the place to define where things happen on your terrain, such as how tall it is at each point (from 0% to 100%) or what the percent chance is (from 0% to 100%) that a tree will be placed. The **Float** value type is a single floating point number. In order to use different value types, you can select the desired type from the node's properties for each input slot. For convenience, a preview image of the first output slot's Range Grid is shown as a texture in each node, where 0.0f represents a black pixel, 0.5f represents a pure gray pixel, and 1.0f represents a white pixel.
 
 ### Input Nodes
 
-To start building a VT Range Grid that will represent your terrain, you need to generate some initial values with these special Input Nodes. 
+<img width = "600" src="Documentation~/DocAssets/InputNodes.png">
+
+To start building a VT Range Grid that will represent your terrain, you need to generate some initial values with these special Input Nodes. You can use a **Simple Shape Node** to create a basic shape like a rectangle or circle. There's also a **Simple Noise** node which allows you to generate Perlin noise at your desired scale and offset. Since the terrain generation occurs in specific order, you can sample final Heightmap from the Texture or Terrain Object graphs via a **Sample Heightmap Node**, which will be useful for painting terrains based on height.
+
+To create more complicated shapes, you can use the **Group Shape Node** which utilizes Scene GameObjects to sculpt your terrain. For this to work, you must place a `VTSceneReferenceObject` component on a holder GameObject and give it a unique name. You can then reference this name in the properties of the shape node. When you load into a scene or change the name, the node will search for references in your scene and use them while processing. The *Terrain Holder Reference* object is the object that holds child terrains which the node uses as reference for positioning. The *Shape Group Holder Reference* object holds collision shapes. The only supported collision shapes currently are `SphereCollider` and `BoxCollider`. You can place objects with Sphere/Box Colliders directly on your terrain and the pixels they take up will be filled with the *Shape Value*. This allows you customize your terrain visually in a non-destructive fashion. Just be aware that the collision shapes need to be enabled and active in the hierarchy to work, so you may want to leave them on a collision layer that won't interfere with your game.
+
+The **Octave Noise Node** is a shortcut node that automatically layers multiple instances of noise on top of each other. The *Lacunarity* value determines how much each layer shrinks, and the *Persistence* value determines how much influence each layer has over the final grid. You may want to compensate the overall brightness using the *Strength* value. This should help you get started quickly.
+
+If you want even further control over the influence of specific points, you use a **Texture Node** to import a custom grayscale texture which will be converted into Range Grid format. The Red channel will be used for the resulting value.
 
 ### Other Node Types
 
+<img width = "600" src="Documentation~/DocAssets/OtherNodes.png">
+
 There are plenty of operations you can perform with nodes such as Addition, Subtraction, and Multiplication with the **Arithmetic Node**, Step operations with the **Step Node**, Blur with the **Box Blur** node, and even a simple Erosion approximation with the **Erosion Node**. By manipulating the values within a VT Range Grid, you can alter the resulting terrain. For example, adding a value of 0.2f to a heightmap grid value with the **Arithmetic Node** raises the entire terrain by 20%.
 
+You can use a **Remap Node** to alter values from a certain range to another range. For example, you could use it to remap a sampled heightmap from 0.5f to 1.0f into 0.0f to 1.0f, which essentially makes all values below 0.5f move towards 0 with some falloff. You could then use this in a Splatmap to paint a terrain texture like snow on all values above 50% of height.
+
+One important set of nodes are the Mask Nodes. A mask is essentially a selected area of the VT Range Grid that can be used to apply an effect or operation within that area. A **Range Mask Node** will select all values within a designated range to become part of your mask. For example, you could use a **Range Mask Node** to select height values at 0.5 with a 0.1 tolerance and use that to paint a sand texture. Now all heights between 40% and 60% of the terrain max height will become sand. You can also use an **Angle Mask Node** to detect the slope/derivative of a heightmap. This will tell you which parts of your range grid are the most steep, and it is essential for use in the **Erosion Node** for example which erodes based on a mask input. Finally, you can use the **Combine Mask Node** to override a grid value with a different grid value depending on the provided mask. When the mask value is 0, 100% of the base value will be used. When it is 0.5, 50% of the base value will be used and 50% of the override value will be used. When it is 1, 100% of the override value will be used for the final output.
+
 ### Output Nodes
+
+<img width = "600" src="Documentation~/DocAssets/OutputNodes.png">
 
 In order for terrains to know which final Range Grid value to use, some special output nodes are designated for each graph type. These nodes can be disabled so that they don't influence the generation algorithm, which is useful for debugging.
 
@@ -63,7 +83,11 @@ In the Terrain Object graph, a **Tree Layer Output Node** is used to define and 
 
 ### Sub Graphs
 
+<img width = "600" src="Documentation~/DocAssets/SubGraphEditor.png">
 
+A more advanced way to work involves creating a reusable graph structure called a Sub Graph. You can create a `VT Sub Graph Asset` and edit it with a dedicated **VT Sub Graph Editor** window. This generic graph has no understanding of heightmaps or splatmaps and instead uses simple **Sub Graph Input** and **Sub Graph Output** nodes. You can process the input in any way and return an output using these special nodes, though the preview images won't work correctly since there is currently no "fake preview value" to fall back on. In your main `VT Settings Asset`, you can add a **Sub Graph Node** and plug in the `VT Sub Graph Asset` as property. The input and output slots will dynamically change to reflect the sub graph's input and output nodes. You can then use it in a chain like any other node, and when the terrain is generated it will traverse all of the sub graph nodes as expected. 
+
+Utilizing this workflow allows you to create one reusable component such as a crater and duplicate it several times throughout your terrain, reducing the overall work. You can use a **Translation Node** to position floating shapes, or set up an erosion chain that can be run multiple times to make older looking shapes. The power is in your hands to build a scalable system!
 
 ### Generating Your Terrain
 
