@@ -158,6 +158,12 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//PROPERTIES
 
+		public void RenderPropertyHeading(string headingTitle)
+		{
+			EditorGUILayout.Space(5f);
+			EditorGUILayout.LabelField(headingTitle, EditorStyles.boldLabel);
+		}
+
 		/// <summary>
 		/// Draws a GUILayout FloatField and potentially modifies the ref
 		/// input float if the user changes the value. 

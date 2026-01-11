@@ -133,9 +133,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderIntProperty("Navmesh LOD Index", ref navMeshLODIndex,
 				"The index of LOD value used when generating a navmesh. This allows you to use low-res versions of trees for nav calcuations.");
 
-			EditorGUILayout.Space(5f);
-
-			EditorGUILayout.LabelField("Placement Settings", EditorStyles.boldLabel);
+			RenderPropertyHeading("Placement Settings");
 
 			RenderFloatPropertyWithClamp("Density", ref placementDensity, 0.0f, 10f,
 				"For each world unit, this many trees will be attempted to be placed in a grid pattern and later jittered/randomized.");
@@ -147,9 +145,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderVector2Property("Height Offset Range", ref placementHeightOffsetRange,
 				"Each tree will be offset in the Y direction by a random amount within this X-Y range. The range is in world units.");
 
-			EditorGUILayout.Space(5f);
-
-			EditorGUILayout.LabelField("Instance Settings", EditorStyles.boldLabel);
+			RenderPropertyHeading("Property Settings");
 
 			RenderVector2Property("Width Scale Range", ref instanceWidthScaleRange,
 				"When an instance is placed, its width will be random between the range of this X and Y value.");
@@ -164,9 +160,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 
-			EditorGUILayout.Space(5f);
-
-			EditorGUILayout.LabelField("Advanced Settings", EditorStyles.boldLabel);
+			RenderPropertyHeading("Advanced Settings");
 
 			RenderIntPropertyWithClamp("Placement Seed", ref placementSeed, 0, 30000,
 				"If not 0, this value will be used as a seed for random placement offset and validation.");
