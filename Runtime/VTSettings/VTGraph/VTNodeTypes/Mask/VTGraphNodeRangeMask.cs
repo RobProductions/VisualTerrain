@@ -98,39 +98,17 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			base.RenderNodeProperties();
 
-			float selectValueFloat = (float)EditorGUILayout.FloatField("Select Value", selectValue);
-			if (selectValueFloat != selectValue)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				selectValue = selectValueFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatProperty("Select Value", ref selectValue,
+				"The resulting mask will include points with this value.");
 
-			float toleranceFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Tolerance", tolerance), 0.0f, Mathf.Infinity);
-			if (toleranceFloat != tolerance)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				tolerance = toleranceFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatPropertyWithClamp("Tolerance", ref tolerance, 0.0f, Mathf.Infinity,
+				"The distance from the select value which will be treated as fully selected (value of 1.0f).");
 
-			float smoothToleranceFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Smooth Tolerance", smoothTolerance), 0.0f, Mathf.Infinity);
-			if (smoothToleranceFloat != smoothTolerance)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				smoothTolerance = smoothToleranceFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
+			RenderFloatPropertyWithClamp("Smooth Tolerance", ref smoothTolerance, 0.0f, Mathf.Infinity,
+				"Beyond this distance from the tolerance value, values within this range will smoothly fall off towards 0.");
 
-			float strengthFloat = Mathf.Clamp((float)EditorGUILayout.FloatField("Mask Strength", maskStrength), 0.0f, Mathf.Infinity);
-			if (strengthFloat != maskStrength)
-			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
-				maskStrength = strengthFloat;
-				endEditNodePropertyEvent?.Invoke(this);
-			}
-
-
+			RenderFloatProperty("Mask Strength", ref maskStrength,
+				"A multiplier that will be used on the final mask output.");
 		}
 	}
 }

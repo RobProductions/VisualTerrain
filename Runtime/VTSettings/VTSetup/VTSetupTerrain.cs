@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
@@ -82,6 +83,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			public int lodPixelError = 5;
 			public int compositeStartDistance = 1000;
+
+			public ShadowCastingMode shadowCastingMode = ShadowCastingMode.On;
+			public ReflectionProbeUsage reflectionProbeUsage = ReflectionProbeUsage.BlendProbes;
+
+			public bool drawInstanced = true;
 			public bool raytracingSupport = false;
 		}
 

@@ -379,11 +379,11 @@ namespace RobProductions.VisualTerrain.Editor
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="position"></param>
-		void CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
+		VTGraphNode CreateNodeAtPosition<T>(Vector2 position) where T : VTGraphNode, new()
 		{
 			if(data.currentGraph == null)
 			{
-				return;
+				return null;
 			}
 			var positionMinusOffset = (position - GetCurrentViewOffset()) / GetCurrentViewScale();
 
@@ -391,6 +391,8 @@ namespace RobProductions.VisualTerrain.Editor
 			var newNode = data.currentGraph.CreateNode<T>(positionMinusOffset);
 			TryUpdateNodePreviewImage(newNode);
 			mainPanel.EditedAsset();
+
+			return newNode;
 		}
 
 		/// <summary>
@@ -844,6 +846,88 @@ namespace RobProductions.VisualTerrain.Editor
 						}
 					}
 					break;
+				case EventType.DragUpdated:
+				case EventType.DragPerform:
+					//Check for drag and drop types to show correct visual and handle drop
+					bool isPerform = e.type == EventType.DragPerform;
+					bool doShowAvailableDrop = false;
+					var draggedObjects = DragAndDrop.objectReferences;
+					var mousePosition = e.mousePosition;
+
+					if (draggedObjects.Length == 1 && data.currentRenderRect.Contains(mousePosition) && data.currentGraph != null)
+					{
+						//We can only handle 1 drag and drop object for now
+						var thisDragObject = draggedObjects[0];
+						if (thisDragObject is TerrainLayer && data.currentGraph.graphType == VTGraph.GraphType.Texture)
+						{
+							doShowAvailableDrop = true;
+
+							if(isPerform)
+							{
+								var newSplatNode = CreateNodeAtPosition<VTGraphNodeSplatLayerOutput>(mousePosition);
+								if(newSplatNode != null)
+								{
+									newSplatNode.InvokeBeginEditNodeProperty();
+									(newSplatNode as VTGraphNodeSplatLayerOutput).terrainLayer = thisDragObject as TerrainLayer;
+									newSplatNode.InvokeEndEditNodeProperty();
+								}
+							}
+						}
+						else if (thisDragObject is GameObject && data.currentGraph.graphType == VTGraph.GraphType.TerrainObject)
+						{
+							doShowAvailableDrop = true;
+
+							if (isPerform)
+							{
+								var newTreeNode = CreateNodeAtPosition<VTGraphNodeTreeLayerOutput>(mousePosition);
+								if (newTreeNode != null)
+								{
+									newTreeNode.InvokeBeginEditNodeProperty();
+									(newTreeNode as VTGraphNodeTreeLayerOutput).treePrototype = thisDragObject as GameObject;
+									newTreeNode.InvokeEndEditNodeProperty();
+								}
+							}
+						}
+						else if (thisDragObject is VTSubGraphAsset && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
+						{
+							doShowAvailableDrop = true;
+
+							if(isPerform)
+							{
+								var newSubGraphNode = CreateNodeAtPosition<VTGraphNodeSubGraph>(mousePosition);
+								if (newSubGraphNode != null)
+								{
+									newSubGraphNode.InvokeBeginEditNodeProperty();
+									(newSubGraphNode as VTGraphNodeSubGraph).subGraphAsset = thisDragObject as VTSubGraphAsset;
+									newSubGraphNode.InvokeEndEditNodeProperty();
+
+									(newSubGraphNode as VTGraphNodeSubGraph).RefreshConnections();
+
+									TryUpdateNodePreviewImage(newSubGraphNode);
+								}
+							}
+						}
+						else if (thisDragObject is Texture2D)
+						{
+							doShowAvailableDrop = true;
+
+							if (isPerform)
+							{
+								var newTextureNode = CreateNodeAtPosition<VTGraphNodeTexture>(mousePosition);
+								if (newTextureNode != null)
+								{
+									newTextureNode.InvokeBeginEditNodeProperty();
+									(newTextureNode as VTGraphNodeTexture).inputTexture = thisDragObject as Texture2D;
+									newTextureNode.InvokeEndEditNodeProperty();
+
+									TryUpdateNodePreviewImage(newTextureNode);
+								}
+							}
+						}
+					}
+
+					DragAndDrop.visualMode = doShowAvailableDrop ? DragAndDropVisualMode.Copy : DragAndDropVisualMode.None;
+					return true;
 			}
 
 			return false;

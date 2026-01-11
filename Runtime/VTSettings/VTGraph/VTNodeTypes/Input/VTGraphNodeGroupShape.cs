@@ -260,13 +260,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			string terrainValue = EditorGUILayout.TextField(terrainHolderContent, terrainHolderRefName);
 			if(terrainValue != terrainHolderRefName)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				terrainHolderRefName = terrainValue;
 
 				//We changed value so try to find a new reference
 				LoadReferencesFromScene(SceneManager.GetActiveScene());
 
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 
 			var shapeHolderContent = new GUIContent("Shape Group Reference Name",
@@ -275,13 +275,13 @@ namespace RobProductions.VisualTerrain.Runtime
 			string shapeHolderValue = EditorGUILayout.TextField(shapeHolderContent, shapeGroupHolderRefName);
 			if(shapeHolderValue != shapeGroupHolderRefName)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				shapeGroupHolderRefName = shapeHolderValue;
 
 				//We changed value so try to find a new reference
 				LoadReferencesFromScene(SceneManager.GetActiveScene());
 
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 
 			RenderFloatProperty("Shape Value", ref shapeValue);

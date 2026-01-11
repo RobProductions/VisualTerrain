@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using RobProductions.VisualTerrain.Runtime;
+using UnityEngine.Rendering;
 
 namespace RobProductions.VisualTerrain.Editor
 {
@@ -299,17 +300,32 @@ namespace RobProductions.VisualTerrain.Editor
 				DrawSetupIntSliderField("Composite Start Distance", terrainSetup.terrainProperties.compositeStartDistance, 0, 20000,
 				"The range at which the low-res composite terrain texture will be drawn in place of the high-res splatmaps.");
 
-			var raytracingBool = EditorGUILayout.Toggle("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
-			if(raytracingBool != terrainSetup.terrainProperties.raytracingSupport)
+			var shadowMode = (ShadowCastingMode)EditorGUILayout.EnumPopup("Shadow Casting Mode", terrainSetup.terrainProperties.shadowCastingMode);
+			if (shadowMode != terrainSetup.terrainProperties.shadowCastingMode)
 			{
-				mainPanel.RegisterAssetStructureUndo("Edited Raytracing Support");
-				terrainSetup.terrainProperties.raytracingSupport = raytracingBool;
+				mainPanel.RegisterAssetStructureUndo("Edited Shadow Casting Mode");
+				terrainSetup.terrainProperties.shadowCastingMode = shadowMode;
 			}
 
+			var reflectionUsage = (ReflectionProbeUsage)EditorGUILayout.EnumPopup("Reflection Probe Mode", terrainSetup.terrainProperties.reflectionProbeUsage);
+			if (reflectionUsage != terrainSetup.terrainProperties.reflectionProbeUsage)
+			{
+				mainPanel.RegisterAssetStructureUndo("Edited Reflection Probe Mode");
+				terrainSetup.terrainProperties.reflectionProbeUsage = reflectionUsage;
+			}
+
+			terrainSetup.terrainProperties.drawInstanced = DrawSetupBoolField("Draw Instanced", terrainSetup.terrainProperties.drawInstanced);
+			terrainSetup.terrainProperties.raytracingSupport = DrawSetupBoolField("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
 		}
 
 		void LayoutDrawTerrainObjectSetup(VTSetupTerrainObject terrainObjectSetup)
 		{
+			DrawLabelSeparator("Object Properties");
+
+			terrainObjectSetup.objectProperties.bakeTreeLightProbes = DrawSetupBoolField("Bake Tree Light Probes", terrainObjectSetup.objectProperties.bakeTreeLightProbes);
+			terrainObjectSetup.objectProperties.removeLightProbeRinging = DrawSetupBoolField("Remove Light Probe Ringing", terrainObjectSetup.objectProperties.removeLightProbeRinging);
+			terrainObjectSetup.objectProperties.preservePrototypeLayers = DrawSetupBoolField("Preserve Tree Layers", terrainObjectSetup.objectProperties.preservePrototypeLayers);
+
 			DrawLabelSeparator("Object Placement");
 
 			terrainObjectSetup.objectPlacement.defaultPlacementSeed = DrawSetupIntField("Default Placement Seed", terrainObjectSetup.objectPlacement.defaultPlacementSeed,
@@ -505,6 +521,18 @@ namespace RobProductions.VisualTerrain.Editor
 				mainPanel.RegisterAssetStructureUndo("Edited " + labelName);
 			}
 			return changedInt;
+		}
+
+		bool DrawSetupBoolField(string labelName, bool value, string tooltip = "")
+		{
+			var content = new GUIContent(labelName, tooltip);
+
+			var changedBool = EditorGUILayout.Toggle(content, value);
+			if (changedBool != value)
+			{
+				mainPanel.RegisterAssetStructureUndo("Edited " + labelName);
+			}
+			return changedBool;
 		}
 
 		void DrawTabButton(Texture2D icon, AssetSettingsTab tabType, GUIStyle baseStyle)

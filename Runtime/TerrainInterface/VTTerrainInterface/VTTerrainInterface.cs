@@ -99,7 +99,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Delete Extra References");
 
 			//Set the terrain properties
-			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
+			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup);
 
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Configure Terrain Properties");
 
@@ -910,7 +910,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//TERRAIN PROPERTIES
 
-		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties)
+		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupTerrainObject terrainObjectProperties, VTSetupProcessing processingProperties)
 		{
 			var terrainSize = setupProperties.terrainSize;
 			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
@@ -972,10 +972,17 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefComponent.heightmapPixelError = (float)setupProperties.terrainProperties.lodPixelError;
 				thisRefComponent.basemapDistance = (float)setupProperties.terrainProperties.compositeStartDistance;
 
+				thisRefComponent.drawInstanced = setupProperties.terrainProperties.drawInstanced;
+				thisRefComponent.shadowCastingMode = setupProperties.terrainProperties.shadowCastingMode;
+				thisRefComponent.reflectionProbeUsage = setupProperties.terrainProperties.reflectionProbeUsage;
+
 #if UNITY_2022_2_OR_NEWER
 				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;
 #endif
 
+				thisRefComponent.bakeLightProbesForTrees = terrainObjectProperties.objectProperties.bakeTreeLightProbes;
+				thisRefComponent.deringLightProbesForTrees = terrainObjectProperties.objectProperties.removeLightProbeRinging;
+				thisRefComponent.preserveTreePrototypeLayers = terrainObjectProperties.objectProperties.preservePrototypeLayers;
 			}
 		}
 

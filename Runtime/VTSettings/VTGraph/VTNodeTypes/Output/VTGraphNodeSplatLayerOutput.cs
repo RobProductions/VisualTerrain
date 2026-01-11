@@ -54,11 +54,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			var layerValue = (TerrainLayer)EditorGUILayout.ObjectField("Terrain Layer", terrainLayer, typeof(TerrainLayer), true);
 			if (layerValue != terrainLayer)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				terrainLayer = layerValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
-
 		}
 	}
 }

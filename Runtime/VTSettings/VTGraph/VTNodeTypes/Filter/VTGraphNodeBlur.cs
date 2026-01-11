@@ -55,7 +55,7 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						//Compute the average for the rest of the pixels
 						//by adding right edge and subtracting left
-						int rightIndex = x + blurCheckOffsetX;
+						int rightIndex = x + blurCheckOffsetX + 1;
 						if (rightIndex < baseInputGrid.Width)
 						{
 							sumValue += baseInputGrid.GetRangeValue(rightIndex, y);
@@ -63,7 +63,7 @@ namespace RobProductions.VisualTerrain.Runtime
 						}
 
 						//And remove left edge
-						int leftIndex = x - blurCheckOffsetX - 1;
+						int leftIndex = x - blurCheckOffsetX;
 						if (leftIndex >= 0)
 						{
 							sumValue -= baseInputGrid.GetRangeValue(leftIndex, y);
@@ -90,7 +90,7 @@ namespace RobProductions.VisualTerrain.Runtime
 					{
 						//Compute the average for the rest of the pixels
 						//by adding bottom edge and subtracting top
-						int bottomIndex = y + blurCheckOffsetY;
+						int bottomIndex = y + blurCheckOffsetY + 1;
 						if (bottomIndex < baseInputGrid.Height)
 						{
 							sumValue += newGrid.GetRangeValue(x, bottomIndex);
@@ -98,7 +98,7 @@ namespace RobProductions.VisualTerrain.Runtime
 						}
 
 						//And remove top edge
-						int topIndex = y - blurCheckOffsetY - 1;
+						int topIndex = y - blurCheckOffsetY;
 						if (topIndex >= 0)
 						{
 							sumValue -= newGrid.GetRangeValue(x, topIndex);
