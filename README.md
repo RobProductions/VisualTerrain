@@ -116,6 +116,10 @@ When the terrain generates, the manager and associated interfaces will:
 
 When this process is complete, you now have fully usable terrains with their TerrainData stored locally within the scene. Note that this is different from hand-made terrains which typically ask you to make terrain data in your assets folder. Since regeneration wipes the terrain data, there is no need to save it to your assets folder unless you wish to keep the results for later. At this point, you can modify the terrain by painting on it or changing its data, but be aware that regenerating will revert those changes. If you want to use Visual Terrain as a base for manual modifications, you may want to enable the *Lock Generation* bool within the Visual Terrain Manager so that you don't accidentally generate again. You could also just delete the manager so that Visual Terrain doesn't consider it at all.
 
+### Custom Extensions
+
+All of the Range Grid output values in your settings asset are publicly accessible and can be calculated at will using the `VTGraphValueInterface`, so you could use this to perform some custom operation on a specific location in your terrain. When you acquire a Range Grid, it will have the width and height the resolution setting you pass into the Processing Settings. If you calculate the pixel needed to acquire a point at a specific spot in world space, you could sample a Range Grid and use that to, for example, place an object at that spot if the value is greater than `0.5f`. More details about how to interact with the Visual Terrain API will be added later.
+
 ## Limitations
 
 **NOTE:** This project is in a prerelease state, and as such I cannot fully recommend it for production use unless you very clearly understand how it works and can live with the limitations.
@@ -124,7 +128,7 @@ The package has several open issues that have been left for later as they were n
 
 - The auto-generate terrain feature does not work: Terrain generation can still be quite slow for the non-preview mode and it isn't threaded, so automatically building a terrain every time you change a property just isn't useful at this stage. If we were able to make the generation process a non-blocking call so that the editor can still be used while it's building, then this would make more sense.
 - Scene-Dependent nodes such as the Group Shape Node can't tell when GameObjects have shifted around in a scene, so their thumbnail image won't automatically update: You can update it by pressing the "Refresh" button which was added to these nodes or by right clicking and selecting "Update Node Preview". Due to the slowness of long chain evaluations, even updating these every frame would be a bit heavy. They may need to keep track of scene/object changes or we may need to come up with a time-spliced operation instead of the blocking call that currently occurs from the "Update Output Connected Nodes" function (called when the node thumbnail needs to update).
-- Graph evaluation is somewhat redundant and slow: If a node needs to be evaluated, it must evaluate the whole chain before it, even if the values haven't changed since the last evaluation. If they held some sort of memory and allow property changes to invalidate their outputs, we could avoid redundant recalls. However, Scene-Dependent nodes are not easily able to tell when they have been invalidated 
+- Graph evaluation is somewhat redundant and slow: If a node needs to be evaluated, it must evaluate the whole chain before it, even if the values haven't changed since the last evaluation. If they held some sort of memory and allow property changes to invalidate their outputs, we could avoid redundant recalls. However, Scene-Dependent nodes are not easily able to tell when they have been invalidated, so they might inflate the performance cost. Additionally, updating the "output connected node previews" within a graph means first processing the start node, then the next node in the chain (and thus processing the first node again), and so on, creating a bunch of recalculations of the same node. There is possibly a smarter solution to this that could involve processing just the next node instead of its whole input chain, but the "invalidation" method would also fix this without needing to create that special logic.
 - Sub graphs can't include other sub graphs within them: Due to not being able to detect endless loops (i.e. a sub graph contains itself or contains a Sub Graph Node that contains itself) sub graphs have been limited to not allow Sub Graph Nodes. Essentially, this means you can't nest sub graphs to create highly reusable prefabs. This is probably a logic problem that could be solved by traversing all Sub Graph Node contents, which would free up this limitation.
 
 As you can see, the main problems involved are with performance and incorrect visualizations, but outside of that the package should be reliable for generating consistent results. There are also a few useful features that should be added before the full release but have been skipped because I didn't need them right now.
@@ -147,7 +151,7 @@ The project is currently in a prerelease state, but will adhere to [Semantic Ver
 If you're looking for any specific release of Visual Terrain, you can specify a release tag with the hashtag like so: "https://github.com/RobProductions/VisualTerrain.git#ReleaseNumber"
 
 1. Open the [Package Manager](https://docs.unity3d.com/2020.3/Documentation/Manual/upm-ui.html) in Unity
-2. Copy the GitHub "HTTPS Clone" URL for OpenEOS: [https://github.com/RobProductions/VisualTerrain.git](https://github.com/RobProductions/VisualTerrain.git)
+2. Copy the GitHub "HTTPS Clone" URL for Visual Terrain: [https://github.com/RobProductions/VisualTerrain.git](https://github.com/RobProductions/VisualTerrain.git)
 3. Click the '+' icon and hit *"Add package from git URL"*
 4. Paste the HTTPS Clone URL to the popup and (optionally) add on *#YourChosenReleaseNumer* to the end, then hit enter
 5. Wait for download to complete
@@ -189,7 +193,7 @@ This open source project is free for all to suggest improvements and submit pull
 
 ## Credits & Details
 
-Created by [RobProductions](https://twitter.com/RobProductions). RobProductions' Steam games can be found [here](https://store.steampowered.com/developer/robproductions).
+Created by [RobProductions](https://www.robproductionsgames.com/). RobProductions' Steam games can be found [here](https://store.steampowered.com/developer/robproductions).
 
 ### Requirements
 
