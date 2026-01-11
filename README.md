@@ -1,16 +1,16 @@
 # Visual Terrain
-An open-source node-based Terrain generator for Unity. Create stunning terrain shapes and paint them mathematically by combining nodes in a user-friendly graph interface!
+An open-source node-based terrain generator for Unity. Create stunning terrain shapes and paint them mathematically by combining nodes in a user-friendly graph interface!
 
 <img width = "800" src="Documentation~/DocAssets/LogoImage.jpg">
 
 ## Overview
 
-Visual Terrain is an open-source project aimed at giving developers a more professional non-destructive pipeline for creating procedural terrains at runtime or in the editor. There are two assemblies provided with the project:
+Visual Terrain is an open-source project aimed at giving developers a professional non-destructive pipeline for creating procedural terrains at runtime or in the editor. There are two assemblies provided with the project:
 
 - Visual Terrain Runtime
 - Visual Terrain Editor
 
-The Runtime assembly provides definitions of all of the required assets (including nodes, value types, and graphs) needed to define a Visual Terrain. It also includes the **Visual Terrain Manager** and necessary tools to procedurally generate the landscape based on a provided `VT Settings Asset`. The Editor assembly provides tools for editing terrain assets within the Unity Editor, such as the **Visual Terrain Editor** which allows you to click on and connect nodes within a visual graph. 
+The Runtime assembly provides all of the required assets (including nodes, value types, and graphs) needed to define a Visual Terrain. It also includes the **Visual Terrain Manager** and necessary tools to procedurally generate the landscape based on a provided `VT Settings Asset`. The Editor assembly provides tools for editing terrain assets within the Unity Editor, such as the **Visual Terrain Editor** which allows you to click on and connect nodes within a visual graph. 
 
 The Editor assembly is not included in builds and you should not use its API outside of the Editor. You can still construct and generate a Visual Terrain at runtime through code if you need that sort of control, but the plugin is primarily built to handle the case of pre-building a terrain for a large level or game world during development.
 
@@ -18,13 +18,13 @@ The Editor assembly is not included in builds and you should not use its API out
 
 <img width = "800" src="Documentation~/DocAssets/FullWorkflow.png">
 
-Several upcoming game ideas that I had involved needing to create a large variety of terrains, so I set out to find a suitable tool that would make this process easier. Previously, I would use Unity's [Terrain Tools](https://docs.unity3d.com/Packages/com.unity.terrain-tools@5.3/manual/index.html) to sculpt initial shapes and then iterate on them until I was satisfied. But looking at AAA production pipelines, I realized the benefit of a non-destructive workflow like the kind you'd get with Blender's geometry nodes or Houdini. 
+Several upcoming game ideas that I had involved needing to create a large variety of terrains, so I set out to find a suitable tool that would make this process easier. Previously, I would use Unity's [Terrain Tools](https://docs.unity3d.com/Packages/com.unity.terrain-tools@5.3/manual/index.html) to sculpt initial shapes and then iterate on them manually until I was satisfied. But looking at AAA production pipelines, I realized the benefit of a non-destructive workflow like the kind you'd get with Blender's geometry nodes or Houdini.
 
 There are already several great plugins that fill this gap such as [MagMagic](https://assetstore.unity.com/packages/tools/terrain/mapmagic-2-165180?srsltid=AfmBOoqc299cBaAZbVUn5PWV6s0SXcFSrj_-xlI7348W6XR4PmHqi4Jd) or [TerraForge](https://assetstore.unity.com/packages/tools/terrain/terraforge-2-procedural-terrain-generator-291432), but what I could find was either paid, closed source, or experienced issues with Unity 6. Other open source options I looked at felt underdeveloped or were non-node based, which can make visualizing changes a hassle with a complicated terrain shape. So as someone who is not deterred from building custom solutions to problems like this, I set out to build a generic, highly adaptable tool that could produce the terrains I was looking for with as much developer control as possible. This also helped me to understand the techniques involved in terrain generation and benefit from completely understanding each step in the plugin. I built Visual Terrain from the ground up to assist with the development of an upcoming game, and it's now released for free to benefit the gamedev community!
 
 ## Usage
 
-To get started, you first need to make a `VT Settings Asset` which sits in your Assets folder. It is a ScriptableObject which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graph data structures (called a `VTGraph`) stored inside of the asset which you must work with to create a terrain: the `Heightmap` graph, the `Texture` graph, and the `Terrain Object` graph. 
+To get started, you first need to make a `VT Settings Asset` which sits in your Assets folder. It is a `ScriptableObject` which stores all of the data defining how a terrain should be generated and how objects should be placed on it. There are 3 different graph data structures (called a `VTGraph`) stored inside of the asset which you must work with to create a terrain: the `Heightmap` graph, the `Texture` graph, and the `Terrain Object` graph. 
 
 For the generation to work, you must place and connect nodes within each graph that will tell the algorithm how your terrain will be built. You can do this in code (which is not documented yet), but that is quite complicated unless you understand how the system works under the hood. Instead, the user-friendly way to edit nodes is via the **Visual Terrain Editor**.
 
@@ -55,13 +55,15 @@ A **VT Range Grid** is a representation of a 2D grid of floating point values. Y
 
 To start building a VT Range Grid that will represent your terrain, you need to generate some initial values with these special Input Nodes. You can use a **Simple Shape Node** to create a basic shape like a rectangle or circle. There's also a **Simple Noise** node which allows you to generate Perlin noise at your desired scale and offset. Since the terrain generation occurs in specific order, you can sample final Heightmap from the Texture or Terrain Object graphs via a **Sample Heightmap Node**, which will be useful for painting terrains based on height.
 
+Like the **Sample Heightmap Node**, the **Sample Splatmap Node** will give you all of the regions where the terrain is painted with a specific Terrain Layer. You can use the *Layer Index* value to change which Terrain Layer is targeted by the node, with out of range values being clamped to the min and max layer index. This node is accessible within the Terrain Object graph.
+
 <img width = "600" src="Documentation~/DocAssets/CollisionShapeDemo.png">
 
-To create more complicated shapes, you can use the **Group Shape Node** which utilizes Scene GameObjects to sculpt your terrain. For this to work, you must place a `VTSceneReferenceObject` component on a holder GameObject and give it a unique name. You can then reference this name in the properties of the shape node. When you load into a scene or change the name, the node will search for references in your scene and use them while processing. The *Terrain Holder Reference* object is the object that holds child terrains which the node uses as reference for positioning. The *Shape Group Holder Reference* object holds collision shapes. The only supported collision shapes currently are `SphereCollider` and `BoxCollider`. You can place objects with Sphere/Box Colliders directly on your terrain and the pixels they take up will be filled with the *Shape Value*. This allows you customize your terrain visually in a non-destructive fashion. Just be aware that the collision shapes need to be enabled and active in the hierarchy to work, so you may want to leave them on a collision layer that won't interfere with your game.
+To create more complicated shapes, you can use the **Group Shape Node** which utilizes Scene GameObjects to sculpt your terrain. For this to work, you must place a `VTSceneReferenceObject` component on a holder GameObject and give it a unique name. You can then reference this name in the properties of the shape node. When you load into a scene or change the name, the node will search for references in your scene and use them while processing. The *Terrain Holder Reference* object is the object that holds child terrains which the node uses as reference for positioning. The *Shape Group Holder Reference* object holds collision shapes. The only supported collision shapes currently are `SphereCollider` and `BoxCollider`. You can place objects with Sphere/Box Colliders directly on your terrain and the pixels they take up will be filled with the *Shape Value*. This allows you customize your terrain visually in a non-destructive fashion. Just be aware that the collision shapes need to be enabled and active in the hierarchy to work, so you may want to leave them on a collision layer that won't interfere with your game. Also be aware that the rasteration process does not consider the height of each collision object and uses an orthographic perspective from the top looking down.
 
-The **Octave Noise Node** is a shortcut node that automatically layers multiple instances of noise on top of each other. The *Lacunarity* value determines how much each layer shrinks, and the *Persistence* value determines how much influence each layer has over the final grid. You may want to compensate the overall brightness using the *Strength* value. This should help you get started quickly.
+The **Octave Noise Node** is a shortcut node that automatically layers multiple instances of noise on top of each other. The *Lacunarity* value determines how much each layer shrinks, and the *Persistence* value determines how much influence each layer has over the final grid. You may want to compensate the overall brightness using the *Strength* value. This node should help you get started in building an initial terrain shape quickly.
 
-If you want even further control over the influence of specific points, you use a **Texture Node** to import a custom grayscale texture which will be converted into Range Grid format. The Red channel will be used for the resulting value.
+If you want even further control over the influence of specific points, you can use a **Texture Node** to import a custom grayscale texture which will be converted into Range Grid format. The Red channel will be used for the resulting value.
 
 ### Other Node Types
 
