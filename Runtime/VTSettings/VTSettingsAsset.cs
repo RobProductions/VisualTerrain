@@ -44,6 +44,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			public VTRangeGrid cachedThumbHeightmapGrid = VTRangeGrid.Empty;
 			[NonSerialized]
 			public VTRangeGrid cachedHeightmapGrid = VTRangeGrid.Empty;
+			[NonSerialized]
+			public List<VTGraphValueInterface.SplatmapLayerContainer> cachedThumbSplatmapGrids = new List<VTGraphValueInterface.SplatmapLayerContainer>();
+			[NonSerialized]
+			public List<VTGraphValueInterface.SplatmapLayerContainer> cachedSplatmapGrids = new List<VTGraphValueInterface.SplatmapLayerContainer>();
 		}
 
 		[SerializeField]
@@ -113,11 +117,11 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			if(processingSettings.thumbnailMode)
 			{
-				SetCachedThumbnailHeightmapTexture(heightmap);
+				SetCachedThumbnailHeightmapGrid(heightmap);
 			}
 			else
 			{
-				SetCachedHeightmapTexture(heightmap);
+				SetCachedHeightmapGrid(heightmap);
 			}
 		}
 
@@ -127,7 +131,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// so that later sampling is up to date.
 		/// </summary>
 		/// <param name="thumbHeightmap"></param>
-		public void SetCachedThumbnailHeightmapTexture(VTRangeGrid thumbHeightmap)
+		public void SetCachedThumbnailHeightmapGrid(VTRangeGrid thumbHeightmap)
 		{
 			generationData.cachedThumbHeightmapGrid = thumbHeightmap;
 		}
@@ -138,9 +142,45 @@ namespace RobProductions.VisualTerrain.Runtime
 		/// and ensuring that no changes to height can happen before use.
 		/// </summary>
 		/// <param name="heightmap"></param>
-		public void SetCachedHeightmapTexture(VTRangeGrid heightmap)
+		public void SetCachedHeightmapGrid(VTRangeGrid heightmap)
 		{
 			generationData.cachedHeightmapGrid = heightmap;
+		}
+
+		/// <summary>
+		/// Set the cache of splatmaps based on whether we are
+		/// in thumbnail mode or not.
+		/// </summary>
+		/// <param name="splatmaps"></param>
+		/// <param name="processingSettings"></param>
+		public void SetCachedSplatmaps(List<VTGraphValueInterface.SplatmapLayerContainer> splatmaps, VTGraphProcessingSettings processingSettings)
+		{
+			if(processingSettings.thumbnailMode)
+			{
+				SetCachedThumbnailSplatmapGrids(splatmaps);
+			}
+			else
+			{
+				SetCachedSplatmapGrids(splatmaps);
+			}
+		}
+
+		/// <summary>
+		/// Set the cached thumb splatmap textures for sampling.
+		/// </summary>
+		/// <param name="thumbSplatmaps"></param>
+		public void SetCachedThumbnailSplatmapGrids(List<VTGraphValueInterface.SplatmapLayerContainer> thumbSplatmaps)
+		{
+			generationData.cachedThumbSplatmapGrids = thumbSplatmaps;
+		}
+
+		/// <summary>
+		/// Set the cached splatmap textures for sampling.
+		/// </summary>
+		/// <param name="splatmaps"></param>
+		public void SetCachedSplatmapGrids(List<VTGraphValueInterface.SplatmapLayerContainer> splatmaps)
+		{
+			generationData.cachedSplatmapGrids = splatmaps;
 		}
 
 		//VALIDATION

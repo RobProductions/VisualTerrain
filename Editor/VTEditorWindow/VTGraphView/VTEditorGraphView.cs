@@ -270,7 +270,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 					if(node is VTGraphNodeHeightOutput && currentAsset != null)
 					{
-						currentAsset.SetCachedThumbnailHeightmapTexture(gridValue);
+						currentAsset.SetCachedThumbnailHeightmapGrid(gridValue);
 						mainPanel.EditedAsset();
 					}
 				}
@@ -985,6 +985,10 @@ namespace RobProductions.VisualTerrain.Editor
 			if(data.currentGraph.graphType != VTGraph.GraphType.Height && data.currentGraph.graphType != VTGraph.GraphType.SubGraph)
 			{
 				menu.AddItem(new GUIContent("Add Input Node/Sample Heightmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleHeight>(mousePosition));
+			}
+			if(data.currentGraph.graphType == VTGraph.GraphType.TerrainObject || data.currentGraph.graphType == VTGraph.GraphType.CustomObject)
+			{
+				menu.AddItem(new GUIContent("Add Input Node/Sample Splatmap"), false, () => CreateNodeAtPosition<VTGraphNodeSampleSplatmap>(mousePosition));
 			}
 			if (data.currentGraph.graphType == VTGraph.GraphType.SubGraph)
 			{

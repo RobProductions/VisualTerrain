@@ -88,6 +88,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			public ReflectionProbeUsage reflectionProbeUsage = ReflectionProbeUsage.BlendProbes;
 
 			public bool drawInstanced = true;
+			//public bool contributeGI = true;
 			public bool raytracingSupport = false;
 		}
 

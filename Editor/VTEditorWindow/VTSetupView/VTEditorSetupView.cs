@@ -315,6 +315,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 
 			terrainSetup.terrainProperties.drawInstanced = DrawSetupBoolField("Draw Instanced", terrainSetup.terrainProperties.drawInstanced);
+			//terrainSetup.terrainProperties.contributeGI = DrawSetupBoolField("Contribute GI", terrainSetup.terrainProperties.contributeGI);
 			terrainSetup.terrainProperties.raytracingSupport = DrawSetupBoolField("Raytracing Support", terrainSetup.terrainProperties.raytracingSupport);
 		}
 

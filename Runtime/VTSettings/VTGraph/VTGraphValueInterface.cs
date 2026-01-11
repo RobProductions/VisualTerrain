@@ -121,6 +121,13 @@ namespace RobProductions.VisualTerrain.Runtime
 				}
 			}
 
+			if (settings.contextAsset)
+			{
+				//Cache the splat layers for later use, it can either cache to
+				//thumbnail or real texture value. 
+				settings.contextAsset.SetCachedSplatmaps(ret, settings);
+			}
+
 			return ret;
 		}
 
