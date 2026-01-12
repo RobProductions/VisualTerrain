@@ -85,6 +85,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetFloatValue(GetInputConnection().GetFloatValue());
 		}
 
+		//PROPERTIES
+
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -96,5 +100,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatPropertyWithClamp("Sharpen Neighbor Influence", ref sharpenNeighborInfluence, 0.0f, 1f, 
 				"The amount of influence that neighbors within the convolution array that effect each pixel.");
 		}
+#endif
 	}
 }

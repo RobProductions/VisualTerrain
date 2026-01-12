@@ -57,7 +57,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
-		void RefreshConnections()
+		public void RefreshConnections()
 		{
 			//Check for differing connection count
 			if(subGraphAsset != null)
@@ -140,7 +140,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
-		//RENDERING
+		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public override void RenderNodeProperties()
 		{
@@ -156,5 +158,6 @@ namespace RobProductions.VisualTerrain.Runtime
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 		}
+#endif
 	}
 }

@@ -8,16 +8,26 @@ namespace RobProductions.VisualTerrain.Runtime
 	public class VTSetupTerrainObject
 	{
 		[System.Serializable]
-		public class ObjectPlacement
+		public class TerrainObjectProperties
 		{
-			public int placeObjectRandomSeed = 100;
-			public int instancePropertyRandomSeed = 200;
+			public bool bakeTreeLightProbes = true;
+			public bool removeLightProbeRinging = true;
+			public bool preservePrototypeLayers = true;
+		}
+
+		public TerrainObjectProperties objectProperties = new TerrainObjectProperties();
+
+		[System.Serializable]
+		public class TerrainObjectPlacement
+		{
+			public int defaultPlacementSeed = 100;
+			public int defaultPropertySeed = 200;
 
 			public float placeObjectValueCutoff = 0.1f;
 			public float revalidatePositionMultiplier = 1.2f;
 		}
 
 		[SerializeField]
-		public ObjectPlacement objectPlacement = new ObjectPlacement();
+		public TerrainObjectPlacement objectPlacement = new TerrainObjectPlacement();
 	}
 }

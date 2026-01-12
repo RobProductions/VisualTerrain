@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -158,6 +159,14 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//PROPERTIES
 
+#if UNITY_EDITOR
+
+		public void RenderPropertyHeading(string headingTitle)
+		{
+			EditorGUILayout.Space(5f);
+			EditorGUILayout.LabelField(headingTitle, EditorStyles.boldLabel);
+		}
+
 		/// <summary>
 		/// Draws a GUILayout FloatField and potentially modifies the ref
 		/// input float if the user changes the value. 
@@ -171,9 +180,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			var newValue = EditorGUILayout.FloatField(content, baseValue);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 		}
 
@@ -192,9 +201,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			var newValue = Mathf.Clamp(EditorGUILayout.FloatField(content, baseValue), clampMin, clampMax);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 		}
 
@@ -212,9 +221,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			var newValue = EditorGUILayout.IntField(content, baseValue);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 		}
 
@@ -232,9 +241,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			var newValue = Mathf.Clamp(EditorGUILayout.IntField(content, baseValue), clampMin, clampMax);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 		}
 
@@ -251,9 +260,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			bool newValue = EditorGUILayout.Toggle(content, baseValue);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 		}
 
@@ -270,9 +279,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			Vector2 newValue = EditorGUILayout.Vector2Field(content, baseValue);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 			}
 		}
 
@@ -290,13 +299,32 @@ namespace RobProductions.VisualTerrain.Runtime
 			var newValue = (GameObject)EditorGUILayout.ObjectField(content, baseValue, typeof(GameObject), allowSceneObjects);
 			if (newValue != baseValue)
 			{
-				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				InvokeBeginEditNodeProperty();
 				baseValue = newValue;
-				endEditNodePropertyEvent?.Invoke(this);
+				InvokeEndEditNodeProperty();
 
 				return true;
 			}
 			return false;
 		}
+
+		public void InvokeBeginEditNodeProperty(string optionalDescription = "")
+		{
+			string finalDescription = "Edited Node Property";
+			if(optionalDescription != "")
+			{
+				finalDescription = optionalDescription;
+			}
+
+			beginEditNodePropertyEvent?.Invoke(finalDescription);
+		}
+
+		public void InvokeEndEditNodeProperty()
+		{
+			endEditNodePropertyEvent?.Invoke(this);
+		}
+
+#endif
+
 	}
 }

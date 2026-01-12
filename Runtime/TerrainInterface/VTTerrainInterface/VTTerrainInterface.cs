@@ -99,13 +99,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Delete Extra References");
 
 			//Set the terrain properties
-			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup);
+			ConfigureTerrainProperties(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup);
 
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Configure Terrain Properties");
-
-			//Create new random managers based on setup seeds
-			data.terrainPlacementRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.placeObjectRandomSeed);
-			data.terrainInstancePropertyRandom = new System.Random(settingsAsset.setupData.terrainObjectSetup.objectPlacement.instancePropertyRandomSeed);
 
 			//Set the terrain height values
 			//This will set the cachedHeightmap for later use
@@ -145,7 +141,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				//...seemingly does nothing but you never know
 				thisTerrainRef.terrainComponent.Flush();
 
-				//There's a tiling issue in Untity 2020
+				//There's a tiling issue in Unity 2020
 				//where neighboring terrains aren't properly linked in specific cases
 				//like when you delete some terrains and run VT to add them back.
 				//Turning them off and on fixes it for some reason :')
@@ -715,6 +711,22 @@ namespace RobProductions.VisualTerrain.Runtime
 						continue;
 					}
 
+					//Setup random generators for each tree layer
+					int placementSeed = settingsAsset.setupData.terrainObjectSetup.objectPlacement.defaultPlacementSeed;
+					if(thisLayerContainer.placementSeed > 0)
+					{
+						placementSeed = thisLayerContainer.placementSeed;
+					}
+					data.terrainPlacementRandom = new System.Random(placementSeed + i);
+
+					int propertySeed = settingsAsset.setupData.terrainObjectSetup.objectPlacement.defaultPropertySeed;
+					if (thisLayerContainer.propertySeed > 0)
+					{
+						propertySeed = thisLayerContainer.propertySeed;
+					}
+					data.terrainInstancePropertyRandom = new System.Random(propertySeed + i);
+
+					//Gather important values for later
 					int treeMapWidth = thisLayerContainer.treeMap.Width;
 					int treeMapHeight = thisLayerContainer.treeMap.Height;
 
@@ -898,7 +910,7 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//TERRAIN PROPERTIES
 
-		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupProcessing processingProperties)
+		void ConfigureTerrainProperties(VTSetupTerrain setupProperties, VTSetupTerrainObject terrainObjectProperties, VTSetupProcessing processingProperties)
 		{
 			var terrainSize = setupProperties.terrainSize;
 			int numberOfHorizontalTerrains = TerrainCountToNumber(setupProperties.terrainSize.meshTerrainCountX);
@@ -960,10 +972,20 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefComponent.heightmapPixelError = (float)setupProperties.terrainProperties.lodPixelError;
 				thisRefComponent.basemapDistance = (float)setupProperties.terrainProperties.compositeStartDistance;
 
+				thisRefComponent.drawInstanced = setupProperties.terrainProperties.drawInstanced;
+				thisRefComponent.shadowCastingMode = setupProperties.terrainProperties.shadowCastingMode;
+				thisRefComponent.reflectionProbeUsage = setupProperties.terrainProperties.reflectionProbeUsage;
+
 #if UNITY_2022_2_OR_NEWER
 				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;
 #endif
 
+#if UNITY_EDITOR
+				thisRefComponent.bakeLightProbesForTrees = terrainObjectProperties.objectProperties.bakeTreeLightProbes;
+				thisRefComponent.deringLightProbesForTrees = terrainObjectProperties.objectProperties.removeLightProbeRinging;
+#endif
+
+				thisRefComponent.preserveTreePrototypeLayers = terrainObjectProperties.objectProperties.preservePrototypeLayers;
 			}
 		}
 

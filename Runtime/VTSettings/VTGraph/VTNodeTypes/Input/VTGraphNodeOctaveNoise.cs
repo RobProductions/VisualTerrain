@@ -1,4 +1,3 @@
-using Codice.Client.BaseCommands.Changelist;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -108,6 +107,10 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		}
 
+		//PROPERTIES
+
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -128,5 +131,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatProperty("Noise Offset X", ref noiseOffsetX);
 			RenderFloatProperty("Noise Offset Y", ref noiseOffsetY);
 		}
+
+#endif
+
 	}
 }

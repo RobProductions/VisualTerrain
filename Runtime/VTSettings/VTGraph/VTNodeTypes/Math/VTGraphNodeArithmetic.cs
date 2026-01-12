@@ -135,7 +135,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			return (byte)Mathf.RoundToInt(linearMap);
 		}
 
-		//RENDERING
+		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public override void RenderNodeProperties()
 		{
@@ -149,5 +151,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 		}
+#endif
+
 	}
 }
