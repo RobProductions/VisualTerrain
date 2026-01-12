@@ -1,5 +1,5 @@
 # Visual Terrain
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/RobProductions/VisualTerrain?logo=github&include_prereleases&sort=date)
+[![openupm](https://img.shields.io/npm/v/com.robproductions.visualterrain?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.robproductions.visualterrain/) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/RobProductions/VisualTerrain?logo=github&include_prereleases&sort=date)
 
 An open-source node-based terrain generator for Unity. Create stunning terrain shapes and paint them mathematically by combining nodes in a user-friendly graph interface!
 
