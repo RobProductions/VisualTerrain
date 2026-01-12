@@ -94,6 +94,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//RENDER PROPERTIES
 
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -110,5 +112,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatProperty("Mask Strength", ref maskStrength,
 				"A multiplier that will be used on the final mask output.");
 		}
+
+#endif
+
 	}
 }

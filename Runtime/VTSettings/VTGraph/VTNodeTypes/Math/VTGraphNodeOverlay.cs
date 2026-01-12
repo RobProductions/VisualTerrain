@@ -58,6 +58,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetFloatValue(GetInputConnection().GetFloatValue());
 		}
 
+		//PROPERTIES
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -65,5 +68,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatProperty("Overlay Multiplier", ref overlayMultiplier,
 				"The overlay input is remapped from 0 to 1 to -1 to 1 and scaled by this multiplier before adding it to the base value.");
 		}
+#endif
 	}
 }

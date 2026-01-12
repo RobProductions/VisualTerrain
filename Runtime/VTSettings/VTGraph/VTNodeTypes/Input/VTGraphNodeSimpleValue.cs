@@ -33,11 +33,16 @@ namespace RobProductions.VisualTerrain.Runtime
 			}
 		}
 
+		//PROPERTIES
+
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
 
 			RenderFloatProperty("Output Value", ref outputValue);
 		}
+#endif
 	}
 }

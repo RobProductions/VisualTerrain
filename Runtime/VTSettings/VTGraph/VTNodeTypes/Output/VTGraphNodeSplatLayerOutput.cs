@@ -43,7 +43,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			return terrainLayer;
 		}
 
-		//RENDERING
+		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public override void RenderNodeProperties()
 		{
@@ -59,5 +61,6 @@ namespace RobProductions.VisualTerrain.Runtime
 				InvokeEndEditNodeProperty();
 			}
 		}
+#endif
 	}
 }

@@ -122,7 +122,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			return instanceColorRange;
 		}
 
-		//RENDERING
+		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public override void RenderNodeProperties()
 		{
@@ -167,5 +169,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderIntPropertyWithClamp("Property Seed", ref propertySeed, 0, 30000,
 				"If not 0, this value will be used as a seed for random property values on each instance.");
 		}
+#endif
 	}
 }

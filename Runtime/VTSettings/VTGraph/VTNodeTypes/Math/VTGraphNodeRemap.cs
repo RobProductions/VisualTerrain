@@ -84,7 +84,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			return Mathf.Lerp(to.x, to.y, percentInFrom);
 		}
 
-		//RENDERING
+		//PROPERTIES
+
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -107,5 +110,6 @@ namespace RobProductions.VisualTerrain.Runtime
 				RenderVector2Property("To Range", ref toRange);
 			}
 		}
+#endif
 	}
 }

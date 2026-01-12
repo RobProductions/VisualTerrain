@@ -39,6 +39,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//RENDERING
 
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -51,6 +53,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 		}
+#endif
 	}
 
 }

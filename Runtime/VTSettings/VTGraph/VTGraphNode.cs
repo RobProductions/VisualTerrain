@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -157,6 +158,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		}
 
 		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public void RenderPropertyHeading(string headingTitle)
 		{
@@ -320,5 +323,8 @@ namespace RobProductions.VisualTerrain.Runtime
 		{
 			endEditNodePropertyEvent?.Invoke(this);
 		}
+
+#endif
+
 	}
 }

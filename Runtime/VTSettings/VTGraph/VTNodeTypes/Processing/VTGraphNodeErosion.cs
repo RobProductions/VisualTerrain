@@ -103,6 +103,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//PROPERTIES
 
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -120,5 +122,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatPropertyWithClamp("Erosion Multiplier", ref erosionMultiplier, -50f, 50f, 
 				"The final amount of erosion that will be applied to the base input.");
 		}
+#endif
 	}
 }

@@ -100,7 +100,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetFloatValue(input.GetFloatValue());
 		}
 
-		//RENDER PROPERTIES
+		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public override void RenderNodeProperties()
 		{
@@ -117,5 +119,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatProperty("Clip Value", ref clipValue,
 				"This is the value that will be used for pixels if the translation produces empty space in the output grid.");
 		}
+#endif
 	}
 }

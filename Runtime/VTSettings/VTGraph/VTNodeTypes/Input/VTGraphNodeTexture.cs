@@ -54,6 +54,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetRangeGridValue(newGrid);
 		}
 
+		//PROPERTIES
+
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -69,5 +73,6 @@ namespace RobProductions.VisualTerrain.Runtime
 				endEditNodePropertyEvent?.Invoke(this);
 			}
 		}
+#endif
 	}
 }

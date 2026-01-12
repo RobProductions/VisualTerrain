@@ -120,6 +120,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			return newGrid;
 		}
 
+		//PROPERTIES
+
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -139,5 +143,6 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			RenderFloatProperty("Shape Value", ref shapeValue);
 		}
+#endif
 	}
 }

@@ -61,6 +61,8 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//PROPERTIES
 
+#if UNITY_EDITOR
+
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
@@ -68,5 +70,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderIntProperty("Layer Index", ref layerIndex,
 				"The index to use when retrieving the cached splatmap layer. You can find the list of layers in the terrain paint tab.");
 		}
+#endif
 	}
 }

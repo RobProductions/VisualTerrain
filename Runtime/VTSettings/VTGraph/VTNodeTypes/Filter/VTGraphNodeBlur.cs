@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
 
@@ -118,7 +119,9 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetFloatValue(baseInputFloat);
 		}
 
-		//RENDER PROPERTIES
+		//PROPERTIES
+
+#if UNITY_EDITOR
 
 		public override void RenderNodeProperties()
 		{
@@ -127,5 +130,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			RenderFloatPropertyWithClamp("Blur Radius X", ref blurRadiusX, 0.0f, 100f);
 			RenderFloatPropertyWithClamp("Blur Radius Y", ref blurRadiusY, 0.0f, 100f);
 		}
+#endif
 	}
 }

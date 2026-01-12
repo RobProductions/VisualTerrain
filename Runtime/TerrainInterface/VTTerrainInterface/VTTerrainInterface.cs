@@ -141,7 +141,7 @@ namespace RobProductions.VisualTerrain.Runtime
 				//...seemingly does nothing but you never know
 				thisTerrainRef.terrainComponent.Flush();
 
-				//There's a tiling issue in Untity 2020
+				//There's a tiling issue in Unity 2020
 				//where neighboring terrains aren't properly linked in specific cases
 				//like when you delete some terrains and run VT to add them back.
 				//Turning them off and on fixes it for some reason :')
@@ -980,8 +980,11 @@ namespace RobProductions.VisualTerrain.Runtime
 				thisRefComponent.enableHeightmapRayTracing = setupProperties.terrainProperties.raytracingSupport;
 #endif
 
+#if UNITY_EDITOR
 				thisRefComponent.bakeLightProbesForTrees = terrainObjectProperties.objectProperties.bakeTreeLightProbes;
 				thisRefComponent.deringLightProbesForTrees = terrainObjectProperties.objectProperties.removeLightProbeRinging;
+#endif
+
 				thisRefComponent.preserveTreePrototypeLayers = terrainObjectProperties.objectProperties.preservePrototypeLayers;
 			}
 		}
