@@ -1,4 +1,6 @@
 # Visual Terrain
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/RobProductions/VisualTerrain?logo=github&include_prereleases&sort=date)
+
 An open-source node-based terrain generator for Unity. Create stunning terrain shapes and paint them mathematically by combining nodes in a user-friendly graph interface!
 
 <img width = "800" src="Documentation~/DocAssets/LogoImage.jpg">
