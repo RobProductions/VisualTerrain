@@ -213,6 +213,14 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
+			if(mainPanel.GetMainSettingsAsset() != null && !mainPanel.GetMainSettingsAsset().setupData.editorSetup.imageGenInPlaymode)
+			{
+				if(Application.isPlaying)
+				{
+					//Don't run in playmode
+					return;
+				}
+			}
 
 			var nodesAsArray = data.currentGraph.nodeList.ToArray();
 			VTEditorCoroutine.Start(CoroutineRegeneratePreviewImages(nodesAsArray));

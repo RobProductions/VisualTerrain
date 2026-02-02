@@ -16,6 +16,23 @@ namespace RobProductions.VisualTerrain.Runtime
 		public const int ASSET_API_VERSION = 1;
 
 		[System.Serializable]
+		public class AssetEditorSetup
+		{
+
+			/// <summary>
+			/// When enabled, the editor graph view will refresh
+			/// when playmode is active and the game changes scenes.
+			/// </summary>
+			public bool refreshViewOnRuntimeSceneChange = false;
+
+			/// <summary>
+			/// When disabled, the editor graph view will not refresh
+			/// images in play mode to save performance.
+			/// </summary>
+			public bool imageGenInPlaymode = false;
+		}
+
+		[System.Serializable]
 		public class SetupData
 		{
 			/// <summary>
@@ -25,6 +42,7 @@ namespace RobProductions.VisualTerrain.Runtime
 			/// </summary>
 			public bool previewMode = true;
 
+			public AssetEditorSetup editorSetup = new AssetEditorSetup();
 			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
 			public VTSetupTerrainObject terrainObjectSetup = new VTSetupTerrainObject();
 			public VTSetupProcessing processingSetup = new VTSetupProcessing();
