@@ -67,8 +67,15 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//GENERATION
 
+		
 		public void GenerateTerrain()
 		{
+			//TODO: This could become an IEnumerator for coroutines
+			//but some reworking or duplicate code (one for blocking and one for coroutine)
+			//will be needed. OR we could commit to only coroutines.
+			//It could at least let the user move around
+			//while generation is going on.
+
 			RefreshSettingsAsset();
 			if (settingsAsset == null)
 			{

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace RobProductions.VisualTerrain.Editor
+namespace RobProductions.VisualTerrain.Runtime
 {
 	public class VTEditorCoroutine
 	{
