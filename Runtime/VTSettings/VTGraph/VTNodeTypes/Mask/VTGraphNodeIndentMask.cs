@@ -46,7 +46,6 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				for (int x = 0; x < inputGrid.Width; x++)
 				{
-
 					int checkPixelLeft = x - distanceInPixelsX;
 					int checkPixelRight = x + distanceInPixelsX;
 					int checkPixelBottom = y - distanceInPixelsY;
