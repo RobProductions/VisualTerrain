@@ -28,22 +28,34 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				if (settings.contextAsset != null)
 				{
+					VTRangeGrid outputGrid;
+
 					//Attempt to pull from existing cache texture
 					if (settings.thumbnailMode && settings.contextAsset.generationData.cachedThumbSplatmapGrids.Count > 0)
 					{
-						output.SetRangeGridValue(GetSplatGridValueFromList(settings.contextAsset.generationData.cachedThumbSplatmapGrids));
+						outputGrid = GetSplatGridValueFromList(settings.contextAsset.generationData.cachedThumbSplatmapGrids);
 					}
 					else if (!settings.thumbnailMode && settings.contextAsset.generationData.cachedSplatmapGrids.Count > 0)
 					{
-						output.SetRangeGridValue(GetSplatGridValueFromList(settings.contextAsset.generationData.cachedSplatmapGrids));
+						outputGrid = GetSplatGridValueFromList(settings.contextAsset.generationData.cachedSplatmapGrids);
 					}
 					else
 					{
 						//If there was no cache, let's fully calculate the splatmaps
 						//This will also set the asset cache so future process calls will be able to use the cached value
 						var splatmaps = VTGraphValueInterface.GetGraphSplatmapLayers(settings.contextAsset.generationData.textureGraph, settings);
-						output.SetRangeGridValue(GetSplatGridValueFromList(splatmaps));
+						outputGrid = GetSplatGridValueFromList(splatmaps);
 					}
+					if (!outputGrid.IsNullOrEmpty())
+					{
+						if (outputGrid.Width != settings.textureGenResolutionNumber || outputGrid.Height != settings.textureGenResolutionNumber)
+						{
+							//We have a mismatched resolution which will cause problems down the line
+							outputGrid = outputGrid.ResampleToResolution(settings.textureGenResolutionNumber, settings.textureGenResolutionNumber);
+						}
+					}
+
+					output.SetRangeGridValue(outputGrid);
 				}
 			}
 		}

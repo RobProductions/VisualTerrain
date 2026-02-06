@@ -16,6 +16,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			Voronoi = 1,
 		}
 
+		public SimpleNoiseType noiseType = SimpleNoiseType.Perlin;
+
 		[SerializeField]
 		public float noiseScale = 10.0f;
 		[SerializeField]
@@ -41,8 +43,15 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				int resolution = settings.textureGenResolutionNumber;
 
-				var noiseMap = VTNoiseGenUtils.GeneratePerlinRangeGrid(
-					resolution, resolution, noiseOffsetX, noiseOffsetY, noiseScale, noiseStrength);
+				VTRangeGrid noiseMap;
+				if(noiseType == SimpleNoiseType.Perlin)
+				{
+					noiseMap = VTNoiseGenUtils.GeneratePerlinRangeGrid(resolution, resolution, noiseOffsetX, noiseOffsetY, noiseScale, noiseStrength);
+				}
+				else
+				{
+					noiseMap = VTNoiseGenUtils.GenerateVoronoiRangeGrid(resolution, resolution, noiseOffsetX, noiseOffsetY, noiseScale, noiseStrength);
+				}
 
 				output.SetRangeGridValue(noiseMap);
 			}
@@ -55,6 +64,14 @@ namespace RobProductions.VisualTerrain.Runtime
 		public override void RenderNodeProperties()
 		{
 			base.RenderNodeProperties();
+
+			SimpleNoiseType setNoiseType = (SimpleNoiseType)EditorGUILayout.EnumPopup("Noise Type", noiseType);
+			if (setNoiseType != noiseType)
+			{
+				beginEditNodePropertyEvent?.Invoke("Edited Node Property");
+				noiseType = setNoiseType;
+				endEditNodePropertyEvent?.Invoke(this);
+			}
 
 			RenderFloatProperty("Noise Scale", ref noiseScale);
 			RenderFloatProperty("Noise Strength", ref noiseStrength);

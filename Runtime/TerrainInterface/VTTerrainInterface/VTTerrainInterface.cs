@@ -67,8 +67,15 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		//GENERATION
 
+		
 		public void GenerateTerrain()
 		{
+			//TODO: This could become an IEnumerator for coroutines
+			//but some reworking or duplicate code (one for blocking and one for coroutine)
+			//will be needed. OR we could commit to only coroutines.
+			//It could at least let the user move around
+			//while generation is going on.
+
 			RefreshSettingsAsset();
 			if (settingsAsset == null)
 			{
@@ -105,22 +112,31 @@ namespace RobProductions.VisualTerrain.Runtime
 
 			//Set the terrain height values
 			//This will set the cachedHeightmap for later use
-			var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
-			SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
+			if(settingsAsset.DoCalculateLayer(VTGraph.GraphType.Height))
+			{
+				var heightmapValue = VTGraphValueInterface.GetAssetHeightmapTexture(settingsAsset, manager.IsPreviewMode());
+				SetTerrainHeight(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, heightmapValue);
+			}
 
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Set Terrain Height Data");
 
 			//Set the terrain splat textures
 			//Texture graph may use the cachedHeightmap generated above
-			var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
-			SetTerrainSplatTextures(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, splatContainers);
+			if(settingsAsset.DoCalculateLayer(VTGraph.GraphType.Texture))
+			{
+				var splatContainers = VTGraphValueInterface.GetAssetSplatmapLayers(settingsAsset, manager.IsPreviewMode());
+				SetTerrainSplatTextures(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.processingSetup, splatContainers);
+			}
 
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Set Terrain Splat Layers");
 
 			//Set the terrain tree objects
 			//Terrain object graph may use cachedHeightmap and cached splat layers
-			var treeContainers = VTGraphValueInterface.GetAssetTreeLayers(settingsAsset, manager.IsPreviewMode());
-			SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup, treeContainers);
+			if(settingsAsset.DoCalculateLayer(VTGraph.GraphType.TerrainObject))
+			{
+				var treeContainers = VTGraphValueInterface.GetAssetTreeLayers(settingsAsset, manager.IsPreviewMode());
+				SetTerrainTreeObjects(settingsAsset.setupData.terrainSetup, settingsAsset.setupData.terrainObjectSetup, settingsAsset.setupData.processingSetup, treeContainers);
+			}
 
 			PrintResetStopwatch(data.mainGeneratorStopwatch, "Set Tree Objects");
 
@@ -946,10 +962,16 @@ namespace RobProductions.VisualTerrain.Runtime
 					finalCompositeRes = SplatmapResToNumber(setupProperties.terrainResolution.compositeSplatmapResolution);
 				}
 
-				thisRefData.heightmapResolution = finalHeightmapRes;
-				thisRefData.alphamapResolution = finalSplatmapRes;
-				thisRefData.baseMapResolution = finalCompositeRes;
-
+				if(settingsAsset.DoCalculateLayer(VTGraph.GraphType.Height))
+				{
+					thisRefData.heightmapResolution = finalHeightmapRes;
+				}
+				if(settingsAsset.DoCalculateLayer(VTGraph.GraphType.Texture))
+				{
+					thisRefData.alphamapResolution = finalSplatmapRes;
+					thisRefData.baseMapResolution = finalCompositeRes;
+				}
+				
 				//Set size
 				float individualTerrainSizeX = terrainSize.meshWidthLength.x / numberOfHorizontalTerrains;
 				float individualTerrainSizeY = terrainSize.meshWidthLength.y / numberOfVerticalTerrains;

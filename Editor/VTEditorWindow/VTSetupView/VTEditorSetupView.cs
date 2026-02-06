@@ -359,7 +359,14 @@ namespace RobProductions.VisualTerrain.Editor
 			processing.preview.previewTextureGenResolution = DrawSetupIntField("Preview Resolution", processing.preview.previewTextureGenResolution,
 				"The resolution of the output RangeGrids used for Preview Mode, activated by the Eye icon.");
 
+			DrawLabelSeparator("Algorithm Settings");
 
+			var threadingType = (VTSetupProcessing.AlgorithmThreadingType)EditorGUILayout.EnumPopup("Threading Type", processing.algorithm.threadingType);
+			if(threadingType != processing.algorithm.threadingType)
+			{
+				mainPanel.RegisterAssetStructureUndo("Edited Threading Type");
+				processing.algorithm.threadingType = threadingType;
+			}
 		}
 
 

@@ -91,8 +91,8 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.events.onRegisterAssetDataUndoEvent += RegisterAssetDataUndo;
 
 			Undo.undoRedoPerformed += UndoPerformed;
-			EditorSceneManager.activeSceneChanged += ActiveSceneChanged;
-			EditorSceneManager.activeSceneChangedInEditMode += ActiveSceneChanged;
+			EditorSceneManager.activeSceneChanged += ActiveRuntimeSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode += ActiveEditorSceneChanged;
 
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
@@ -108,8 +108,8 @@ namespace RobProductions.VisualTerrain.Editor
 		private void OnDisable()
 		{
 			Undo.undoRedoPerformed -= UndoPerformed;
-			EditorSceneManager.activeSceneChanged -= ActiveSceneChanged;
-			EditorSceneManager.activeSceneChangedInEditMode -= ActiveSceneChanged;
+			EditorSceneManager.activeSceneChanged -= ActiveRuntimeSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode -= ActiveEditorSceneChanged;
 
 			data.mainPanel.events.onEditedAssetEvent -= EditedAsset;
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent -= RegisterAssetStructureUndo;
@@ -122,7 +122,15 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//CALLBACKS
 
-		void ActiveSceneChanged(Scene lastScene, Scene newScene)
+		void ActiveRuntimeSceneChanged(Scene lastScene, Scene newScene)
+		{
+			if (data.currentAsset != null)
+			{
+				//Nothing for now
+			}
+		}
+
+		void ActiveEditorSceneChanged(Scene lastScene, Scene newScene)
 		{
 			if (data.currentAsset != null)
 			{

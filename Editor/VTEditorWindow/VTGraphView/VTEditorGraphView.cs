@@ -213,6 +213,14 @@ namespace RobProductions.VisualTerrain.Editor
 			{
 				return;
 			}
+			if(mainPanel.GetMainSettingsAsset() != null && !mainPanel.GetMainSettingsAsset().setupData.editorSetup.imageGenInPlaymode)
+			{
+				if(Application.isPlaying)
+				{
+					//Don't run in playmode
+					return;
+				}
+			}
 
 			var nodesAsArray = data.currentGraph.nodeList.ToArray();
 			VTEditorCoroutine.Start(CoroutineRegeneratePreviewImages(nodesAsArray));
@@ -1005,6 +1013,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Mask Node/Combine Mask"), false, () => CreateNodeAtPosition<VTGraphNodeCombineMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
+			menu.AddItem(new GUIContent("Add Mask Node/Indent Mask"), false, () => CreateNodeAtPosition<VTGraphNodeIndentMask>(mousePosition));
 
 			//Filter
 			menu.AddItem(new GUIContent("Add Filter Node/Box Blur"), false, () => CreateNodeAtPosition<VTGraphNodeBlur>(mousePosition));

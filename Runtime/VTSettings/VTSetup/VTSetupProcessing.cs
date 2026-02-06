@@ -36,5 +36,20 @@ namespace RobProductions.VisualTerrain.Runtime
 
 		[SerializeField]
 		public SetupPreviewSettings preview = new SetupPreviewSettings();
+
+		public enum AlgorithmThreadingType
+		{
+			BlockingCall = 0,
+			DynamicCoroutine = 1,
+		}
+
+		[System.Serializable]
+		public class SetupAlgorithmSettings
+		{
+			public AlgorithmThreadingType threadingType = AlgorithmThreadingType.DynamicCoroutine;
+		}
+
+		[SerializeField]
+		public SetupAlgorithmSettings algorithm = new SetupAlgorithmSettings();
 	}
 }

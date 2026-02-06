@@ -16,6 +16,23 @@ namespace RobProductions.VisualTerrain.Runtime
 		public const int ASSET_API_VERSION = 1;
 
 		[System.Serializable]
+		public class AssetEditorSetup
+		{
+
+			/// <summary>
+			/// When enabled, the editor graph view will refresh
+			/// when playmode is active and the game changes scenes.
+			/// </summary>
+			public bool refreshViewOnRuntimeSceneChange = false;
+
+			/// <summary>
+			/// When disabled, the editor graph view will not refresh
+			/// images in play mode to save performance.
+			/// </summary>
+			public bool imageGenInPlaymode = false;
+		}
+
+		[System.Serializable]
 		public class SetupData
 		{
 			/// <summary>
@@ -25,6 +42,18 @@ namespace RobProductions.VisualTerrain.Runtime
 			/// </summary>
 			public bool previewMode = true;
 
+			/// <summary>
+			/// When enabled, we will only calculate the selected
+			/// layer's graph data and apply it to the terrain objects.
+			/// </summary>
+			public bool layerOnlyMode = false;
+
+			/// <summary>
+			/// The current graph that we're analyzing/working on.
+			/// </summary>
+			public VTGraph.GraphType currentAssetLayer = VTGraph.GraphType.Height;
+
+			public AssetEditorSetup editorSetup = new AssetEditorSetup();
 			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
 			public VTSetupTerrainObject terrainObjectSetup = new VTSetupTerrainObject();
 			public VTSetupProcessing processingSetup = new VTSetupProcessing();
@@ -100,11 +129,36 @@ namespace RobProductions.VisualTerrain.Runtime
 			return setupData.previewMode;
 		}
 
+		public bool IsLayerOnlyMode()
+		{
+			return setupData.layerOnlyMode;
+		}
+
+		public bool DoCalculateLayer(VTGraph.GraphType layerType)
+		{
+			if(!setupData.layerOnlyMode)
+			{
+				return true;
+			}
+
+			return (setupData.currentAssetLayer == layerType);
+		}
+
 		//SETTERS
 
 		public void SetPreviewMode(bool v)
 		{
 			setupData.previewMode = v;
+		}
+
+		public void SetLayerOnlyMode(bool v)
+		{
+			setupData.layerOnlyMode = v;
+		}
+
+		public void SetCurrentLayer(VTGraph.GraphType layerType)
+		{
+			setupData.currentAssetLayer = layerType;
 		}
 
 		/// <summary>

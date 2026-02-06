@@ -13,7 +13,7 @@ namespace RobProductions.VisualTerrain.Runtime
 		[SerializeField]
 		public float maskStrength = 1.0f;
 		[SerializeField]
-		public bool setValueAsMask = false;
+		public bool setValueAboveZero = false;
 
 		public VTGraphNodeCombineMask()
 		{
@@ -34,6 +34,10 @@ namespace RobProductions.VisualTerrain.Runtime
 			var setInputGrid = GetInputConnection(1).GetRangeGridValue();
 			var maskInputGrid = GetInputConnection(2).GetRangeGridValue();
 
+			var baseInputFloat = GetInputConnection(0).GetFloatValue();
+			var setInputFloat = GetInputConnection(1).GetFloatValue();
+			var maskInputFloat = GetInputConnection(2).GetFloatValue();
+
 			//Handle RangeGrid mask
 			var newGrid = new VTRangeGrid(baseInputGrid.Width, baseInputGrid.Height);
 
@@ -44,18 +48,44 @@ namespace RobProductions.VisualTerrain.Runtime
 					for (int y = 0; y < baseInputGrid.Height; y++)
 					{
 						var basePixel = baseInputGrid.GetRangeValue(x, y);
+
+						//Gather the set value
 						var setPixel = 0f;
-						if (!setInputGrid.IsNullOrEmpty())
+						if(GetInputConnection(1).valueType == VTGraphConnectionSlot.SlotValueType.Float)
 						{
-							setPixel = setInputGrid.GetRangeValue(x, y);
+							//In float type, we can set a specific value for all regions based on mask
+							setPixel = setInputFloat;
 						}
-						var maskPixel = 0f;
-						if (!maskInputGrid.IsNullOrEmpty())
+						else
 						{
-							maskPixel = maskInputGrid.GetRangeValue(x, y);
+							if (!setInputGrid.IsNullOrEmpty())
+							{
+								setPixel = setInputGrid.GetRangeValue(x, y);
+							}
 						}
 
-						newGrid.SetRangeValue(x, y, GetInterpolatedSetValue(basePixel, setPixel, maskPixel, setValueAsMask || maskInputGrid.IsNullOrEmpty()));
+						//Gather the mask value
+						var maskPixel = 0f;
+						if(GetInputConnection(2).valueType == VTGraphConnectionSlot.SlotValueType.Float)
+						{
+							//In float type, we can globally set the mask influence
+							maskPixel = maskInputFloat;
+						}
+						else
+						{
+							if (!maskInputGrid.IsNullOrEmpty())
+							{
+								//We can pull from the mask grid
+								maskPixel = maskInputGrid.GetRangeValue(x, y);
+							}
+							else
+							{
+								//We have no mask, so use the set pixel as the interpolation
+								maskPixel = setPixel;
+							}
+						}
+
+						newGrid.SetRangeValue(x, y, GetInterpolatedSetValue(basePixel, setPixel, maskPixel, setValueAboveZero));
 					}
 				}
 			}
@@ -63,16 +93,12 @@ namespace RobProductions.VisualTerrain.Runtime
 			output.SetRangeGridValue(newGrid);
 
 			//Handle Float mask
-			var baseInputFloat = GetInputConnection(0).GetFloatValue();
-			var setInputFloat = GetInputConnection(1).GetFloatValue();
-			var maskInputFloat = GetInputConnection(2).GetFloatValue();
-
-			output.SetFloatValue(GetInterpolatedSetValue(baseInputFloat, setInputFloat, maskInputFloat, setValueAsMask));
+			output.SetFloatValue(GetInterpolatedSetValue(baseInputFloat, setInputFloat, maskInputFloat, setValueAboveZero));
 		}
 
-		float GetInterpolatedSetValue(float baseValue, float setValue, float maskInterpolation, bool maskOnSetValue)
+		float GetInterpolatedSetValue(float baseValue, float setValue, float maskInterpolation, bool setValueAboveZero)
 		{
-			if(maskOnSetValue)
+			if(setValueAboveZero)
 			{
 				//Just use the set value if it is above 0
 				if(setValue == 0)
@@ -95,7 +121,8 @@ namespace RobProductions.VisualTerrain.Runtime
 			base.RenderNodeProperties();
 
 			RenderFloatPropertyWithClamp("Mask Strength", ref maskStrength, 0.0f, Mathf.Infinity);
-			RenderBoolProperty("Set Value Is Mask", ref setValueAsMask);
+			RenderBoolProperty("Set Value Above Zero", ref setValueAboveZero,
+				"When enabled, a special mode occurs where the set value for a pixel is used only when it is > 0 and mask is ignored.");
 		}
 #endif
 	}

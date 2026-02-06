@@ -25,6 +25,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public GUIContent moreOptionsContent;
 			public GUIContent displayPropertiesContent;
 			public GUIContent previewToggleContent;
+			public GUIContent layerToggleContent;
 
 			public EditorWindowStyles()
 			{
@@ -34,6 +35,8 @@ namespace RobProductions.VisualTerrain.Editor
 				displayPropertiesContent.tooltip = "Toggle properties panel display.";
 				previewToggleContent = EditorGUIUtility.IconContent("ViewToolOrbit@2x");
 				previewToggleContent.tooltip = "Toggle preview mode.";
+				layerToggleContent = EditorGUIUtility.IconContent("SceneViewFX@2x");
+				layerToggleContent.tooltip = "Toggle layer only mode.";
 
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
@@ -109,8 +112,8 @@ namespace RobProductions.VisualTerrain.Editor
 			data.mainPanel.events.onRegisterAssetDataUndoEvent += RegisterAssetDataUndo;
 
 			Undo.undoRedoPerformed += UndoPerformed;
-			EditorSceneManager.activeSceneChanged += ActiveSceneChanged;
-			EditorSceneManager.activeSceneChangedInEditMode += ActiveSceneChanged;
+			EditorSceneManager.activeSceneChanged += ActiveRuntimeSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode += ActiveEditorSceneChanged;
 
 			//We reloaded or enabled for the first time
 			//so check if we stored an asset path and load it into currentAsset
@@ -127,8 +130,8 @@ namespace RobProductions.VisualTerrain.Editor
 		private void OnDisable()
 		{
 			Undo.undoRedoPerformed -= UndoPerformed;
-			EditorSceneManager.activeSceneChanged -= ActiveSceneChanged;
-			EditorSceneManager.activeSceneChangedInEditMode -= ActiveSceneChanged;
+			EditorSceneManager.activeSceneChanged -= ActiveRuntimeSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode -= ActiveEditorSceneChanged;
 
 			data.mainPanel.events.onEditedAssetEvent -= EditedAsset;
 			data.mainPanel.events.onRegisterAssetStructureUndoEvent -= RegisterAssetStructureUndo;
@@ -141,7 +144,22 @@ namespace RobProductions.VisualTerrain.Editor
 
 		//CALLBACKS
 
-		void ActiveSceneChanged(Scene lastScene, Scene newScene)
+		void ActiveRuntimeSceneChanged(Scene lastScene, Scene newScene)
+		{
+			if (data.currentAsset != null)
+			{
+				if(!data.currentAsset.setupData.editorSetup.refreshViewOnRuntimeSceneChange)
+				{
+					return;
+				}
+
+				RefreshGraphScreen();
+
+				data.mainPanel.RegenerateGraphPreviewImages();
+			}
+		}
+
+		void ActiveEditorSceneChanged(Scene lastScene, Scene newScene)
 		{
 			if(data.currentAsset != null)
 			{
@@ -320,14 +338,17 @@ namespace RobProductions.VisualTerrain.Editor
 				if (data.currentGraphScreen == VTGraphScreen.Heightmap)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.heightmapGraph;
+					data.currentAsset.SetCurrentLayer(VTGraph.GraphType.Height);
 				}
 				else if (data.currentGraphScreen == VTGraphScreen.Texture)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.textureGraph;
+					data.currentAsset.SetCurrentLayer(VTGraph.GraphType.Texture);
 				}
 				else if (data.currentGraphScreen == VTGraphScreen.TerrainObject)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.terrainObjectGraph;
+					data.currentAsset.SetCurrentLayer(VTGraph.GraphType.TerrainObject);
 				}
 			}
 
@@ -505,6 +526,14 @@ namespace RobProductions.VisualTerrain.Editor
 					{
 						RegisterAssetStructureUndo("Toggled Preview Mode");
 						data.currentAsset.SetPreviewMode(previewValue);
+						EditedAsset();
+					}
+
+					var layerValue = GUILayout.Toggle(data.currentAsset.IsLayerOnlyMode(), styles.layerToggleContent, styles.previewButtonStyle);
+					if (layerValue != data.currentAsset.IsLayerOnlyMode())
+					{
+						RegisterAssetStructureUndo("Toggled Layer Only Mode");
+						data.currentAsset.SetLayerOnlyMode(layerValue);
 						EditedAsset();
 					}
 

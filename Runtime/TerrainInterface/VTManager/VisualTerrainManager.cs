@@ -148,8 +148,51 @@ namespace RobProductions.VisualTerrain.Runtime
 			//Create object holders within the manager transform
 			//to hold terrain meshes and placed objects
 			containerInterface.CreateNeededObjectHolders();
+
 			//Create the actual terrain objects if needed
 			terrainInterface.GenerateTerrain();
+
+			//We finished all the generation steps
+			events.onFinishGenerateTerrainEvent?.Invoke(this);
+
+			//TODO: At some point this could work?
+
+			/*
+			if (settingsAsset.setupData.processingSetup.algorithm.threadingType == VTSetupProcessing.AlgorithmThreadingType.DynamicCoroutine)
+			{
+				//Run Coroutine call
+#if UNITY_EDITOR
+				VTEditorCoroutine.Start(InternalGenerateTerrain(true));
+#else
+				StartCoroutine(InternalGenerateTerrain(true));
+#endif
+			}
+			else
+			{
+				//Run blocking call
+				InternalGenerateTerrain(false);
+			}
+			*/
+		}
+
+		IEnumerator InternalGenerateTerrain(bool coroutineYield)
+		{
+			//Create object holders within the manager transform
+			//to hold terrain meshes and placed objects
+			containerInterface.CreateNeededObjectHolders();
+
+			if (coroutineYield)
+			{
+				yield return null;
+			}
+
+			//Create the actual terrain objects if needed
+			terrainInterface.GenerateTerrain();
+
+			if(coroutineYield)
+			{
+				yield return null;
+			}
 
 			//We finished all the generation steps
 			events.onFinishGenerateTerrainEvent?.Invoke(this);

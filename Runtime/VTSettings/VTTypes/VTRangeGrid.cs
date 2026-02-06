@@ -124,6 +124,28 @@ namespace RobProductions.VisualTerrain.Runtime
 
 	public static class VTRangeGridUtilities
 	{
+		public static VTRangeGrid ResampleToResolution(this VTRangeGrid grid, int newWidth, int newHeight)
+		{
+			VTRangeGrid retGrid = new VTRangeGrid(newWidth, newHeight);
+			for(int y = 0; y < retGrid.Height; y++)
+			{
+				for(int x = 0; x < retGrid.Width; x++)
+				{
+					var samplePercentX = (float)x / (float)retGrid.Width;
+					var samplePercentY = (float)y / (float)retGrid.Height;
+
+					var samplePointX = Mathf.FloorToInt(Mathf.InverseLerp(0.0f, (float)grid.Width, samplePercentX));
+					var samplePointY = Mathf.FloorToInt(Mathf.InverseLerp(0.0f, (float)grid.Height, samplePercentY));
+
+					var value = grid.GetRangeValue(samplePointX, samplePointY);
+
+					retGrid.SetRangeValue(x, y, value);
+				}
+			}
+
+			return retGrid;
+		}
+
 		public static VTRangeGrid FillRangeGridWithValue(this VTRangeGrid grid, float value)
 		{
 			for (int x = 0; x < grid.Width; x++)
