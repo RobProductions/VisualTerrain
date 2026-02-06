@@ -25,6 +25,7 @@ namespace RobProductions.VisualTerrain.Editor
 			public GUIContent moreOptionsContent;
 			public GUIContent displayPropertiesContent;
 			public GUIContent previewToggleContent;
+			public GUIContent layerToggleContent;
 
 			public EditorWindowStyles()
 			{
@@ -34,6 +35,8 @@ namespace RobProductions.VisualTerrain.Editor
 				displayPropertiesContent.tooltip = "Toggle properties panel display.";
 				previewToggleContent = EditorGUIUtility.IconContent("ViewToolOrbit@2x");
 				previewToggleContent.tooltip = "Toggle preview mode.";
+				layerToggleContent = EditorGUIUtility.IconContent("SceneViewFX@2x");
+				layerToggleContent.tooltip = "Toggle layer only mode.";
 
 				propertiesButtonStyle = new GUIStyle(EditorStyles.toolbarButton);
 				moreOptionsButtonStyle = new GUIStyle(EditorStyles.toolbarSearchField);
@@ -335,14 +338,17 @@ namespace RobProductions.VisualTerrain.Editor
 				if (data.currentGraphScreen == VTGraphScreen.Heightmap)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.heightmapGraph;
+					data.currentAsset.SetCurrentLayer(VTGraph.GraphType.Height);
 				}
 				else if (data.currentGraphScreen == VTGraphScreen.Texture)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.textureGraph;
+					data.currentAsset.SetCurrentLayer(VTGraph.GraphType.Texture);
 				}
 				else if (data.currentGraphScreen == VTGraphScreen.TerrainObject)
 				{
 					finalDisplayGraph = data.currentAsset.generationData.terrainObjectGraph;
+					data.currentAsset.SetCurrentLayer(VTGraph.GraphType.TerrainObject);
 				}
 			}
 
@@ -520,6 +526,14 @@ namespace RobProductions.VisualTerrain.Editor
 					{
 						RegisterAssetStructureUndo("Toggled Preview Mode");
 						data.currentAsset.SetPreviewMode(previewValue);
+						EditedAsset();
+					}
+
+					var layerValue = GUILayout.Toggle(data.currentAsset.IsLayerOnlyMode(), styles.layerToggleContent, styles.previewButtonStyle);
+					if (layerValue != data.currentAsset.IsLayerOnlyMode())
+					{
+						RegisterAssetStructureUndo("Toggled Layer Only Mode");
+						data.currentAsset.SetLayerOnlyMode(layerValue);
 						EditedAsset();
 					}
 

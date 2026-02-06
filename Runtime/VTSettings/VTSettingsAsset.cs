@@ -42,6 +42,17 @@ namespace RobProductions.VisualTerrain.Runtime
 			/// </summary>
 			public bool previewMode = true;
 
+			/// <summary>
+			/// When enabled, we will only calculate the selected
+			/// layer's graph data and apply it to the terrain objects.
+			/// </summary>
+			public bool layerOnlyMode = false;
+
+			/// <summary>
+			/// The current graph that we're analyzing/working on.
+			/// </summary>
+			public VTGraph.GraphType currentAssetLayer = VTGraph.GraphType.Height;
+
 			public AssetEditorSetup editorSetup = new AssetEditorSetup();
 			public VTSetupTerrain terrainSetup = new VTSetupTerrain();
 			public VTSetupTerrainObject terrainObjectSetup = new VTSetupTerrainObject();
@@ -118,11 +129,36 @@ namespace RobProductions.VisualTerrain.Runtime
 			return setupData.previewMode;
 		}
 
+		public bool IsLayerOnlyMode()
+		{
+			return setupData.layerOnlyMode;
+		}
+
+		public bool DoCalculateLayer(VTGraph.GraphType layerType)
+		{
+			if(!setupData.layerOnlyMode)
+			{
+				return true;
+			}
+
+			return (setupData.currentAssetLayer == layerType);
+		}
+
 		//SETTERS
 
 		public void SetPreviewMode(bool v)
 		{
 			setupData.previewMode = v;
+		}
+
+		public void SetLayerOnlyMode(bool v)
+		{
+			setupData.layerOnlyMode = v;
+		}
+
+		public void SetCurrentLayer(VTGraph.GraphType layerType)
+		{
+			setupData.currentAssetLayer = layerType;
 		}
 
 		/// <summary>

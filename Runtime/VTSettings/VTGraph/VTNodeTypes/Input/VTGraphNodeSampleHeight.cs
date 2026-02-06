@@ -24,22 +24,34 @@ namespace RobProductions.VisualTerrain.Runtime
 			{
 				if(settings.contextAsset != null)
 				{
+					VTRangeGrid outputGrid;
+
 					//Attempt to pull from existing cache texture
 					if(settings.thumbnailMode && !settings.contextAsset.generationData.cachedThumbHeightmapGrid.IsNullOrEmpty())
 					{
-						output.SetRangeGridValue(settings.contextAsset.generationData.cachedThumbHeightmapGrid);
+						outputGrid = settings.contextAsset.generationData.cachedThumbHeightmapGrid;
 					}
 					else if (!settings.thumbnailMode && !settings.contextAsset.generationData.cachedHeightmapGrid.IsNullOrEmpty())
 					{
-						output.SetRangeGridValue(settings.contextAsset.generationData.cachedHeightmapGrid);
+						outputGrid = settings.contextAsset.generationData.cachedHeightmapGrid;
 					}
 					else
 					{
 						//If there was no cache, let's fully calculate the heightmap
 						//This will also set the asset cache so future process calls will be able to use the cached value
-						var heightmap = VTGraphValueInterface.GetGraphHeightmapTexture(settings.contextAsset.generationData.heightmapGraph, settings);
-						output.SetRangeGridValue(heightmap);
+						outputGrid = VTGraphValueInterface.GetGraphHeightmapTexture(settings.contextAsset.generationData.heightmapGraph, settings);
 					}
+
+					if(!outputGrid.IsNullOrEmpty())
+					{
+						if (outputGrid.Width != settings.textureGenResolutionNumber || outputGrid.Height != settings.textureGenResolutionNumber)
+						{
+							//We have a mismatched resolution which will cause problems down the line
+							outputGrid = outputGrid.ResampleToResolution(settings.textureGenResolutionNumber, settings.textureGenResolutionNumber);
+						}
+					}
+
+					output.SetRangeGridValue(outputGrid);
 				}
 			}
 		}
