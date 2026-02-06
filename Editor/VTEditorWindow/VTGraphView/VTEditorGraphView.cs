@@ -1013,6 +1013,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Mask Node/Combine Mask"), false, () => CreateNodeAtPosition<VTGraphNodeCombineMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Angle Mask"), false, () => CreateNodeAtPosition<VTGraphNodeAngleMask>(mousePosition));
 			menu.AddItem(new GUIContent("Add Mask Node/Range Mask"), false, () => CreateNodeAtPosition<VTGraphNodeRangeMask>(mousePosition));
+			menu.AddItem(new GUIContent("Add Mask Node/Indent Mask"), false, () => CreateNodeAtPosition<VTGraphNodeIndentMask>(mousePosition));
 
 			//Filter
 			menu.AddItem(new GUIContent("Add Filter Node/Box Blur"), false, () => CreateNodeAtPosition<VTGraphNodeBlur>(mousePosition));
