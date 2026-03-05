@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeSimpleNoise : VTGraphNode
 	{
 		public override string NodeTitle => "Simple Noise";

@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeGroupShape : VTGraphNode
 	{
 		public override string NodeTitle => "Group Shape";

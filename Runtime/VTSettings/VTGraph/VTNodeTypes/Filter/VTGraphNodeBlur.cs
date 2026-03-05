@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeBlur : VTGraphNode
 	{
 		public override string NodeTitle => "Box Blur";

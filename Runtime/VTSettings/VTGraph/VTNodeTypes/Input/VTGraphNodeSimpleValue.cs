@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
-    public class VTGraphNodeSimpleValue : VTGraphNode
+	[System.Serializable]
+	public class VTGraphNodeSimpleValue : VTGraphNode
     {
 		public override string NodeTitle => "Simple Value";
 		public override bool HasNodeProperties => true;

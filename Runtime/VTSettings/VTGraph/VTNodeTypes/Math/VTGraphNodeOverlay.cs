@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeOverlay : VTGraphNode
 	{
 		public override string NodeTitle => "Overlay";

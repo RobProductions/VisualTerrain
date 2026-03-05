@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeRangeMask : VTGraphNode
 	{
 		public override string NodeTitle => "Range Mask";
