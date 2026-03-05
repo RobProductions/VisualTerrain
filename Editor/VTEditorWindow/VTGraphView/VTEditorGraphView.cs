@@ -215,7 +215,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			if(mainPanel.GetMainSettingsAsset() != null && !mainPanel.GetMainSettingsAsset().setupData.editorSetup.imageGenInPlaymode)
 			{
-				if(Application.isPlaying)
+				if(EditorApplication.isPlayingOrWillChangePlaymode)
 				{
 					//Don't run in playmode
 					return;
