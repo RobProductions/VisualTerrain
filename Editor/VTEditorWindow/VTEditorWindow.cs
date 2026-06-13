@@ -475,7 +475,7 @@ namespace RobProductions.VisualTerrain.Editor
 
 				if(parentWindow.data.currentAsset != null)
 				{
-					if(GUILayout.Button("Clear Asset"))
+					if(GUILayout.Button("Deselect Asset"))
 					{
 						parentWindow.ClearVTSettingsAsset();
 					}
