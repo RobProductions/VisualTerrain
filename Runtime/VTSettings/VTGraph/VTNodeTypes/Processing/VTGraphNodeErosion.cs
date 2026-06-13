@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeErosion : VTGraphNode
 	{
 		public override string NodeTitle => "Erosion";

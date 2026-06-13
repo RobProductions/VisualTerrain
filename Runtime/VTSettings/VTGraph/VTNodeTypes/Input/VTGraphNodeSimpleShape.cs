@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeSimpleShape : VTGraphNode
 	{
 		public override string NodeTitle => "Simple Shape";

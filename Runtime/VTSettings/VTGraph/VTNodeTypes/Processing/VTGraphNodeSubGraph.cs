@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeSubGraph : VTGraphNode
 	{
 		public override string NodeTitle => "Sub Graph";

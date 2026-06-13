@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace RobProductions.VisualTerrain.Runtime
 {
+	[System.Serializable]
 	public class VTGraphNodeCombineMask : VTGraphNode
 	{
 		public override string NodeTitle => "Combine Mask";

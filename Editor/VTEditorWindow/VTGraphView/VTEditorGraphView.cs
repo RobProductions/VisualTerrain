@@ -215,7 +215,7 @@ namespace RobProductions.VisualTerrain.Editor
 			}
 			if(mainPanel.GetMainSettingsAsset() != null && !mainPanel.GetMainSettingsAsset().setupData.editorSetup.imageGenInPlaymode)
 			{
-				if(Application.isPlaying)
+				if(EditorApplication.isPlayingOrWillChangePlaymode)
 				{
 					//Don't run in playmode
 					return;
@@ -1008,6 +1008,7 @@ namespace RobProductions.VisualTerrain.Editor
 			menu.AddItem(new GUIContent("Add Math Node/Overlay"), false, () => CreateNodeAtPosition<VTGraphNodeOverlay>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Remap"), false, () => CreateNodeAtPosition<VTGraphNodeRemap>(mousePosition));
 			menu.AddItem(new GUIContent("Add Math Node/Translation"), false, () => CreateNodeAtPosition<VTGraphNodeTranslation>(mousePosition));
+			menu.AddItem(new GUIContent("Add Math Node/Tiling"), false, () => CreateNodeAtPosition<VTGraphNodeTiling>(mousePosition));
 
 			//Mask
 			menu.AddItem(new GUIContent("Add Mask Node/Combine Mask"), false, () => CreateNodeAtPosition<VTGraphNodeCombineMask>(mousePosition));
